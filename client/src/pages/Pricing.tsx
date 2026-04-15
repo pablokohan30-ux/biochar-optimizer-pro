@@ -252,7 +252,7 @@ export default function Pricing() {
             </div>
             <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
               <CarbonForumPassButton />
-              <p className="text-[10px] text-center md:text-right text-muted-foreground max-w-[180px]">
+              <p className="text-xs text-center md:text-right text-muted-foreground max-w-[220px] leading-snug">
                 {t("pricing:carbonForumPromo.shareHint")}
               </p>
             </div>

@@ -162,7 +162,7 @@ const MODULES = [
 
 
 export default function Landing() {
-  const { t } = useTranslation(["landing", "common"]);
+  const { t } = useTranslation(["landing", "common", "pricing"]);
   const [openModule, setOpenModule] = useState<string | null>(null);
 
   // Demo data for landing-page charts (Pine Sawdust, 650°C, 30 min)
@@ -706,8 +706,8 @@ export default function Landing() {
               </div>
               <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
                 <CarbonForumPassButton />
-                <p className="text-[10px] text-center md:text-right text-muted-foreground max-w-[180px]">
-                  $100 · or share on LinkedIn / X to pay $50
+                <p className="text-xs text-center md:text-right text-muted-foreground max-w-[220px] leading-snug">
+                  {t("pricing:carbonForumPromo.shareHint")}
                 </p>
               </div>
             </div>
