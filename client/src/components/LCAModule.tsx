@@ -387,7 +387,7 @@ export default function LCAModule({
                 type="button"
                 onClick={reset}
                 className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
-                title="Reset to MAF Corrientes defaults"
+                title="Reset to reference defaults"
               >
                 <RotateCcw className="w-3 h-3" /> Reset
               </button>

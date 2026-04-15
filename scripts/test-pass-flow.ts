@@ -8,8 +8,8 @@
  * exercises only the pure + DB layers.
  *
  * What it covers end-to-end:
- *   1. PASSES array integrity (non-empty, valid fields)
- *   2. getPassByPromoCode — valid + invalid codes
+ *   1. PASSES array integrity (both full and social variants exist, correct prices)
+ *   2. isValidSocialShareUrl — domain validation for LinkedIn / X / Twitter
  *   3. Stripe test-mode: create customer + one-time price + checkout session
  *   4. Simulate webhook: set subscriptionTier + accessExpiresAt on a test user
  *   5. Simulate getMyTier read — user should appear as "analyst"+"active" with expiry
@@ -24,7 +24,7 @@ import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 import { getDb } from "../server/db";
 import { users } from "../drizzle/schema";
-import { PASSES, getPassByPromoCode } from "../server/stripeProducts";
+import { PASSES, getPassById, isValidSocialShareUrl } from "../server/stripeProducts";
 
 const TEST_EMAIL = `passtest-${Date.now()}@biochar.test`;
 const RED = "\x1b[31m";
@@ -59,27 +59,40 @@ function expect(cond: boolean, msg: string, details?: unknown) {
 // ─── 1. PASSES array integrity ──────────────────────────────────────────────
 section("1. PASSES array integrity");
 
-expect(PASSES.length > 0, "PASSES array is non-empty");
+expect(PASSES.length >= 2, "PASSES array has at least 2 entries (full + social)");
 
-const carbonForum = PASSES.find((p) => p.id === "carbon_forum_2026");
-expect(!!carbonForum, "carbon_forum_2026 pass exists");
+const carbonForum = getPassById("carbon_forum_2026_full");
+expect(!!carbonForum, "carbon_forum_2026_full pass exists");
+const carbonForumSocial = getPassById("carbon_forum_2026_social");
+expect(!!carbonForumSocial, "carbon_forum_2026_social pass exists");
 
 if (carbonForum) {
-  expect(carbonForum.priceUsd === 50, `priceUsd === 50 (got ${carbonForum.priceUsd})`);
-  expect(carbonForum.durationDays === 30, `durationDays === 30 (got ${carbonForum.durationDays})`);
-  expect(carbonForum.grantsTier === "analyst", `grantsTier === 'analyst' (got ${carbonForum.grantsTier})`);
-  expect(carbonForum.promoCode === "CARBONFORUM50", `promoCode === 'CARBONFORUM50' (got ${carbonForum.promoCode})`);
-  expect(typeof carbonForum.lookupKey === "string" && carbonForum.lookupKey.length > 0, "lookupKey is a non-empty string");
+  expect(carbonForum.priceUsd === 100, `full priceUsd === 100 (got ${carbonForum.priceUsd})`);
+  expect(carbonForum.durationDays === 30, `full durationDays === 30 (got ${carbonForum.durationDays})`);
+  expect(carbonForum.grantsTier === "analyst", `full grantsTier === 'analyst' (got ${carbonForum.grantsTier})`);
+  expect(!carbonForum.requiresSocialProof, "full pass does NOT require social proof");
+  expect(typeof carbonForum.lookupKey === "string" && carbonForum.lookupKey.length > 0, "full lookupKey is a non-empty string");
 }
 
-// ─── 2. getPassByPromoCode ──────────────────────────────────────────────────
-section("2. getPassByPromoCode");
+if (carbonForumSocial) {
+  expect(carbonForumSocial.priceUsd === 50, `social priceUsd === 50 (got ${carbonForumSocial.priceUsd})`);
+  expect(carbonForumSocial.durationDays === 30, `social durationDays === 30 (got ${carbonForumSocial.durationDays})`);
+  expect(carbonForumSocial.grantsTier === "analyst", `social grantsTier === 'analyst' (got ${carbonForumSocial.grantsTier})`);
+  expect(carbonForumSocial.requiresSocialProof === true, "social pass requires social proof");
+  expect(carbonForumSocial.lookupKey !== carbonForum?.lookupKey, "social lookupKey differs from full");
+}
 
-expect(getPassByPromoCode("CARBONFORUM50")?.id === "carbon_forum_2026", "valid code resolves to carbon_forum_2026");
-expect(getPassByPromoCode("carbonforum50")?.id === "carbon_forum_2026", "code is case-insensitive");
-expect(getPassByPromoCode("  CARBONFORUM50  ")?.id === "carbon_forum_2026", "code is whitespace-trimmed");
-expect(getPassByPromoCode("WRONGCODE") === undefined, "invalid code returns undefined");
-expect(getPassByPromoCode("") === undefined, "empty code returns undefined");
+// ─── 2. isValidSocialShareUrl ───────────────────────────────────────────────
+section("2. isValidSocialShareUrl");
+
+expect(isValidSocialShareUrl("https://www.linkedin.com/posts/pablo_biochar-activity-123"), "LinkedIn post URL is valid");
+expect(isValidSocialShareUrl("https://linkedin.com/feed/update/urn:li:activity:123"), "LinkedIn URL without www is valid");
+expect(isValidSocialShareUrl("https://x.com/someone/status/1234567890"), "X post URL is valid");
+expect(isValidSocialShareUrl("https://twitter.com/someone/status/1234567890"), "twitter.com URL is valid");
+expect(!isValidSocialShareUrl("https://facebook.com/post/123"), "Facebook URL is rejected");
+expect(!isValidSocialShareUrl("not-a-url"), "non-URL is rejected");
+expect(!isValidSocialShareUrl(""), "empty string is rejected");
+expect(!isValidSocialShareUrl("javascript:alert(1)"), "javascript: URL is rejected");
 
 // ─── 3. Stripe test-mode API calls ──────────────────────────────────────────
 section("3. Stripe test-mode (live API)");
@@ -138,7 +151,7 @@ if (!stripeKey) {
         customer: customer.id,
         mode: "payment",
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: "http://localhost:3000/app?pass=carbon_forum_2026",
+        success_url: "http://localhost:3000/app?pass=carbon_forum_2026_full",
         cancel_url: "http://localhost:3000/pricing",
         client_reference_id: "smoke-test",
         metadata: {
@@ -151,7 +164,7 @@ if (!stripeKey) {
       createdSessionId = session.id;
       expect(session.mode === "payment", `checkout session mode === 'payment' (got ${session.mode})`);
       expect(typeof session.url === "string" && session.url.includes("checkout.stripe.com"), "checkout session URL is a Stripe URL");
-      expect(session.amount_total === 5000, `session amount_total === 5000 cents (got ${session.amount_total})`);
+      expect(session.amount_total === 10000, `session amount_total === 10000 cents (got ${session.amount_total})`);
     }
   } catch (err) {
     fail("Stripe API call threw", (err as Error).message);

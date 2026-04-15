@@ -465,7 +465,7 @@ export function calculateLCA(input: LCAInputs): LCAResult {
 }
 
 // ============================================================================
-// DEFAULT INPUTS — MAF Corrientes reference case (validated against Excel)
+// DEFAULT INPUTS — reference case (validated against Excel)
 // Expected CORCs ≈ 53,946 tCO2eq/yr
 // ============================================================================
 

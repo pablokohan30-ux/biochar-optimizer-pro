@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, Flame, Sparkles, X } from "lucide-react";
 import LogoLink from "@/components/LogoLink";
 import LCAModule from "@/components/LCAModule";
 import SiteFooter from "@/components/SiteFooter";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useTier } from "@/hooks/useTier";
 import { Button } from "@/components/ui/button";
 import type { LCAInputs } from "@/lib/lcaModel";
@@ -72,6 +73,7 @@ export default function LCAPage() {
             <Link href="/projects">
               <Button variant="ghost" size="sm">Projects</Button>
             </Link>
+            <LanguageSwitcher />
           </div>
         </div>
       </nav>
@@ -93,13 +95,13 @@ export default function LCAPage() {
                     Pre-filled from simulator — {prefill.biomassType ?? "custom biomass"}
                   </div>
                   <div className="text-muted-foreground">
-                    Biochar properties (C, H, yield, moisture) loaded from your last simulation. Capacity, transport, energy and infrastructure stay at MAF Corrientes defaults — edit them to match your project.
+                    Biochar properties (C, H, yield, moisture) loaded from your last simulation. Capacity, transport, energy and infrastructure stay at reference defaults — edit them to match your project.
                   </div>
                 </div>
                 <button
                   onClick={handleDismissPrefill}
                   className="text-muted-foreground hover:text-foreground p-0.5"
-                  title="Dismiss — reloads Corrientes defaults"
+                  title="Dismiss — reloads reference defaults"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -126,7 +128,7 @@ export default function LCAPage() {
                 <li>• Permanence Factor lookup (Tabla 6.1)</li>
                 <li>• E_biomass / E_production / E_use / E_emb breakdown</li>
                 <li>• 6 automatic validations (H/C_org, PF, CORCs &gt; 0, etc.)</li>
-                <li>• MAF Corrientes reference case pre-loaded (53,946 tCO₂/yr)</li>
+                <li>• Reference case pre-loaded (53,946 tCO₂/yr)</li>
               </ul>
             </div>
             <Link href="/pricing">
@@ -136,7 +138,7 @@ export default function LCAPage() {
               </Button>
             </Link>
             <p className="text-[10px] text-muted-foreground mt-3">
-              Or grab the <Link href="/pricing"><span className="text-primary hover:underline">Carbon Forum Pass — $50 for 30 days</span></Link>
+              Or grab the <Link href="/pricing"><span className="text-primary hover:underline">Carbon Forum Pass — from $50 for 30 days</span></Link>
             </p>
           </div>
         )}

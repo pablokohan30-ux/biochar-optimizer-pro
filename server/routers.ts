@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import { requireDb, getUserByEmail } from "./db";
 import { users, aiSearchUsage } from "../drizzle/schema";
 import { eq, and, gte, count } from "drizzle-orm";
-import { TIER_PRODUCTS, getPassByPromoCode } from "./stripeProducts";
+import { TIER_PRODUCTS, getPassById, isValidSocialShareUrl } from "./stripeProducts";
 import { sdk } from "./_core/sdk";
 import bcrypt from "bcrypt";
 import { projectsRouter } from "./projectsRouter";
@@ -209,18 +209,34 @@ export const appRouter = router({
     // ─── One-time pass checkout (mode: payment, not subscription) ────────────
     // Used for event promos like the Carbon Forum Pass. Grants time-limited
     // access to a tier without auto-renewal.
+    //
+    // Two variants exist for Carbon Forum Colombia 2026:
+    //   - "carbon_forum_2026_full":   $100, no proof needed
+    //   - "carbon_forum_2026_social": $50, requires a LinkedIn/X post URL
+    //     that the server validates (domain check) before charging.
     createPassCheckout: protectedProcedure
       .input(z.object({
-        passId: z.enum(["carbon_forum_2026"]),
-        promoCode: z.string().min(1),
+        passId: z.enum(["carbon_forum_2026_full", "carbon_forum_2026_social"]),
+        socialProofUrl: z.string().trim().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         if (!stripe) throw new Error("Stripe is not configured");
 
-        // Validate promo code on the server — client gate is not enough.
-        const pass = getPassByPromoCode(input.promoCode);
-        if (!pass || pass.id !== input.passId) {
-          throw new Error("Invalid promo code. This pass requires a valid code.");
+        const pass = getPassById(input.passId);
+        if (!pass) {
+          throw new Error("Unknown pass.");
+        }
+
+        // The social-share variant requires a valid public post URL from an
+        // allowed platform. Honour-system: we don't actually fetch the post,
+        // we just validate the domain and store the URL in Stripe metadata
+        // so the ops team can spot-check later.
+        if (pass.requiresSocialProof) {
+          if (!input.socialProofUrl || !isValidSocialShareUrl(input.socialProofUrl)) {
+            throw new Error(
+              "A valid LinkedIn or X (Twitter) post URL is required to unlock this price."
+            );
+          }
         }
 
         const origin = (ctx.req.headers.origin as string) || "http://localhost:3000";
@@ -266,13 +282,17 @@ export const appRouter = router({
           line_items: [{ price: priceId, quantity: 1 }],
           success_url: `${origin}/app?pass=${pass.id}`,
           cancel_url: `${origin}/pricing`,
-          // Don't allow additional promo codes — the pass is already the promo.
           client_reference_id: ctx.user.id.toString(),
           metadata: {
             user_id: ctx.user.id.toString(),
             pass_id: pass.id,
             grants_tier: pass.grantsTier,
             duration_days: pass.durationDays.toString(),
+            // Store the social share URL for audit trail (empty string if
+            // not applicable — Stripe metadata doesn't accept undefined).
+            social_proof_url: pass.requiresSocialProof && input.socialProofUrl
+              ? input.socialProofUrl
+              : "",
           },
         });
 

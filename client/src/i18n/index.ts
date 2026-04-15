@@ -91,7 +91,7 @@ const resources = {
         badge: "Live preview",
         title: "See it in action",
         subtitle:
-          "Real output from our pyrolysis model running on Pine Sawdust at 650°C, and an LCA on the MAF Corrientes reference case.",
+          "Real output from our pyrolysis model running on Pine Sawdust at 650°C, and an LCA on the reference case.",
         thermalSensitivity: "Thermal Sensitivity",
         qualityProfile: "Quality Profile",
         tryInSimulator: "Try in simulator",
@@ -125,7 +125,8 @@ const resources = {
         limitedTime: "Limited time",
         title: "Carbon Forum Pass —",
         access30days: "30-day full Analyst access",
-        codeLabel: "Code",
+        orShareToSave: "or $50 if you share about us",
+        shareHint: "$100 · or share on LinkedIn/X to pay $50",
         features: {
           simulator: "Pyrolysis simulator",
           optimizer: "T°/time optimizer",
@@ -170,12 +171,11 @@ const resources = {
         a2:
           "Everything in the free tier plus the T°/time optimizer, PDF report export, Project Manager with geographic data, the Puro.earth Ed. 2025 LCA module, an Excel / Google Sheets LCA template and EBC / Puro.earth / Isometric compliance analysis.",
         q3: "How does the Carbon Forum Pass work?",
-        a3Before: "A one-time $50 payment gives you 30 days of full Analyst access. Click ",
+        a3Before:
+          "A one-time $100 payment gives you 30 days of full Analyst access. Click ",
         a3Button: "Get the Carbon Forum Pass",
-        a3Middle: ", enter code ",
-        a3Code: "CARBONFORUM50",
-        a3After:
-          " to unlock the $50 price, and you'll be redirected to Stripe Checkout. No auto-renew — if you want to keep using the platform after 30 days, you subscribe normally.",
+        a3Middle:
+          " to pay $100 directly — or post about us on LinkedIn / X and paste the URL in the modal to unlock the price at $50 instead. Either way you're redirected to Stripe Checkout. No auto-renew — if you want to keep using the platform after 30 days, you subscribe normally.",
         q4: "Is my data used to train AI models?",
         a4Before:
           "Never. Your simulations, projects and uploaded biomass data are yours. We don't sell them and we don't use them to train third-party AI models. See the ",
@@ -235,15 +235,22 @@ const resources = {
       bullet30Days: "30 days of full Analyst access",
       bulletNoRenew: "No auto-renewal — one-time payment",
       bulletFeatures: "T°/time optimizer, LCA, PDF export, Project Manager",
-      promoCode: "Promo code",
-      promoCodeHint: "Find this code on the Carbon Forum Colombia 2026 promo card.",
       total: "Total",
       oneTime: "one-time",
-      continueToCheckout: "Continue to checkout",
+      shareSaveTitle: "Share & save $50",
+      shareSaveHint:
+        "Post about us on LinkedIn or X and paste the URL below to unlock the $50 price instead of $100.",
+      pasteUrlLabel: "Paste the post URL",
+      pasteUrlHint: "Must be a public post on LinkedIn or X (Twitter).",
+      discountUnlocked: "$50 discount unlocked",
+      continueAt100: "Get the Pass — $100",
+      continueAt50: "Get the Pass — $50",
       redirecting: "Redirecting to checkout…",
       stripeNote: "Payment processed by Stripe. Access expires automatically after 30 days.",
-      invalidCode:
-        "Invalid promo code. The Carbon Forum Pass requires the code shown on-site.",
+      invalidShareUrl:
+        "That doesn't look like a valid LinkedIn or X post URL. Please paste the full link to your public post.",
+      shareTemplate:
+        "Just found Biochar Optimizer Pro — an AI-powered simulator for designing biochar CDR projects aligned with the Puro.earth 2025 methodology. See you at Carbon Forum Colombia 2026! #biochar #CDR #carbonremoval",
     },
 
     upgrade: {
@@ -316,7 +323,7 @@ const resources = {
         badge: "Vista previa en vivo",
         title: "Vélo en acción",
         subtitle:
-          "Resultados reales de nuestro modelo de pirólisis corriendo sobre aserrín de pino a 650 °C, y un LCA sobre el caso de referencia MAF Corrientes.",
+          "Resultados reales de nuestro modelo de pirólisis corriendo sobre aserrín de pino a 650 °C, y un LCA sobre el caso de referencia.",
         thermalSensitivity: "Sensibilidad térmica",
         qualityProfile: "Perfil de calidad",
         tryInSimulator: "Probá en el simulador",
@@ -350,7 +357,8 @@ const resources = {
         limitedTime: "Tiempo limitado",
         title: "Carbon Forum Pass —",
         access30days: "30 días de acceso completo Analyst",
-        codeLabel: "Código",
+        orShareToSave: "o $50 si compartís sobre nosotros",
+        shareHint: "$100 · o compartí en LinkedIn/X y pagás $50",
         features: {
           simulator: "Simulador de pirólisis",
           optimizer: "Optimizador T°/tiempo",
@@ -396,12 +404,11 @@ const resources = {
         a2:
           "Todo lo del plan gratuito más el optimizador de T°/tiempo, exportación de reportes en PDF, Administrador de Proyectos con datos geográficos, el módulo de LCA Puro.earth Ed. 2025, una plantilla de LCA en Excel / Google Sheets y análisis de cumplimiento EBC / Puro.earth / Isometric.",
         q3: "¿Cómo funciona el Carbon Forum Pass?",
-        a3Before: "Un pago único de $50 te da 30 días de acceso completo Analyst. Hacé clic en ",
+        a3Before:
+          "Un pago único de $100 te da 30 días de acceso completo Analyst. Hacé clic en ",
         a3Button: "Obtené el Carbon Forum Pass",
-        a3Middle: ", ingresá el código ",
-        a3Code: "CARBONFORUM50",
-        a3After:
-          " para desbloquear el precio de $50, y te redirigimos al Checkout de Stripe. Sin renovación automática — si querés seguir usando la plataforma después de 30 días, te suscribís normalmente.",
+        a3Middle:
+          " para pagar $100 directo — o publicá sobre nosotros en LinkedIn / X y pegá el link en el modal para desbloquear el precio de $50. En cualquier caso te redirigimos al Checkout de Stripe. Sin renovación automática — si querés seguir usando la plataforma después de 30 días, te suscribís normalmente.",
         q4: "¿Se usan mis datos para entrenar modelos de IA?",
         a4Before:
           "Nunca. Tus simulaciones, proyectos y datos de biomasa cargados son tuyos. No los vendemos y no los usamos para entrenar modelos de IA de terceros. Mirá la ",
@@ -461,15 +468,22 @@ const resources = {
       bullet30Days: "30 días de acceso completo Analyst",
       bulletNoRenew: "Sin renovación automática — pago único",
       bulletFeatures: "Optimizador T°/tiempo, LCA, exportación PDF, Administrador de Proyectos",
-      promoCode: "Código promocional",
-      promoCodeHint: "Buscá este código en la tarjeta promocional del Carbon Forum Colombia 2026.",
       total: "Total",
       oneTime: "pago único",
-      continueToCheckout: "Continuar al checkout",
+      shareSaveTitle: "Compartí y ahorrá $50",
+      shareSaveHint:
+        "Publicá sobre nosotros en LinkedIn o X, pegá el link del post acá abajo y desbloqueás el precio de $50 en vez de $100.",
+      pasteUrlLabel: "Pegá el link del post",
+      pasteUrlHint: "Tiene que ser un post público en LinkedIn o X (Twitter).",
+      discountUnlocked: "Descuento de $50 desbloqueado",
+      continueAt100: "Obtener el Pass — $100",
+      continueAt50: "Obtener el Pass — $50",
       redirecting: "Redirigiendo al checkout…",
       stripeNote: "Pago procesado por Stripe. El acceso expira automáticamente a los 30 días.",
-      invalidCode:
-        "Código promocional inválido. El Carbon Forum Pass requiere el código que aparece en el evento.",
+      invalidShareUrl:
+        "Eso no parece un link válido de LinkedIn o X. Pegá la URL completa del post público.",
+      shareTemplate:
+        "Acabo de descubrir Biochar Optimizer Pro — un simulador con IA para diseñar proyectos de biochar CDR alineado con la metodología Puro.earth 2025. ¡Nos vemos en Carbon Forum Colombia 2026! #biochar #CDR #carbonremoval",
     },
 
     upgrade: {

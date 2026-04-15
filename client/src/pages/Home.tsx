@@ -890,7 +890,7 @@ export default function Home() {
                   type="text"
                   value={projectName}
                   onChange={e => setProjectName(e.target.value)}
-                  placeholder="e.g. Corrientes Plant #1"
+                  placeholder="e.g. My First Biochar Plant"
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>

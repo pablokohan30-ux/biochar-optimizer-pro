@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Home } from "lucide-react";
 import { useLocation } from "wouter";
 import SiteFooter from "@/components/SiteFooter";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function NotFound() {
   const [, setLocation] = useLocation();
@@ -13,6 +14,9 @@ export default function NotFound() {
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-background">
+      <div className="flex justify-end px-4 pt-4">
+        <LanguageSwitcher />
+      </div>
       <div className="flex-1 flex items-center justify-center">
         <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-card/80 backdrop-blur-sm">
           <CardContent className="pt-8 pb-8 text-center">

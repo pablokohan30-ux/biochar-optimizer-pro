@@ -71,8 +71,13 @@ export function hasAccess(userTier: string, requiredTier: TierId, subscriptionSt
 // ─── One-time passes (not subscriptions) ────────────────────────────────────
 // Passes grant time-limited access to a specific tier without auto-renewal.
 // Used for event promos like the Carbon Forum Colombia 2026 launch.
+//
+// Carbon Forum Colombia 2026 has two variants:
+//   - "_full":   $100 base price, no strings attached
+//   - "_social": $50 unlocked by sharing a post about us on LinkedIn/X
+//                (client submits the share URL, server validates the domain)
 
-export type PassId = "carbon_forum_2026";
+export type PassId = "carbon_forum_2026_full" | "carbon_forum_2026_social";
 
 export interface PassProduct {
   id: PassId;
@@ -80,21 +85,30 @@ export interface PassProduct {
   priceUsd: number;          // one-time charge in USD
   durationDays: number;      // how many days of access this unlocks
   grantsTier: TierId;        // which tier the pass maps to
-  promoCode: string;         // client-side gate code shown in marketing
   description: string;
-  lookupKey: string;         // Stripe price lookup_key
+  lookupKey: string;         // Stripe price lookup_key — must be unique per price
+  requiresSocialProof?: boolean;  // true for the "_social" variant
 }
 
 export const PASSES: PassProduct[] = [
   {
-    id: "carbon_forum_2026",
+    id: "carbon_forum_2026_full",
     name: "Carbon Forum Pass",
+    priceUsd: 100,
+    durationDays: 30,
+    grantsTier: "analyst",
+    description: "30-day full Analyst access — Carbon Forum Colombia 2026 launch special.",
+    lookupKey: "biochar_pass_carbon_forum_2026_full",
+  },
+  {
+    id: "carbon_forum_2026_social",
+    name: "Carbon Forum Pass (Social Share)",
     priceUsd: 50,
     durationDays: 30,
     grantsTier: "analyst",
-    promoCode: "CARBONFORUM50",
-    description: "30-day full Analyst access — Carbon Forum Colombia 2026 launch special.",
-    lookupKey: "biochar_pass_carbon_forum_2026",
+    description: "30-day full Analyst access — unlocked by sharing about us on LinkedIn or X.",
+    lookupKey: "biochar_pass_carbon_forum_2026_social",
+    requiresSocialProof: true,
   },
 ];
 
@@ -102,7 +116,27 @@ export function getPassById(id: string): PassProduct | undefined {
   return PASSES.find((p) => p.id === id);
 }
 
-export function getPassByPromoCode(code: string): PassProduct | undefined {
-  const normalized = code.trim().toUpperCase();
-  return PASSES.find((p) => p.promoCode.toUpperCase() === normalized);
+/**
+ * Any pass whose id starts with `carbon_forum_2026` is part of the Colombia
+ * 2026 launch family — used for banners / analytics that don't care about
+ * the specific variant.
+ */
+export function isCarbonForumPass(id: string): boolean {
+  return id.startsWith("carbon_forum_2026");
+}
+
+/**
+ * Server-side validator for the social share proof URL. Only accepts links
+ * from LinkedIn, X or Twitter — the hosts we actually expect users to post
+ * from. Anything else is rejected even if the URL is syntactically valid.
+ */
+export function isValidSocialShareUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    const host = url.host.toLowerCase().replace(/^www\./, "");
+    return host === "linkedin.com" || host === "x.com" || host === "twitter.com";
+  } catch {
+    return false;
+  }
 }

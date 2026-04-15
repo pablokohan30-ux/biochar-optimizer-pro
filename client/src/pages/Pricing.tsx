@@ -234,7 +234,11 @@ export default function Pricing() {
                 </div>
               </div>
               <h2 className="text-xl md:text-2xl font-bold mb-1">
-                {t("pricing:carbonForumPromo.title")} <span className="text-green-600 dark:text-green-400">$50</span>
+                {t("pricing:carbonForumPromo.title")}{" "}
+                <span className="text-foreground">$100</span>
+                <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
+                  {t("pricing:carbonForumPromo.orShareToSave")}
+                </span>
                 <span className="text-xs text-muted-foreground font-normal ml-2">{t("pricing:carbonForumPromo.access30days")}</span>
               </h2>
               <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
@@ -248,8 +252,8 @@ export default function Pricing() {
             </div>
             <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
               <CarbonForumPassButton />
-              <p className="text-[10px] text-center md:text-right text-muted-foreground">
-                {t("pricing:carbonForumPromo.codeLabel")} <span className="font-mono font-bold">CARBONFORUM50</span>
+              <p className="text-[10px] text-center md:text-right text-muted-foreground max-w-[180px]">
+                {t("pricing:carbonForumPromo.shareHint")}
               </p>
             </div>
           </div>
@@ -380,7 +384,7 @@ export default function Pricing() {
             <div className="bg-card border border-border rounded-lg p-4">
               <div className="text-sm font-semibold mb-1.5">{t("pricing:faq.q3")}</div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {t("pricing:faq.a3Before")}<span className="font-semibold text-foreground">{t("pricing:faq.a3Button")}</span>{t("pricing:faq.a3Middle")}<span className="font-mono font-semibold text-foreground">{t("pricing:faq.a3Code")}</span>{t("pricing:faq.a3After")}
+                {t("pricing:faq.a3Before")}<span className="font-semibold text-foreground">{t("pricing:faq.a3Button")}</span>{t("pricing:faq.a3Middle")}
               </p>
             </div>
             <div className="bg-card border border-border rounded-lg p-4">

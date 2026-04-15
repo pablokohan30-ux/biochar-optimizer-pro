@@ -5,7 +5,8 @@ import { trpc } from "@/lib/trpc";
 /**
  * Full-width banner shown at the top of /app after a successful Carbon Forum Pass checkout.
  *
- * Trigger: URL param `?pass=carbon_forum_2026` (set by Stripe success_url in createPassCheckout).
+ * Trigger: URL param `?pass=carbon_forum_2026_full` or `?pass=carbon_forum_2026_social`
+ *          (set by Stripe success_url in createPassCheckout).
  *
  * On mount:
  *   1. Parses the query string; bails out if `pass` is missing
@@ -52,7 +53,7 @@ export default function PassActivatedBanner() {
     : null;
 
   // Nice human name — in the future if we add more passes, map here.
-  const passName = passId === "carbon_forum_2026" ? "Carbon Forum Pass" : "Pass";
+  const passName = passId && passId.startsWith("carbon_forum_2026") ? "Carbon Forum Pass" : "Pass";
 
   return (
     <div className="relative bg-gradient-to-r from-green-500/15 via-emerald-500/10 to-green-500/15 border-b border-green-500/30">

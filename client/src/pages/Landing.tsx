@@ -431,7 +431,7 @@ export default function Landing() {
                   <h3 className="text-xs font-bold text-muted-foreground">LCA — Puro.earth Ed. 2025</h3>
                 </div>
                 <div className="text-[10px] text-muted-foreground mb-3">
-                  Reference case: <span className="font-semibold text-foreground">MAF Corrientes</span> · 74,880 t/yr forestry residues · 650°C pyrolysis
+                  Reference case · 74,880 t/yr forestry residues · 650°C pyrolysis
                 </div>
 
                 {/* CORCs Hero */}
@@ -689,7 +689,10 @@ export default function Landing() {
                   </div>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold mb-1">
-                  Carbon Forum Pass — <span className="text-green-600 dark:text-green-400">$50</span>
+                  Carbon Forum Pass — <span className="text-foreground">$100</span>
+                  <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
+                    or $50 if you share about us
+                  </span>
                   <span className="text-xs text-muted-foreground font-normal ml-2">30-day full Analyst access</span>
                 </h3>
                 <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
@@ -703,8 +706,8 @@ export default function Landing() {
               </div>
               <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
                 <CarbonForumPassButton />
-                <p className="text-[10px] text-center md:text-right text-muted-foreground">
-                  Code <span className="font-mono font-bold">CARBONFORUM50</span>
+                <p className="text-[10px] text-center md:text-right text-muted-foreground max-w-[180px]">
+                  $100 · or share on LinkedIn / X to pay $50
                 </p>
               </div>
             </div>

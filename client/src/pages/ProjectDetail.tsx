@@ -7,6 +7,7 @@ import { useTier } from "@/hooks/useTier";
 import { compute_all, find_optimum, FEEDSTOCK_DB, Feedstock } from "@/lib/biocharModel";
 import ProjectMap from "@/components/ProjectMap";
 import SiteFooter from "@/components/SiteFooter";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 type QualityGoal = "MAX_CARBON" | "AGRONOMY" | "BALANCED";
 
@@ -172,6 +173,7 @@ export default function ProjectDetail() {
             {hasUnsavedChanges && !saveMessage && (
               <span className="text-[10px] text-yellow-500 uppercase tracking-wider">Unsaved</span>
             )}
+            <LanguageSwitcher />
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending || !hasUnsavedChanges}

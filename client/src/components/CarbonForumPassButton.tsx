@@ -1,13 +1,46 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Sparkles, X, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Sparkles, X, AlertCircle, Loader2, CheckCircle, Linkedin, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-const PASS_ID = "carbon_forum_2026" as const;
-const PROMO_CODE = "CARBONFORUM50";
+/**
+ * Carbon Forum Colombia 2026 pass flow.
+ *
+ * Two price points:
+ *   - $100 (base)               — pass id `carbon_forum_2026_full`
+ *   - $50  (social share unlock) — pass id `carbon_forum_2026_social`,
+ *                                  gated by submitting a LinkedIn / X post URL
+ *
+ * User flow:
+ *   1. Click button → modal opens
+ *   2. If not logged in → nudge to /login
+ *   3. Default state: big "$100 — Get the Pass" CTA
+ *   4. Below that: a "Share & save $50" block with one-click share buttons
+ *      that pre-fill LinkedIn and X, plus a text input for pasting the post URL
+ *   5. When a valid URL is pasted the price flips to $50 and the CTA switches
+ *      to the social variant
+ *   6. Submit → createPassCheckout → redirect to Stripe (mode: payment)
+ *   7. After payment, the webhook sets tier='analyst' with accessExpiresAt=+30d
+ *
+ * URL validation is duplicated client + server: client gives instant feedback,
+ * server is the source of truth and re-validates before creating the session.
+ */
+
+const SITE_URL = "https://biochar-optimizer-pro.fly.dev";
+
+function isValidSocialShareUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    const host = url.host.toLowerCase().replace(/^www\./, "");
+    return host === "linkedin.com" || host === "x.com" || host === "twitter.com";
+  } catch {
+    return false;
+  }
+}
 
 interface CarbonForumPassButtonProps {
   /** Classes applied to the primary button so it fits different hero / promo layouts. */
@@ -16,22 +49,12 @@ interface CarbonForumPassButtonProps {
   label?: string;
 }
 
-/**
- * "Get the Pass" button for the Carbon Forum Colombia 2026 promo.
- *
- * Flow:
- *   1. Click → open modal
- *   2. If not logged in → nudge to /login?next=/pricing
- *   3. User enters the promo code (client-side pre-validated against CARBONFORUM50)
- *   4. Submit → createPassCheckout mutation → redirect to Stripe checkout (mode: payment)
- *   5. After payment, webhook sets tier='analyst' with accessExpiresAt = now + 30 days
- */
 export default function CarbonForumPassButton({ className, label }: CarbonForumPassButtonProps) {
   const { t } = useTranslation("pass");
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const createPassCheckout = trpc.subscription.createPassCheckout.useMutation({
@@ -45,35 +68,54 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
     },
   });
 
+  const hasValidShareUrl = useMemo(() => isValidSocialShareUrl(shareUrl), [shareUrl]);
+
+  // Pre-filled share templates. LinkedIn ignores text in the share URL and
+  // uses OG metadata from the target page, so we only pass `url`. X accepts
+  // both text and url, so we send the full post.
+  const shareText = t("shareTemplate");
+  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SITE_URL)}`;
+  const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(SITE_URL)}`;
+
   const handleClick = () => {
     setError(null);
     setOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const openShare = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=540");
+  };
 
+  const submitFull = () => {
     if (!isAuthenticated) {
-      // Bounce to login then come back to pricing so the user can retry.
-      setLocation("/login");
+      setLocation("/login?signup=1&from=pass");
       return;
     }
+    setError(null);
+    createPassCheckout.mutate({ passId: "carbon_forum_2026_full" });
+  };
 
-    const normalized = code.trim().toUpperCase();
-    if (normalized !== PROMO_CODE) {
-      setError(t("invalidCode"));
+  const submitSocial = () => {
+    if (!isAuthenticated) {
+      setLocation("/login?signup=1&from=pass");
       return;
     }
-
-    createPassCheckout.mutate({ passId: PASS_ID, promoCode: normalized });
+    if (!hasValidShareUrl) {
+      setError(t("invalidShareUrl"));
+      return;
+    }
+    setError(null);
+    createPassCheckout.mutate({
+      passId: "carbon_forum_2026_social",
+      socialProofUrl: shareUrl.trim(),
+    });
   };
 
   const close = () => {
     if (createPassCheckout.isPending) return;
     setOpen(false);
     setError(null);
-    setCode("");
+    setShareUrl("");
   };
 
   return (
@@ -88,8 +130,8 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
       </Button>
 
       {open && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl my-auto">
             {/* Header */}
             <div className="flex items-start justify-between p-5 border-b border-border">
               <div className="flex items-center gap-3">
@@ -113,18 +155,21 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
             </div>
 
             {/* Body */}
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-5">
               {!isAuthenticated ? (
                 <>
-                  <p className="text-sm text-muted-foreground">
-                    {t("needAccount")}
-                  </p>
-                  <Button type="button" onClick={() => setLocation("/login")} className="w-full">
+                  <p className="text-sm text-muted-foreground">{t("needAccount")}</p>
+                  <Button
+                    type="button"
+                    onClick={() => setLocation("/login?signup=1&from=pass")}
+                    className="w-full"
+                  >
                     {t("signInOrCreate")}
                   </Button>
                 </>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <>
+                  {/* What you get */}
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       {t("whatYouGet")}
@@ -145,26 +190,79 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
                     </ul>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                      {t("promoCode")}
-                    </label>
-                    <input
-                      type="text"
-                      value={code}
-                      onChange={(e) => {
-                        setCode(e.target.value);
-                        if (error) setError(null);
-                      }}
-                      placeholder="CARBONFORUM50"
-                      autoFocus
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-mono tracking-wider text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 uppercase"
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1.5">
-                      {t("promoCodeHint")}
-                    </p>
+                  {/* Price block — flips from $100 to $50 when a valid share URL is pasted */}
+                  <div className="bg-secondary/30 border border-border rounded-lg p-4">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">{t("total")}</span>
+                      <div className="text-right">
+                        {hasValidShareUrl ? (
+                          <>
+                            <span className="text-xs text-muted-foreground line-through mr-1.5">$100</span>
+                            <span className="text-2xl font-bold text-green-600 dark:text-green-400">$50</span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-bold text-foreground">$100</span>
+                        )}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">{t("oneTime")}</span>
+                      </div>
+                    </div>
+                    {hasValidShareUrl && (
+                      <div className="text-[10px] text-green-600 dark:text-green-400 mt-1 text-right font-semibold">
+                        {t("discountUnlocked")}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Share & save $50 */}
+                  <div className="border border-green-500/30 bg-green-500/5 rounded-lg p-4 space-y-3">
+                    <div>
+                      <div className="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-wider">
+                        {t("shareSaveTitle")}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t("shareSaveHint")}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openShare(linkedInShareUrl)}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg bg-[#0A66C2] text-white hover:bg-[#084d92] transition-colors"
+                      >
+                        <Linkedin className="w-3.5 h-3.5" />
+                        LinkedIn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openShare(xShareUrl)}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity"
+                      >
+                        <span className="text-[13px] font-black leading-none">𝕏</span>
+                        X / Twitter
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                        {t("pasteUrlLabel")}
+                      </label>
+                      <div className="relative">
+                        <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <input
+                          type="url"
+                          value={shareUrl}
+                          onChange={(e) => {
+                            setShareUrl(e.target.value);
+                            if (error) setError(null);
+                          }}
+                          placeholder="https://www.linkedin.com/posts/..."
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="w-full pl-8 pr-8 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                        />
+                        {hasValidShareUrl && (
+                          <CheckCircle className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-green-500" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">{t("pasteUrlHint")}</p>
+                    </div>
                   </div>
 
                   {error && (
@@ -174,16 +272,11 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
                     </div>
                   )}
 
-                  <div className="flex items-baseline justify-between pt-1">
-                    <span className="text-xs text-muted-foreground">{t("total")}</span>
-                    <span className="text-2xl font-bold text-foreground">
-                      $50<span className="text-xs font-normal text-muted-foreground ml-1">{t("oneTime")}</span>
-                    </span>
-                  </div>
-
+                  {/* CTA */}
                   <Button
-                    type="submit"
-                    disabled={createPassCheckout.isPending || code.trim().length === 0}
+                    type="button"
+                    onClick={hasValidShareUrl ? submitSocial : submitFull}
+                    disabled={createPassCheckout.isPending}
                     className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
                   >
                     {createPassCheckout.isPending ? (
@@ -191,15 +284,15 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
                         <Loader2 className="w-4 h-4 animate-spin" />
                         {t("redirecting")}
                       </>
+                    ) : hasValidShareUrl ? (
+                      <>{t("continueAt50")}</>
                     ) : (
-                      <>{t("continueToCheckout")}</>
+                      <>{t("continueAt100")}</>
                     )}
                   </Button>
 
-                  <p className="text-[10px] text-center text-muted-foreground">
-                    {t("stripeNote")}
-                  </p>
-                </form>
+                  <p className="text-[10px] text-center text-muted-foreground">{t("stripeNote")}</p>
+                </>
               )}
             </div>
           </div>

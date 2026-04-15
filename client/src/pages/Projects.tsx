@@ -5,6 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Projects() {
   const [, setLocation] = useLocation();
@@ -67,6 +68,7 @@ export default function Projects() {
             <Link href="/app">
               <button className="text-xs text-muted-foreground hover:text-foreground">Simulator</button>
             </Link>
+            <LanguageSwitcher />
             <Link href="/app">
               <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1">
                 <Plus className="w-4 h-4" /> New Project
