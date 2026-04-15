@@ -1,0 +1,34 @@
+# Keep the build context small and avoid leaking secrets/state into the image.
+
+# Local state we never want in production
+data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example
+
+# Build outputs (recreated in the builder stage)
+dist/
+server/_core/public/
+node_modules/
+
+# Dev / OS / editor noise
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+.local-bin/
+/tmp/
+
+# Test + script logs
+coverage/
+*.log
+npm-debug.log*
+
+# Plans / docs that don't ship
+.claude/
+*.md
+!README.md

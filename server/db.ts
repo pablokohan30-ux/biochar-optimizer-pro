@@ -1,16 +1,82 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
 import { TRPCError } from "@trpc/server";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { users, type InsertUser } from "../drizzle/schema";
+import * as schema from "../drizzle/schema";
+import path from "path";
+import fs from "fs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+function getDbPath(): string {
+  const dataDir = path.resolve(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, "biochar.db");
+}
+
+export function getDb() {
+  if (!_db) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const sqlite = new Database(getDbPath());
+      sqlite.pragma("journal_mode = WAL");
+      _db = drizzle(sqlite, { schema });
+
+      // Create tables if they don't exist
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL UNIQUE,
+          passwordHash TEXT NOT NULL,
+          name TEXT,
+          role TEXT NOT NULL DEFAULT 'user',
+          stripeCustomerId TEXT,
+          stripeSubscriptionId TEXT,
+          subscriptionTier TEXT NOT NULL DEFAULT 'free',
+          subscriptionStatus TEXT DEFAULT 'inactive',
+          accessExpiresAt INTEGER,
+          createdAt INTEGER NOT NULL,
+          updatedAt INTEGER NOT NULL,
+          lastSignedIn INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS aiSearchUsage (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          query TEXT NOT NULL,
+          createdAt INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS projects (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          location TEXT,
+          latitude REAL,
+          longitude REAL,
+          country TEXT,
+          plantCapacityTph REAL,
+          feedstockId TEXT,
+          feedstockData TEXT,
+          temperature INTEGER DEFAULT 650,
+          residenceTime INTEGER DEFAULT 30,
+          qualityGoal TEXT DEFAULT 'BALANCED',
+          createdAt INTEGER NOT NULL,
+          updatedAt INTEGER NOT NULL
+        );
+      `);
+
+      // Migration: add accessExpiresAt column to existing users tables.
+      // SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS — catch "duplicate column" error.
+      try {
+        sqlite.exec(`ALTER TABLE users ADD COLUMN accessExpiresAt INTEGER`);
+        console.log("[Database] Migration: added accessExpiresAt column to users");
+      } catch (err: any) {
+        if (!/duplicate column/i.test(err?.message ?? "")) {
+          console.warn("[Database] accessExpiresAt migration error:", err);
+        }
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -19,82 +85,25 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
-}
-
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
-}
-
 /** Returns the drizzle instance or throws a TRPCError if DB is unavailable. */
-export async function requireDb() {
-  const db = await getDb();
+export function requireDb() {
+  const db = getDb();
   if (!db) {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   }
   return db;
+}
+
+export function getUserByEmail(email: string) {
+  const db = getDb();
+  if (!db) return undefined;
+  const result = db.select().from(users).where(eq(users.email, email)).limit(1).all();
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export function getUserById(id: number) {
+  const db = getDb();
+  if (!db) return undefined;
+  const result = db.select().from(users).where(eq(users.id, id)).limit(1).all();
+  return result.length > 0 ? result[0] : undefined;
 }

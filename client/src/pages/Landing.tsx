@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { 
-  Flame, BarChart3, FileText, Beaker, Leaf, Globe, 
+import {
+  Flame, BarChart3, FileText, Beaker, Leaf, Globe,
   Zap, CheckCircle, ArrowRight, Lock, ChevronRight, ChevronDown,
   FlaskConical, Building2, Map, Scale,
-  Microscope, Ruler, BadgeCheck
+  Microscope, Ruler, BadgeCheck, Sparkles
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+} from "recharts";
 import { Button } from "@/components/ui/button";
+import LogoLink from "@/components/LogoLink";
+import SiteFooter from "@/components/SiteFooter";
+import CarbonForumPassButton from "@/components/CarbonForumPassButton";
+import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
+import { compute_all, FEEDSTOCK_DB } from "@/lib/biocharModel";
 
 
 
@@ -48,22 +57,21 @@ const TIERS = [
     href: "/app",
     features: [
       "Interactive pyrolysis simulator",
-      "Database of 7 calibrated feedstocks",
+      "Database of 8 calibrated feedstocks",
       "AI biomass search (3 searches/day)",
       "Core KPIs: C%, H:Corg, CO₂e, yield",
       "Thermal sensitivity chart",
       "Quality radar profile",
     ],
-    locked: [],
   },
   {
     id: "analyst",
     name: "Analyst",
     price: 299,
     period: "/mo",
-    description: "For consultants assessing technical feasibility.",
+    description: "For teams preparing carbon certification dossiers.",
     color: "border-green-500",
-    badge: null,
+    badge: "MOST POPULAR",
     cta: "Get started",
     ctaVariant: "default" as const,
     href: "/pricing",
@@ -71,74 +79,12 @@ const TIERS = [
       "Everything in Explorer",
       "Unlimited AI biomass search",
       "Full PDF report export",
+      "Temperature / time optimizer",
+      "Project Manager (multi-project + map)",
+      "Adaptable LCA module (Puro.earth Ed. 2025)",
       "EBC / Puro.earth / Isometric compliance analysis",
-      "Scenario comparator (up to 5)",
-      "Syngas energy balance",
-      "Adaptable LCA module (Life Cycle Assessment)",
+      "Downloadable LCA Excel / Google Sheets template",
     ],
-    locked: [],
-  },
-  {
-    id: "developer",
-    name: "Developer",
-    price: 499,
-    period: "/mo",
-    description: "For teams exploring carbon markets and biochar applications.",
-    color: "border-blue-500",
-    badge: null,
-    cta: "Get started",
-    ctaVariant: "default" as const,
-    href: "/pricing",
-    features: [
-      "Everything in Analyst",
-      "Carbon market module (platform comparator)",
-      "Interactive biochar applications map",
-      "Agronomic value calculator by region",
-      "Priority technical support",
-    ],
-    locked: [],
-  },
-  {
-    id: "engineer",
-    name: "Engineer",
-    price: 799,
-    period: "/mo",
-    description: "For projects requiring full technical and financial engineering.",
-    color: "border-purple-500",
-    badge: "MOST POPULAR",
-    cta: "Get started",
-    ctaVariant: "default" as const,
-    href: "/pricing",
-    features: [
-      "Everything in Developer",
-      "Reactor sizing (ton/h → kW → m³)",
-      "CAPEX / OPEX estimation",
-      "Financial analysis (IRR, NPV, payback)",
-      "10-year carbon credit projection",
-      "Reactor supplier map",
-    ],
-    locked: [],
-  },
-  {
-    id: "expert",
-    name: "Expert",
-    price: 999,
-    period: "/mo",
-    description: "For operating plants and investment funds.",
-    color: "border-yellow-500",
-    badge: "MAXIMUM VALUE",
-    cta: "Get started",
-    ctaVariant: "default" as const,
-    href: "/pricing",
-    features: [
-      "Everything in Engineer",
-      "Plant layout (process flow diagram, P&ID)",
-      "Equipment specs and bill of materials",
-      "Regulatory framework by country (permits, licenses)",
-      "Certification guides (Puro.earth, Isometric, EBC, VERRA)",
-      "Technical document for investors",
-    ],
-    locked: [],
   },
 ];
 
@@ -215,17 +161,40 @@ const MODULES = [
 
 export default function Landing() {
   const [openModule, setOpenModule] = useState<string | null>(null);
+
+  // Demo data for landing-page charts (Pine Sawdust, 650°C, 30 min)
+  const demoFs = FEEDSTOCK_DB["pine_sawdust"];
+  const demoResult = useMemo(() => compute_all(650, 30, demoFs), [demoFs]);
+
+  const sensitivityData = useMemo(() => {
+    const data = [];
+    for (let T = 400; T <= 750; T += 10) {
+      const r = compute_all(T, 30, demoFs);
+      data.push({
+        T,
+        C: parseFloat(r.C.toFixed(1)),
+        Yield: parseFloat(r.yield_.toFixed(1)),
+        CO2e: parseFloat(r.credits.net.toFixed(2)),
+      });
+    }
+    return data;
+  }, [demoFs]);
+
+  const radarData = useMemo(() => [
+    { subject: "C%", A: Math.min(1, demoResult.C / 95), fullMark: 1 },
+    { subject: "Stability", A: Math.max(0, 1 - demoResult.H_Corg / 0.7), fullMark: 1 },
+    { subject: "CO₂e", A: Math.min(1, demoResult.credits.net / 3.5), fullMark: 1 },
+    { subject: "BET", A: Math.min(1, demoResult.BET / 500), fullMark: 1 },
+    { subject: "pH", A: Math.max(0, 1 - Math.abs(demoResult.pH - 8.5) / 4), fullMark: 1 },
+    { subject: "Yield", A: Math.min(1, demoResult.yield_ / 35), fullMark: 1 },
+  ], [demoResult]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV */}
       <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Flame className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-bold text-primary tracking-wider text-sm">BIOCHAR OPTIMIZER PRO</span>
-          </div>
+          <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
           <div className="flex items-center gap-3">
             <Link href="/pricing">
               <Button variant="ghost" size="sm">Pricing</Button>
@@ -241,43 +210,299 @@ export default function Landing() {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 py-24 md:py-32">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-6">
-              <Leaf className="w-3 h-3" />
-              Biochar project development platform
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(34,197,94,0.08)_1px,_transparent_0)] [background-size:32px_32px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 py-20 md:py-28 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left: Copy */}
+            <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-6">
+                <Leaf className="w-3 h-3" />
+                Biochar project development platform
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
+                From biomass to<br />
+                <span className="bg-gradient-to-r from-primary to-green-400 bg-clip-text text-transparent">
+                  carbon credit
+                </span>,<br />
+                step by step.
+              </h1>
+              <p className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed">
+                The only platform that accompanies the full lifecycle of a biochar project:
+                from technical simulation to complete plant design, LCA,
+                regulatory permits, and access to carbon markets.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/app">
+                  <Button size="lg" className="gap-2 text-base px-8 shadow-lg shadow-primary/20">
+                    <Zap className="w-4 h-4" />
+                    Start for free
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button size="lg" variant="outline" className="gap-2 text-base px-8">
+                    View plans & pricing
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                No credit card required · Full simulator free · Upgrade when your project needs it
+              </p>
+
+              {/* Trust indicators */}
+              <div className="mt-10 pt-8 border-t border-border/50 grid grid-cols-3 gap-6 max-w-lg">
+                <div>
+                  <div className="text-2xl font-bold text-primary">50+</div>
+                  <div className="text-xs text-muted-foreground">Biomass types</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-primary">BC-1</div>
+                  <div className="text-xs text-muted-foreground">Puro.earth ready</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-primary">100%</div>
+                  <div className="text-xs text-muted-foreground">Peer-reviewed</div>
+                </div>
+              </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">
-              From biomass to<br />
-              <span className="text-primary">carbon credit</span>,<br />
-              step by step.
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed">
-              The only platform that accompanies the full lifecycle of a biochar project: 
-              from technical simulation to complete plant design, LCA, 
-              regulatory permits, and access to carbon markets.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+
+            {/* Right: Visual KPI mockup (clickable → /app) */}
+            <div className="lg:col-span-5 hidden lg:block">
               <Link href="/app">
-                <Button size="lg" className="gap-2 text-base px-8">
-                  <Zap className="w-4 h-4" />
-                  Start for free
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button size="lg" variant="outline" className="gap-2 text-base px-8">
-                  View plans & pricing
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <div className="relative cursor-pointer group">
+                  {/* Glow */}
+                  <div className="absolute -inset-4 bg-primary/10 rounded-3xl blur-2xl group-hover:bg-primary/20 transition-colors" />
+
+                  <div className="relative bg-card border border-border group-hover:border-primary/40 rounded-2xl p-6 shadow-2xl transition-all group-hover:scale-[1.01]">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        Live Simulation
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">650°C / 30 min</span>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground mb-3">{demoFs.name}</div>
+
+                    {/* KPI Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Carbon</div>
+                        <div className="text-2xl font-mono font-bold text-primary mt-0.5">{demoResult.C.toFixed(1)}</div>
+                        <div className="text-[10px] text-muted-foreground">% dry mass</div>
+                      </div>
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">H:Corg</div>
+                        <div className="text-2xl font-mono font-bold mt-0.5">{demoResult.H_Corg.toFixed(3)}</div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded-full">
+                          {demoResult.H_Corg < 0.4 ? "BC-1" : demoResult.H_Corg < 0.7 ? "BC-2" : "FAIL"}
+                        </span>
+                      </div>
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Net CO₂e</div>
+                        <div className="text-2xl font-mono font-bold mt-0.5">{demoResult.credits.net.toFixed(2)}</div>
+                        <div className="text-[10px] text-muted-foreground">t/t biochar</div>
+                      </div>
+                      <div className="bg-background border border-border border-l-2 border-l-cyan-500 rounded-lg p-3">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Yield</div>
+                        <div className="text-2xl font-mono font-bold text-cyan-500 mt-0.5">{demoResult.yield_.toFixed(1)}</div>
+                        <div className="text-[10px] text-muted-foreground">% dry mass</div>
+                      </div>
+                    </div>
+
+                    {/* Real mini chart */}
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Thermal Sensitivity</div>
+                        <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          Open simulator <ArrowRight className="w-3 h-3" />
+                        </div>
+                      </div>
+                      <div className="h-14">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={sensitivityData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                            <Line type="monotone" dataKey="C" stroke="rgb(34, 197, 94)" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="Yield" stroke="rgb(6, 182, 212)" strokeWidth={2} dot={false} opacity={0.6} />
+                            <YAxis hide domain={[0, 100]} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </Link>
             </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              No credit card required · Full simulator free · Upgrade when your project needs it
-            </p>
           </div>
         </div>
       </section>
+
+      {/* SEE IT IN ACTION — Live charts + LCA preview */}
+      <section className="py-12 border-t border-border bg-gradient-to-b from-background to-card/30">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-3">
+              <Zap className="w-3 h-3" />
+              Live preview
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">See it in action</h2>
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+              Real output from our pyrolysis model running on Pine Sawdust at 650°C, and an LCA on the MAF Corrientes reference case.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* LEFT — Simulator charts stacked */}
+            <div className="space-y-4">
+              {/* Thermal sensitivity chart */}
+              <Link href="/app" className="block">
+                <div className="bg-card border border-border hover:border-primary/40 rounded-xl p-4 cursor-pointer group transition-all h-[250px] flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                      <BarChart3 className="w-3.5 h-3.5" /> Thermal Sensitivity
+                    </h3>
+                    <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      Try in simulator <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={sensitivityData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                        <XAxis dataKey="T" stroke="var(--color-muted-foreground)" fontSize={9} tickMargin={8} />
+                        <YAxis yAxisId="left" stroke="rgb(34, 197, 94)" fontSize={9} domain={[0, 100]} />
+                        <YAxis yAxisId="right" orientation="right" stroke="rgb(168, 85, 247)" fontSize={9} domain={[0, 4]} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "var(--color-card)",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "0.5rem",
+                            fontSize: "10px",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "9px" }} iconType="line" />
+                        <Line yAxisId="left" type="monotone" dataKey="C" stroke="rgb(34, 197, 94)" strokeWidth={2} dot={false} name="C %" />
+                        <Line yAxisId="left" type="monotone" dataKey="Yield" stroke="rgb(6, 182, 212)" strokeWidth={2} dot={false} name="Yield %" />
+                        <Line yAxisId="right" type="monotone" dataKey="CO2e" stroke="rgb(168, 85, 247)" strokeWidth={2} dot={false} name="CO₂e" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Quality profile radar */}
+              <Link href="/app" className="block">
+                <div className="bg-card border border-border hover:border-primary/40 rounded-xl p-4 cursor-pointer group transition-all h-[250px] flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                      <Beaker className="w-3.5 h-3.5" /> Quality Profile
+                    </h3>
+                    <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData}>
+                        <PolarGrid stroke="var(--color-border)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--color-muted-foreground)", fontSize: 9 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
+                        <Radar name="Pine Sawdust" dataKey="A" stroke="rgb(34, 197, 94)" fill="rgb(34, 197, 94)" fillOpacity={0.3} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* RIGHT — LCA preview */}
+            <Link href="/lca?preview=1" className="block">
+              <div className="relative bg-card border border-border hover:border-green-500/50 rounded-xl p-4 cursor-pointer group transition-all h-[516px] flex flex-col">
+                <div className="absolute top-3 right-3 inline-flex items-center gap-1 bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Analyst
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-3.5 h-3.5 text-green-500" />
+                  <h3 className="text-xs font-bold text-muted-foreground">LCA — Puro.earth Ed. 2025</h3>
+                </div>
+                <div className="text-[10px] text-muted-foreground mb-3">
+                  Reference case: <span className="font-semibold text-foreground">MAF Corrientes</span> · 74,880 t/yr forestry residues · 650°C pyrolysis
+                </div>
+
+                {/* CORCs Hero */}
+                <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3 mb-3">
+                  <div className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                    CORCs Netos (Eq. 5.1)
+                  </div>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 leading-none">
+                    53,946
+                    <span className="text-xs font-normal text-muted-foreground ml-2">tCO₂eq / yr</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 text-[10px]">
+                    <div>
+                      <span className="text-muted-foreground">Per t biochar: </span>
+                      <span className="font-semibold">2.45</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Efficiency: </span>
+                      <span className="font-semibold">76.9%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Breakdown */}
+                <div className="space-y-1 text-[11px] flex-1">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground">C_stored (Eq. 6.1)</span>
+                    <span className="font-mono font-semibold text-green-600 dark:text-green-400">+70,125</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground">− C_baseline</span>
+                    <span className="font-mono text-muted-foreground">−0</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground">− C_loss <span className="text-[9px]">(PF 83.7%)</span></span>
+                    <span className="font-mono text-red-500">−11,428</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground">− E_project <span className="text-[9px]">(Eq. 7.1)</span></span>
+                    <span className="font-mono text-red-500">−4,752</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground">− E_leakage <span className="text-[9px]">(Eq. 8.1)</span></span>
+                    <span className="font-mono text-muted-foreground">−0</span>
+                  </div>
+                  <div className="border-t border-border pt-1 mt-1 flex justify-between items-baseline">
+                    <span className="font-bold">= CORCs Netos</span>
+                    <span className="font-mono font-bold text-green-600 dark:text-green-400">53,946</span>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[10px]">
+                  <div className="text-muted-foreground">6 automatic validations · All OK</div>
+                  <div className="text-primary font-medium opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    Open full LCA <ArrowRight className="w-3 h-3" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/app">
+              <Button size="lg" className="gap-2 shadow-lg shadow-primary/20">
+                <Zap className="w-4 h-4" />
+                Open the simulator
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
 
       {/* HOW IT WORKS */}
       <section className="py-20 border-t border-border">
@@ -440,18 +665,55 @@ export default function Landing() {
       {/* PRICING */}
       <section id="pricing" className="py-20 border-t border-border bg-secondary/20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <h2 className="text-3xl font-bold mb-3">Plans & Pricing</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Start for free and scale when your project requires it. 
+              Start for free and scale when your project requires it.
               All plans include access to the technical simulator.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+          {/* Carbon Forum special promo */}
+          <div className="relative mb-8 overflow-hidden rounded-xl border-2 border-green-500/40 bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-transparent p-4 md:p-5 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <div className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Carbon Forum Colombia 2026
+                  </div>
+                  <div className="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    Limited time
+                  </div>
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold mb-1">
+                  Carbon Forum Pass — <span className="text-green-600 dark:text-green-400">$50</span>
+                  <span className="text-xs text-muted-foreground font-normal ml-2">30-day full Analyst access</span>
+                </h3>
+                <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Pyrolysis simulator</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> T°/time optimizer</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> PDF export</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Project Manager</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> LCA (Puro.earth)</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> AI biomass search</li>
+                </ul>
+              </div>
+              <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
+                <CarbonForumPassButton />
+                <p className="text-[10px] text-center md:text-right text-muted-foreground">
+                  Code <span className="font-mono font-bold">CARBONFORUM50</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tier cards — Free + Analyst */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
             {TIERS.map((tier) => (
               <div
                 key={tier.id}
-                className={`relative bg-card rounded-xl border-2 ${tier.color} p-5 flex flex-col ${tier.badge ? "ring-2 ring-primary/20" : ""}`}
+                className={`relative bg-card rounded-xl border-2 ${tier.color} p-6 flex flex-col ${tier.badge ? "ring-2 ring-primary/20" : ""}`}
               >
                 {tier.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
@@ -459,9 +721,9 @@ export default function Landing() {
                   </div>
                 )}
                 <div className="mb-4">
-                  <h3 className="font-bold text-sm mb-1">{tier.name}</h3>
+                  <h3 className="font-bold text-base mb-1">{tier.name}</h3>
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-2xl font-bold">{tier.price === 0 ? "Free" : `$${tier.price}`}</span>
+                    <span className="text-3xl font-bold">{tier.price === 0 ? "Free" : `$${tier.price}`}</span>
                     {tier.period && <span className="text-xs text-muted-foreground">{tier.period}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
@@ -474,17 +736,32 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link href={tier.href}>
-                  <Button variant={tier.ctaVariant} size="sm" className="w-full text-xs">
+                {tier.id === "free" ? (
+                  <Link href={tier.href}>
+                    <Button variant={tier.ctaVariant} size="sm" className="w-full text-xs">
+                      {tier.cta}
+                    </Button>
+                  </Link>
+                ) : (
+                  <SubscribeButton
+                    tierId={tier.id as SubscribeTierId}
+                    size="sm"
+                    variant={tier.ctaVariant}
+                    className="w-full text-xs"
+                  >
                     {tier.cta}
-                  </Button>
-                </Link>
+                  </SubscribeButton>
+                )}
               </div>
             ))}
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-6">
+
+          <p className="text-center text-[11px] text-muted-foreground mt-6">
+            <Sparkles className="w-3 h-3 inline-block align-text-bottom text-amber-500" /> More advanced tiers (Developer · Engineer · Expert) are on the way as we build them. We won't charge for vapor.
+          </p>
+          <p className="text-center text-xs text-muted-foreground mt-2">
             Need detailed engineering, certification support or technical due diligence for investors?{" "}
-            <a href="mailto:info@biocharpro.com" className="text-primary hover:underline">Contact us for an Enterprise plan</a>
+            <Link href="/pricing"><span className="text-primary hover:underline">Contact us for an Enterprise plan</span></Link>
           </p>
         </div>
       </section>
@@ -535,21 +812,7 @@ export default function Landing() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-border py-10">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-primary" />
-            <span className="font-bold text-sm text-primary">BIOCHAR OPTIMIZER PRO</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Empirical model calibrated with peer-reviewed pyrolysis literature data.
-          </p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="/app" className="hover:text-foreground transition-colors">Simulator</Link>
-            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

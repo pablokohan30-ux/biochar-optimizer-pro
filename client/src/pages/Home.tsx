@@ -4,13 +4,16 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis
 } from "recharts";
-import { Settings, Zap, Activity, Beaker, BarChart3, Download, Save, X, Plus, Edit2, Search, Loader2, AlertCircle } from "lucide-react";
+import { Settings, Zap, Activity, Beaker, BarChart3, Download, Save, X, Plus, Edit2, Search, Loader2, AlertCircle, Lock, Eye, FolderOpen, MapPin, FileText } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
-import { FEEDSTOCK_DB, compute_all, find_optimum, Feedstock, safeAnchorH } from "@/lib/biocharModel";
+import { FEEDSTOCK_DB, compute_all, find_optimum, Feedstock, safeAnchorH, searchFeedstockLocal, FREE_FEEDSTOCK_IDS, isFreeFeedstock } from "@/lib/biocharModel";
 import { trpc } from "@/lib/trpc";
 import { useTier } from "@/hooks/useTier";
 import UpgradeModal from "@/components/UpgradeModal";
-import { Link } from "wouter";
+import LogoLink from "@/components/LogoLink";
+import PassActivatedBanner from "@/components/PassActivatedBanner";
+import SubscribedBanner from "@/components/SubscribedBanner";
+import { Link, useLocation } from "wouter";
 
 // UI Components (inline for simplicity, using Tailwind)
 const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -33,13 +36,23 @@ const Badge = ({ children, variant = "default" }: { children: React.ReactNode, v
   );
 };
 
+const BlurredValue = ({ children, isPremium }: { children: React.ReactNode, isPremium: boolean }) => {
+  if (!isPremium) return <>{children}</>;
+  return (
+    <span className="relative inline-block">
+      <span className="blur-[6px] select-none pointer-events-none">{children}</span>
+      <Lock className="w-3 h-3 text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+    </span>
+  );
+};
+
 export default function Home() {
   // The userAuth hooks provides authentication state
   // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
   const { user, loading, error, isAuthenticated, logout } = useAuth();
 
   // State
-  const [activeFeedstock, setActiveFeedstock] = useState<string>("pine");
+  const [activeFeedstock, setActiveFeedstock] = useState<string>("pine_sawdust");
   const [goal, setGoal] = useState<"MAX_CARBON" | "AGRONOMY" | "BALANCED">("BALANCED");
   const [T, setT] = useState<number>(650);
   const [t, setT_res] = useState<number>(30);
@@ -65,6 +78,24 @@ export default function Home() {
   const openUpgrade = (feature: string, requiredTier: "analyst" | "developer" | "engineer" | "expert") => {
     setUpgradeModal({ open: true, feature, requiredTier });
   };
+
+  // Report preview modal
+  const [showPreview, setShowPreview] = useState(false);
+  const isFree = !hasAccess("analyst");
+
+  // Save as Project modal
+  const [showSaveProject, setShowSaveProject] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectLocation, setProjectLocation] = useState("");
+  const [projectCapacity, setProjectCapacity] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [, navigate] = useLocation();
+  const createProjectMutation = trpc.projects.create.useMutation({
+    onSuccess: (result) => {
+      setShowSaveProject(false);
+      navigate(`/projects/${result.id}`);
+    },
+  });
 
   // AI Biomass Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,6 +130,29 @@ export default function Home() {
       setSearchSuccess(null);
     }
   });
+
+  // Search handler: local DB first, then AI fallback
+  const handleSearch = (query: string) => {
+    setSearchError(null);
+    setSearchSuccess(null);
+    const result = searchFeedstockLocal(query, isFree);
+    if (result.status === "found") {
+      const id = `local_${Date.now()}`;
+      setSavedCustomFs(prev => ({ ...prev, [id]: result.feedstock }));
+      setActiveFeedstock(id);
+      setIsCustom(true);
+      setSearchQuery("");
+      setSearchSuccess(`"${result.feedstock.name}" loaded. Source: ${result.feedstock.source}`);
+      return;
+    }
+    if (result.status === "locked") {
+      setSearchError(`"${result.feedstock.name}" is in the premium database. Upgrade to Analyst to unlock 50+ biomasses.`);
+      setTimeout(() => openUpgrade("Access the full biomass database", "analyst"), 100);
+      return;
+    }
+    // Fallback to AI search
+    biomassSearch.mutate({ query });
+  };
 
   // Current feedstock object
   const fs = isCustom ? (savedCustomFs[activeFeedstock] || customFs || FEEDSTOCK_DB["pine_sawdust"]) : (FEEDSTOCK_DB[activeFeedstock] || FEEDSTOCK_DB["pine_sawdust"]);
@@ -135,6 +189,33 @@ export default function Home() {
     const opt = find_optimum(currentFs, goal);
     setT(opt.T);
     setT_res(opt.t);
+  };
+
+  // Run LCA on current biochar — pre-fills LCA form with simulator output
+  // (C, H, yield, moisture, feedstock name) via localStorage. Plant capacity,
+  // transport distances, energy inputs etc. remain user-entered.
+  const handleRunLCA = () => {
+    if (!hasAccess("analyst")) {
+      openUpgrade("Run LCA on this biochar", "analyst");
+      return;
+    }
+    const prefill = {
+      projectName: `${currentFs.name} @ ${T}°C`,
+      biomassType: currentFs.name,
+      biomassMoisturePct: currentFs.moisture,
+      C_tot_pct: parseFloat(result.C.toFixed(2)),
+      H_pct: parseFloat(result.H.toFixed(2)),
+      yieldPct: parseFloat(result.yield_.toFixed(2)),
+      // O is optional — we have it from the feedstock itself (dry basis)
+      O_pct: currentFs.O,
+    };
+    try {
+      localStorage.setItem("lca:prefill", JSON.stringify(prefill));
+      localStorage.setItem("lca:prefillTimestamp", String(Date.now()));
+    } catch {
+      // localStorage might be disabled — navigate anyway
+    }
+    navigate("/lca");
   };
 
   // Handle Custom Feedstock Save
@@ -236,24 +317,58 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
-      
+
+      {/* Carbon Forum Pass activation banner (only renders when ?pass=... in URL) */}
+      <PassActivatedBanner />
+
+      {/* Regular subscription activation banner (only renders when ?subscribed=1 in URL) */}
+      <SubscribedBanner />
+
       {/* HEADER */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <Activity className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg tracking-wider text-primary">BIOCHAR OPTIMIZER PRO</h1>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">Pyrolysis Simulation & Project Development Platform</p>
-            </div>
-          </div>
+          <LogoLink iconType="activity" />
           <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-            <button 
+            {user && (
+              <span className="text-xs text-muted-foreground">
+                Hi, <span className="text-foreground font-medium">{user.name || user.email}</span>
+              </span>
+            )}
+            <button
+              onClick={() => {
+                if (isFree) {
+                  openUpgrade("Save projects with location data", "analyst");
+                  return;
+                }
+                // Fresh form every time (don't carry over location/capacity from a previous save)
+                setProjectName(currentFs.name);
+                setProjectLocation("");
+                setProjectCapacity("");
+                setProjectDescription("");
+                setShowSaveProject(true);
+              }}
+              className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors"
+            >
+              {isFree && <Lock className="w-3 h-3" />}
+              <FolderOpen className="w-4 h-4" /> Save as Project
+            </button>
+            {!isFree && (
+              <Link href="/projects">
+                <button className="text-xs text-muted-foreground hover:text-foreground">My Projects</button>
+              </Link>
+            )}
+            <button
+              onClick={handleRunLCA}
+              className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors"
+              title={hasAccess("analyst") ? "Run LCA on this biochar — pre-fills Puro.earth Ed. 2025 form with C, H, yield and moisture" : "Analyst plan required"}
+            >
+              {!hasAccess("analyst") && <Lock className="w-3 h-3" />}
+              <FileText className="w-4 h-4" /> Run LCA
+            </button>
+            <button
               onClick={() => {
                 if (!hasAccess("analyst")) {
-                  openUpgrade("Export full PDF report", "analyst");
+                  setShowPreview(true);
                   return;
                 }
                 handleExportPDF();
@@ -261,13 +376,19 @@ export default function Home() {
               disabled={isExporting}
               className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors disabled:opacity-50"
             >
-              <Download className="w-4 h-4" /> {isExporting ? "Exporting..." : "Export PDF"}
+              {hasAccess("analyst") ? <Download className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {isExporting ? "Exporting..." : hasAccess("analyst") ? "Export PDF" : "Preview Report"}
             </button>
             <Link href="/pricing">
               <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded-full font-medium cursor-pointer hover:bg-primary/20 transition-colors">
                 {tier === "free" ? "FREE PLAN" : tier.toUpperCase()}
               </span>
             </Link>
+            {user && (
+              <button onClick={logout} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Logout
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -292,12 +413,12 @@ export default function Home() {
                   onChange={(e) => { setSearchQuery(e.target.value); setSearchError(null); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchQuery.trim() && !biomassSearch.isPending) {
-                      biomassSearch.mutate({ query: searchQuery.trim() });
+                      handleSearch(searchQuery.trim());
                     }
                   }}
                 />
                 <button
-                  onClick={() => searchQuery.trim() && biomassSearch.mutate({ query: searchQuery.trim() })}
+                  onClick={() => searchQuery.trim() && handleSearch(searchQuery.trim())}
                   disabled={!searchQuery.trim() || biomassSearch.isPending}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-2 rounded-md transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
@@ -325,11 +446,15 @@ export default function Home() {
                 </button>
               </div>
               <div className="flex gap-2">
-                <select 
+                <select
                   className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   value={activeFeedstock}
                   onChange={(e) => {
                     const val = e.target.value;
+                    if (val === "__locked__") {
+                      openUpgrade("Access the full biomass database (50+ biomasses)", "analyst");
+                      return;
+                    }
                     if (val.startsWith('custom_')) {
                       setIsCustom(true);
                       setActiveFeedstock(val);
@@ -339,21 +464,28 @@ export default function Home() {
                     }
                   }}
                 >
-                  <optgroup label="Database">
-                    {Object.entries(FEEDSTOCK_DB).map(([k, v]) => (
-                      <option key={k} value={k}>{v.name}</option>
-                    ))}
+                  <optgroup label={isFree ? "Free Database" : "Database"}>
+                    {Object.entries(FEEDSTOCK_DB)
+                      .filter(([k]) => !isFree || isFreeFeedstock(k))
+                      .map(([k, v]) => (
+                        <option key={k} value={k}>{v.name}</option>
+                      ))}
                   </optgroup>
-                  {Object.keys(savedCustomFs).filter(k => !k.startsWith('ai_')).length > 0 && (
+                  {isFree && (
+                    <optgroup label="🔒 Premium (Analyst+)">
+                      <option value="__locked__">Unlock 35+ more biomasses →</option>
+                    </optgroup>
+                  )}
+                  {Object.keys(savedCustomFs).filter(k => !k.startsWith('ai_') && !k.startsWith('local_')).length > 0 && (
                     <optgroup label="Custom">
-                      {Object.entries(savedCustomFs).filter(([k]) => !k.startsWith('ai_')).map(([k, v]) => (
+                      {Object.entries(savedCustomFs).filter(([k]) => !k.startsWith('ai_') && !k.startsWith('local_')).map(([k, v]) => (
                         <option key={k} value={k}>{v.name}</option>
                       ))}
                     </optgroup>
                   )}
-                  {Object.keys(savedCustomFs).filter(k => k.startsWith('ai_')).length > 0 && (
-                    <optgroup label="✨ AI Search">
-                      {Object.entries(savedCustomFs).filter(([k]) => k.startsWith('ai_')).map(([k, v]) => (
+                  {Object.keys(savedCustomFs).filter(k => k.startsWith('ai_') || k.startsWith('local_')).length > 0 && (
+                    <optgroup label="Search Results">
+                      {Object.entries(savedCustomFs).filter(([k]) => k.startsWith('ai_') || k.startsWith('local_')).map(([k, v]) => (
                         <option key={k} value={k}>{v.name}</option>
                       ))}
                     </optgroup>
@@ -521,10 +653,17 @@ export default function Home() {
                 </h2>
                 <div className="flex flex-col items-end gap-1">
                   {!savedScenario ? (
-                    <button 
-                      onClick={handleSaveScenario}
-                      className="text-[10px] flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2 py-1 rounded transition-colors"
+                    <button
+                      onClick={() => {
+                        if (isFree) {
+                          openUpgrade("Save and compare scenarios", "analyst");
+                          return;
+                        }
+                        handleSaveScenario();
+                      }}
+                      className="text-[10px] flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2 py-1 rounded transition-colors relative"
                     >
+                      {isFree && <Lock className="w-2.5 h-2.5" />}
                       <Save className="w-3 h-3" /> Save to compare
                     </button>
                   ) : (
@@ -702,6 +841,114 @@ export default function Home() {
         </div>
       </main>
 
+      {/* SAVE AS PROJECT MODAL */}
+      {showSaveProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-primary" />
+                <h2 className="font-bold">Save as Project</h2>
+              </div>
+              <button onClick={() => setShowSaveProject(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Project Name *
+                </label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={e => setProjectName(e.target.value)}
+                  placeholder="e.g. Corrientes Plant #1"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Location (address or city)
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={projectLocation}
+                    onChange={e => setProjectLocation(e.target.value)}
+                    placeholder="Buenos Aires, Argentina"
+                    className="w-full pl-10 pr-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">We'll geocode this to show on the map.</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Plant Capacity (tonnes/hour)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={projectCapacity}
+                  onChange={e => setProjectCapacity(e.target.value)}
+                  placeholder="1.5"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Description
+                </label>
+                <textarea
+                  value={projectDescription}
+                  onChange={e => setProjectDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Short notes about the project"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                />
+              </div>
+              {createProjectMutation.error && (
+                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-red-400">{createProjectMutation.error.message}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3">
+              <button onClick={() => setShowSaveProject(false)} className="text-sm text-muted-foreground hover:text-foreground">
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!projectName.trim()) return;
+                  createProjectMutation.mutate({
+                    name: projectName.trim(),
+                    description: projectDescription.trim() || null,
+                    location: projectLocation.trim() || null,
+                    plantCapacityTph: projectCapacity ? Number(projectCapacity) : null,
+                    feedstockId: activeFeedstock,
+                    feedstockData: JSON.stringify(currentFs),
+                    temperature: T,
+                    residenceTime: t,
+                    qualityGoal: goal,
+                  });
+                }}
+                disabled={!projectName.trim() || createProjectMutation.isPending}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              >
+                {createProjectMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Save Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* UPGRADE MODAL */}
       <UpgradeModal
         isOpen={upgradeModal.open}
@@ -709,6 +956,116 @@ export default function Home() {
         featureName={upgradeModal.feature}
         requiredTier={upgradeModal.requiredTier}
       />
+
+      {/* REPORT PREVIEW MODAL (Free users) */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <h2 className="font-bold text-foreground">Report Preview</h2>
+                <p className="text-xs text-muted-foreground">Biochar Optimizer Pro — {currentFs.name}</p>
+              </div>
+              <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Conditions */}
+              <div className="text-sm text-muted-foreground">
+                Pyrolysis conditions: <span className="text-foreground font-mono">{T}°C</span> / <span className="text-foreground font-mono">{t} min</span>
+              </div>
+
+              {/* KPI Preview Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-primary">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Carbon</div>
+                  <div className="text-xl font-mono font-bold text-primary">{result.C.toFixed(1)}%</div>
+                </div>
+                <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-primary">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">H:Corg Ratio</div>
+                  <div className="text-xl font-mono font-bold">{result.H_Corg.toFixed(3)}</div>
+                  <Badge variant={hCorgVariant}>{result.H_Corg < 0.4 ? "BC-1" : (result.H_Corg < 0.7 ? "BC-2" : "FAIL")}</Badge>
+                </div>
+                <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-cyan-500">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Yield</div>
+                  <div className="text-xl font-mono font-bold text-cyan-500">{result.yield_.toFixed(1)}%</div>
+                </div>
+              </div>
+
+              {/* Blurred premium KPIs */}
+              <div className="grid grid-cols-3 gap-3 relative">
+                <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Net CO₂e</div>
+                  <div className="text-xl font-mono font-bold">3.04</div>
+                  <div className="text-[10px] text-muted-foreground">t/t biochar</div>
+                </div>
+                <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">BET Surface</div>
+                  <div className="text-xl font-mono font-bold">419</div>
+                  <div className="text-[10px] text-muted-foreground">m²/g</div>
+                </div>
+                <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">pH</div>
+                  <div className="text-xl font-mono font-bold">8.7</div>
+                  <div className="text-[10px] text-muted-foreground">alkaline</div>
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="bg-card/90 border border-border rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shadow-lg">
+                    <Lock className="w-3.5 h-3.5 text-primary" /> Upgrade to unlock
+                  </span>
+                </div>
+              </div>
+
+              {/* Blurred compliance table */}
+              <div className="relative">
+                <table className="w-full text-sm text-left blur-[4px] select-none">
+                  <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
+                    <tr>
+                      <th className="px-3 py-2">Parameter</th>
+                      <th className="px-3 py-2">Value</th>
+                      <th className="px-3 py-2">Threshold</th>
+                      <th className="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    <tr><td className="px-3 py-2">Temperature</td><td className="px-3 py-2">650°C</td><td className="px-3 py-2">400-750°C</td><td className="px-3 py-2">Pass</td></tr>
+                    <tr><td className="px-3 py-2">Total Carbon</td><td className="px-3 py-2">87.4%</td><td className="px-3 py-2">&gt;50%</td><td className="px-3 py-2">Pass</td></tr>
+                    <tr><td className="px-3 py-2">H:Corg</td><td className="px-3 py-2">0.200</td><td className="px-3 py-2">&lt;0.7</td><td className="px-3 py-2">BC-1</td></tr>
+                    <tr><td className="px-3 py-2">CO₂e net</td><td className="px-3 py-2">3.04 t</td><td className="px-3 py-2">LCA</td><td className="px-3 py-2">Info</td></tr>
+                  </tbody>
+                </table>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="bg-card/90 border border-border rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shadow-lg">
+                    <Lock className="w-3.5 h-3.5 text-primary" /> Puro.earth compliance table
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer CTA */}
+            <div className="px-6 py-4 border-t border-border bg-primary/5 flex items-center justify-between gap-4">
+              <p className="text-xs text-muted-foreground">
+                Unlock the full report with CO₂e credits, BET surface, pH, and Puro.earth compliance data.
+              </p>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button onClick={() => setShowPreview(false)} className="text-xs text-muted-foreground hover:text-foreground">
+                  Close
+                </button>
+                <button
+                  onClick={() => { setShowPreview(false); openUpgrade("Export full PDF report", "analyst"); }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Lock className="w-4 h-4" /> Upgrade to Analyst — $299/mo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

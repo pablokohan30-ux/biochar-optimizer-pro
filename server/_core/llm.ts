@@ -1,80 +1,28 @@
-import { ENV } from "./env";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export type Role = "system" | "user" | "assistant" | "tool" | "function";
-
-export type TextContent = {
-  type: "text";
-  text: string;
-};
-
-export type ImageContent = {
-  type: "image_url";
-  image_url: {
-    url: string;
-    detail?: "auto" | "low" | "high";
-  };
-};
-
-export type FileContent = {
-  type: "file_url";
-  file_url: {
-    url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4" ;
-  };
-};
-
-export type MessageContent = string | TextContent | ImageContent | FileContent;
+export type Role = "system" | "user" | "assistant";
 
 export type Message = {
   role: Role;
-  content: MessageContent | MessageContent[];
-  name?: string;
-  tool_call_id?: string;
+  content: string;
 };
 
-export type Tool = {
-  type: "function";
-  function: {
-    name: string;
-    description?: string;
-    parameters?: Record<string, unknown>;
-  };
+export type JsonSchema = {
+  name: string;
+  schema: Record<string, unknown>;
+  strict?: boolean;
 };
 
-export type ToolChoicePrimitive = "none" | "auto" | "required";
-export type ToolChoiceByName = { name: string };
-export type ToolChoiceExplicit = {
-  type: "function";
-  function: {
-    name: string;
-  };
-};
-
-export type ToolChoice =
-  | ToolChoicePrimitive
-  | ToolChoiceByName
-  | ToolChoiceExplicit;
+export type ResponseFormat =
+  | { type: "text" }
+  | { type: "json_object" }
+  | { type: "json_schema"; json_schema: JsonSchema };
 
 export type InvokeParams = {
   messages: Message[];
-  tools?: Tool[];
-  toolChoice?: ToolChoice;
-  tool_choice?: ToolChoice;
   maxTokens?: number;
   max_tokens?: number;
-  outputSchema?: OutputSchema;
-  output_schema?: OutputSchema;
-  responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
-};
-
-export type ToolCall = {
-  id: string;
-  type: "function";
-  function: {
-    name: string;
-    arguments: string;
-  };
 };
 
 export type InvokeResult = {
@@ -85,8 +33,7 @@ export type InvokeResult = {
     index: number;
     message: {
       role: Role;
-      content: string | Array<TextContent | ImageContent | FileContent>;
-      tool_calls?: ToolCall[];
+      content: string | null;
     };
     finish_reason: string | null;
   }>;
@@ -97,236 +44,71 @@ export type InvokeResult = {
   };
 };
 
-export type JsonSchema = {
-  name: string;
-  schema: Record<string, unknown>;
-  strict?: boolean;
-};
+let _client: GoogleGenerativeAI | null = null;
 
-export type OutputSchema = JsonSchema;
-
-export type ResponseFormat =
-  | { type: "text" }
-  | { type: "json_object" }
-  | { type: "json_schema"; json_schema: JsonSchema };
-
-const ensureArray = (
-  value: MessageContent | MessageContent[]
-): MessageContent[] => (Array.isArray(value) ? value : [value]);
-
-const normalizeContentPart = (
-  part: MessageContent
-): TextContent | ImageContent | FileContent => {
-  if (typeof part === "string") {
-    return { type: "text", text: part };
-  }
-
-  if (part.type === "text") {
-    return part;
-  }
-
-  if (part.type === "image_url") {
-    return part;
-  }
-
-  if (part.type === "file_url") {
-    return part;
-  }
-
-  throw new Error("Unsupported message content part");
-};
-
-const normalizeMessage = (message: Message) => {
-  const { role, name, tool_call_id } = message;
-
-  if (role === "tool" || role === "function") {
-    const content = ensureArray(message.content)
-      .map(part => (typeof part === "string" ? part : JSON.stringify(part)))
-      .join("\n");
-
-    return {
-      role,
-      name,
-      tool_call_id,
-      content,
-    };
-  }
-
-  const contentParts = ensureArray(message.content).map(normalizeContentPart);
-
-  // If there's only text content, collapse to a single string for compatibility
-  if (contentParts.length === 1 && contentParts[0].type === "text") {
-    return {
-      role,
-      name,
-      content: contentParts[0].text,
-    };
-  }
-
-  return {
-    role,
-    name,
-    content: contentParts,
-  };
-};
-
-const normalizeToolChoice = (
-  toolChoice: ToolChoice | undefined,
-  tools: Tool[] | undefined
-): "none" | "auto" | ToolChoiceExplicit | undefined => {
-  if (!toolChoice) return undefined;
-
-  if (toolChoice === "none" || toolChoice === "auto") {
-    return toolChoice;
-  }
-
-  if (toolChoice === "required") {
-    if (!tools || tools.length === 0) {
-      throw new Error(
-        "tool_choice 'required' was provided but no tools were configured"
-      );
+function getClient(): GoogleGenerativeAI {
+  if (!_client) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
-
-    if (tools.length > 1) {
-      throw new Error(
-        "tool_choice 'required' needs a single tool or specify the tool name explicitly"
-      );
-    }
-
-    return {
-      type: "function",
-      function: { name: tools[0].function.name },
-    };
+    _client = new GoogleGenerativeAI(apiKey);
   }
-
-  if ("name" in toolChoice) {
-    return {
-      type: "function",
-      function: { name: toolChoice.name },
-    };
-  }
-
-  return toolChoice;
-};
-
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
-
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-};
-
-const normalizeResponseFormat = ({
-  responseFormat,
-  response_format,
-  outputSchema,
-  output_schema,
-}: {
-  responseFormat?: ResponseFormat;
-  response_format?: ResponseFormat;
-  outputSchema?: OutputSchema;
-  output_schema?: OutputSchema;
-}):
-  | { type: "json_schema"; json_schema: JsonSchema }
-  | { type: "text" }
-  | { type: "json_object" }
-  | undefined => {
-  const explicitFormat = responseFormat || response_format;
-  if (explicitFormat) {
-    if (
-      explicitFormat.type === "json_schema" &&
-      !explicitFormat.json_schema?.schema
-    ) {
-      throw new Error(
-        "responseFormat json_schema requires a defined schema object"
-      );
-    }
-    return explicitFormat;
-  }
-
-  const schema = outputSchema || output_schema;
-  if (!schema) return undefined;
-
-  if (!schema.name || !schema.schema) {
-    throw new Error("outputSchema requires both name and schema");
-  }
-
-  return {
-    type: "json_schema",
-    json_schema: {
-      name: schema.name,
-      schema: schema.schema,
-      ...(typeof schema.strict === "boolean" ? { strict: schema.strict } : {}),
-    },
-  };
-};
+  return _client;
+}
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  const client = getClient();
 
-  const {
-    messages,
-    tools,
-    toolChoice,
-    tool_choice,
-    outputSchema,
-    output_schema,
-    responseFormat,
-    response_format,
-  } = params;
+  // Separate system and chat messages
+  const systemMessages = params.messages.filter(m => m.role === "system");
+  const chatMessages = params.messages.filter(m => m.role !== "system");
 
-  const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
-    messages: messages.map(normalizeMessage),
-  };
+  let systemInstruction = systemMessages.map(m => m.content).join("\n");
 
-  if (tools && tools.length > 0) {
-    payload.tools = tools;
+  // If JSON response format requested, add instruction
+  if (params.response_format?.type === "json_schema") {
+    const schema = params.response_format.json_schema;
+    systemInstruction += `\n\nIMPORTANT: You MUST respond with valid JSON matching this schema:\n${JSON.stringify(schema.schema, null, 2)}\n\nRespond ONLY with the JSON object, no markdown, no code fences, no other text.`;
+  } else if (params.response_format?.type === "json_object") {
+    systemInstruction += "\n\nIMPORTANT: Respond with valid JSON only, no markdown, no code fences, no other text.";
   }
 
-  const normalizedToolChoice = normalizeToolChoice(
-    toolChoice || tool_choice,
-    tools
-  );
-  if (normalizedToolChoice) {
-    payload.tool_choice = normalizedToolChoice;
-  }
-
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
-  }
-
-  const normalizedResponseFormat = normalizeResponseFormat({
-    responseFormat,
-    response_format,
-    outputSchema,
-    output_schema,
+  const model = client.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    systemInstruction,
   });
 
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
+  const contents = chatMessages.map(m => ({
+    role: m.role === "assistant" ? "model" as const : "user" as const,
+    parts: [{ text: m.content }],
+  }));
+
+  const result = await model.generateContent({ contents });
+  const response = result.response;
+  let text = response.text();
+
+  // Strip markdown code fences if present
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
   }
 
-  const response = await fetch(resolveApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+  return {
+    id: `gemini-${Date.now()}`,
+    created: Math.floor(Date.now() / 1000),
+    model: "gemini-2.0-flash",
+    choices: [{
+      index: 0,
+      message: {
+        role: "assistant",
+        content: text || null,
+      },
+      finish_reason: "stop",
+    }],
+    usage: {
+      prompt_tokens: response.usageMetadata?.promptTokenCount ?? 0,
+      completion_tokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+      total_tokens: response.usageMetadata?.totalTokenCount ?? 0,
     },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
-  }
-
-  return (await response.json()) as InvokeResult;
+  };
 }

@@ -67,3 +67,42 @@ export function hasAccess(userTier: string, requiredTier: TierId, subscriptionSt
   if (userIdx === -1 || reqIdx === -1) return false;
   return userIdx >= reqIdx;
 }
+
+// ─── One-time passes (not subscriptions) ────────────────────────────────────
+// Passes grant time-limited access to a specific tier without auto-renewal.
+// Used for event promos like the Carbon Forum Colombia 2026 launch.
+
+export type PassId = "carbon_forum_2026";
+
+export interface PassProduct {
+  id: PassId;
+  name: string;
+  priceUsd: number;          // one-time charge in USD
+  durationDays: number;      // how many days of access this unlocks
+  grantsTier: TierId;        // which tier the pass maps to
+  promoCode: string;         // client-side gate code shown in marketing
+  description: string;
+  lookupKey: string;         // Stripe price lookup_key
+}
+
+export const PASSES: PassProduct[] = [
+  {
+    id: "carbon_forum_2026",
+    name: "Carbon Forum Pass",
+    priceUsd: 50,
+    durationDays: 30,
+    grantsTier: "analyst",
+    promoCode: "CARBONFORUM50",
+    description: "30-day full Analyst access — Carbon Forum Colombia 2026 launch special.",
+    lookupKey: "biochar_pass_carbon_forum_2026",
+  },
+];
+
+export function getPassById(id: string): PassProduct | undefined {
+  return PASSES.find((p) => p.id === id);
+}
+
+export function getPassByPromoCode(code: string): PassProduct | undefined {
+  const normalized = code.trim().toUpperCase();
+  return PASSES.find((p) => p.promoCode.toUpperCase() === normalized);
+}

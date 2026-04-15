@@ -8,8 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-03
 
 export const stripeWebhookRouter = Router();
 
-// Must use raw body for Stripe signature verification
-stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Response) => {
+stripeWebhookRouter.post("/api/stripe/webhook", (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -18,21 +17,21 @@ stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Respon
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.error("[Stripe Webhook] Signature verification failed:", err);
-    return res.status(400).json({ error: "Webhook signature verification failed" });
+    res.status(400).json({ error: "Webhook signature verification failed" });
+    return;
   }
 
-  // Test events — return verification response
   if (event.id.startsWith("evt_test_")) {
-    console.log("[Stripe Webhook] Test event detected, returning verification response");
-    return res.json({ verified: true });
+    res.json({ verified: true });
+    return;
   }
 
   console.log(`[Stripe Webhook] Event: ${event.type} (${event.id})`);
 
-  const db = await getDb();
+  const db = getDb();
   if (!db) {
-    console.warn("[Stripe Webhook] Database not available");
-    return res.status(500).json({ error: "Database not available" });
+    res.status(500).json({ error: "Database not available" });
+    return;
   }
 
   try {
@@ -40,15 +39,37 @@ stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Respon
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.user_id ? parseInt(session.metadata.user_id) : null;
+
+        // One-time pass flow (mode: payment) — Carbon Forum etc.
+        const passId = session.metadata?.pass_id as string | undefined;
+        if (userId && passId && session.mode === "payment") {
+          const grantsTier = session.metadata?.grants_tier as string | undefined;
+          const durationDays = parseInt(session.metadata?.duration_days ?? "30", 10);
+
+          if (grantsTier) {
+            const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+            db.update(users).set({
+              subscriptionTier: grantsTier as "analyst" | "developer" | "engineer" | "expert",
+              subscriptionStatus: "active",
+              accessExpiresAt: expiresAt,
+              // Do NOT set stripeSubscriptionId — this is a one-time payment, no subscription.
+            }).where(eq(users.id, userId)).run();
+            console.log(`[Stripe Webhook] Activated pass ${passId} for user ${userId}, expires ${expiresAt.toISOString()}`);
+          }
+          break;
+        }
+
+        // Subscription flow (mode: subscription) — regular Analyst/Developer/etc.
         const tierId = session.metadata?.tier_id as string | undefined;
         const subscriptionId = session.subscription as string | undefined;
 
         if (userId && tierId && subscriptionId) {
-          await db.update(users).set({
+          db.update(users).set({
             stripeSubscriptionId: subscriptionId,
             subscriptionTier: tierId as "analyst" | "developer" | "engineer" | "expert",
             subscriptionStatus: "active",
-          }).where(eq(users.id, userId));
+            accessExpiresAt: null, // clear any leftover pass expiry
+          }).where(eq(users.id, userId)).run();
           console.log(`[Stripe Webhook] Activated ${tierId} for user ${userId}`);
         }
         break;
@@ -57,18 +78,16 @@ stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Respon
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
-        const status = subscription.status; // active, past_due, canceled, etc.
+        const status = subscription.status;
 
-        // Find user by Stripe customer ID
-        const userRows = await db.select({ id: users.id })
+        const userRows = db.select({ id: users.id })
           .from(users)
-          .where(eq(users.stripeCustomerId, customerId));
+          .where(eq(users.stripeCustomerId, customerId))
+          .all();
         const user = userRows[0];
 
         if (user) {
-          await db.update(users).set({
-            subscriptionStatus: status,
-          }).where(eq(users.id, user.id));
+          db.update(users).set({ subscriptionStatus: status }).where(eq(users.id, user.id)).run();
           console.log(`[Stripe Webhook] Updated subscription status to ${status} for user ${user.id}`);
         }
         break;
@@ -78,17 +97,18 @@ stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Respon
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        const userRows = await db.select({ id: users.id })
+        const userRows = db.select({ id: users.id })
           .from(users)
-          .where(eq(users.stripeCustomerId, customerId));
+          .where(eq(users.stripeCustomerId, customerId))
+          .all();
         const user = userRows[0];
 
         if (user) {
-          await db.update(users).set({
+          db.update(users).set({
             subscriptionTier: "free",
             subscriptionStatus: "inactive",
             stripeSubscriptionId: null,
-          }).where(eq(users.id, user.id));
+          }).where(eq(users.id, user.id)).run();
           console.log(`[Stripe Webhook] Downgraded user ${user.id} to free tier`);
         }
         break;
@@ -98,15 +118,14 @@ stripeWebhookRouter.post("/api/stripe/webhook", async (req: Request, res: Respon
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        const userRows = await db.select({ id: users.id })
+        const userRows = db.select({ id: users.id })
           .from(users)
-          .where(eq(users.stripeCustomerId, customerId));
+          .where(eq(users.stripeCustomerId, customerId))
+          .all();
         const user = userRows[0];
 
         if (user) {
-          await db.update(users).set({
-            subscriptionStatus: "past_due",
-          }).where(eq(users.id, user.id));
+          db.update(users).set({ subscriptionStatus: "past_due" }).where(eq(users.id, user.id)).run();
           console.log(`[Stripe Webhook] Marked user ${user.id} as past_due after payment failure`);
         }
         break;
