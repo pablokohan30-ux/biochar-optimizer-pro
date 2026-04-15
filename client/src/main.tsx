@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
+// Side-effect import — must run BEFORE <App/> mounts so the first render picks
+// up the detected language from localStorage / navigator.
+import "./i18n";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import {
   Flame, BarChart3, FileText, Beaker, Leaf, Globe,
   Zap, CheckCircle, ArrowRight, Lock, ChevronRight, ChevronDown,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
 import CarbonForumPassButton from "@/components/CarbonForumPassButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
 import { compute_all, FEEDSTOCK_DB } from "@/lib/biocharModel";
 
@@ -160,6 +162,7 @@ const MODULES = [
 
 
 export default function Landing() {
+  const { t } = useTranslation(["landing", "common"]);
   const [openModule, setOpenModule] = useState<string | null>(null);
 
   // Demo data for landing-page charts (Pine Sawdust, 650°C, 30 min)
@@ -196,12 +199,13 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Link href="/pricing">
-              <Button variant="ghost" size="sm">Pricing</Button>
+              <Button variant="ghost" size="sm">{t("common:nav.pricing")}</Button>
             </Link>
             <Link href="/app">
               <Button size="sm" className="gap-1">
-                Try for free <ArrowRight className="w-3 h-3" />
+                {t("common:nav.tryForFree")} <ArrowRight className="w-3 h-3" />
               </Button>
             </Link>
           </div>
@@ -221,51 +225,49 @@ export default function Landing() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-6">
                 <Leaf className="w-3 h-3" />
-                Biochar project development platform
+                {t("landing:hero.badge")}
               </div>
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
-                From biomass to<br />
+                {t("landing:hero.titleLine1")}<br />
                 <span className="bg-gradient-to-r from-primary to-green-400 bg-clip-text text-transparent">
-                  carbon credit
+                  {t("landing:hero.titleHighlight")}
                 </span>,<br />
-                step by step.
+                {t("landing:hero.titleLine2")}
               </h1>
               <p className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed">
-                The only platform that accompanies the full lifecycle of a biochar project:
-                from technical simulation to complete plant design, LCA,
-                regulatory permits, and access to carbon markets.
+                {t("landing:hero.subtitle")}
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link href="/app">
                   <Button size="lg" className="gap-2 text-base px-8 shadow-lg shadow-primary/20">
                     <Zap className="w-4 h-4" />
-                    Start for free
+                    {t("landing:hero.ctaPrimary")}
                   </Button>
                 </Link>
                 <Link href="/pricing">
                   <Button size="lg" variant="outline" className="gap-2 text-base px-8">
-                    View plans & pricing
+                    {t("landing:hero.ctaSecondary")}
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                No credit card required · Full simulator free · Upgrade when your project needs it
+                {t("landing:hero.noCardRequired")}
               </p>
 
               {/* Trust indicators */}
               <div className="mt-10 pt-8 border-t border-border/50 grid grid-cols-3 gap-6 max-w-lg">
                 <div>
                   <div className="text-2xl font-bold text-primary">50+</div>
-                  <div className="text-xs text-muted-foreground">Biomass types</div>
+                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustBiomasses")}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-primary">BC-1</div>
-                  <div className="text-xs text-muted-foreground">Puro.earth ready</div>
+                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustPuro")}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-primary">100%</div>
-                  <div className="text-xs text-muted-foreground">Peer-reviewed</div>
+                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustPeerReview")}</div>
                 </div>
               </div>
             </div>
@@ -281,7 +283,7 @@ export default function Landing() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        Live Simulation
+                        {t("landing:hero.liveSimulation")}
                       </div>
                       <span className="text-[10px] text-muted-foreground">650°C / 30 min</span>
                     </div>
@@ -346,11 +348,11 @@ export default function Landing() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-3">
               <Zap className="w-3 h-3" />
-              Live preview
+              {t("landing:preview.badge")}
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">See it in action</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">{t("landing:preview.title")}</h2>
             <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-              Real output from our pyrolysis model running on Pine Sawdust at 650°C, and an LCA on the MAF Corrientes reference case.
+              {t("landing:preview.subtitle")}
             </p>
           </div>
 

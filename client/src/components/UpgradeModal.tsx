@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Lock, CheckCircle, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -63,6 +64,7 @@ const TIER_FEATURES: Record<TierId, string[]> = {
 };
 
 export default function UpgradeModal({ isOpen, onClose, featureName, requiredTier }: UpgradeModalProps) {
+  const { t } = useTranslation("upgrade");
   const { isAuthenticated } = useAuth();
   const createCheckout = trpc.subscription.createCheckout.useMutation({
     onSuccess: (data) => {
@@ -96,7 +98,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
               <Lock className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-bold text-base">Premium Feature</h2>
+              <h2 className="font-bold text-base">{t("premiumFeature")}</h2>
               <p className="text-xs text-muted-foreground">{featureName}</p>
             </div>
           </div>
@@ -108,13 +110,13 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
         {/* Content */}
         <div className="p-6 space-y-4">
           <p className="text-sm text-muted-foreground">
-            This feature requires the{" "}
-            <span className="font-semibold text-foreground">{TIER_NAMES[requiredTier]}</span> plan or higher.
+            {t("requires")}{" "}
+            <span className="font-semibold text-foreground">{TIER_NAMES[requiredTier]}</span> {t("orHigher")}
           </p>
 
           <div className="bg-secondary/30 rounded-lg p-4 space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Included in {TIER_NAMES[requiredTier]}+
+              {t("includedIn", { tier: TIER_NAMES[requiredTier] })}
             </p>
             {TIER_FEATURES[requiredTier].map((feat) => (
               <div key={feat} className="flex items-start gap-2 text-sm">
@@ -126,7 +128,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
 
           <div className="flex items-baseline gap-1">
             <span className="text-3xl font-bold">${TIER_PRICES[requiredTier]}</span>
-            <span className="text-sm text-muted-foreground">/mo</span>
+            <span className="text-sm text-muted-foreground">{t("perMonth")}</span>
           </div>
         </div>
 
@@ -138,11 +140,11 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
             className="w-full gap-2"
           >
             <Zap className="w-4 h-4" />
-            {createCheckout.isPending ? "Processing..." : `Subscribe to ${TIER_NAMES[requiredTier]} plan`}
+            {createCheckout.isPending ? t("processing") : t("subscribeTo", { tier: TIER_NAMES[requiredTier] })}
           </Button>
           <Link href="/pricing">
             <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={onClose}>
-              View all plans
+              {t("viewAllPlans")}
             </Button>
           </Link>
         </div>

@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
 import CarbonForumPassButton from "@/components/CarbonForumPassButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type FeatureRow = {
   label: string;
@@ -67,6 +69,7 @@ function Cell({ value }: { value: boolean | string }) {
 }
 
 function EnterpriseContact() {
+  const { t } = useTranslation("pricing");
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
   const [loading, setLoading] = useState(false);
@@ -76,7 +79,7 @@ function EnterpriseContact() {
     const val = e.target.value;
     setForm((f) => ({ ...f, email: val }));
     if (val.includes("@") && !isCorporateEmail(val)) {
-      setEmailError("Please use a corporate email address. Personal email providers (Gmail, Hotmail, Yahoo, etc.) are not accepted.");
+      setEmailError(t("enterprise.corporateOnly"));
     } else {
       setEmailError("");
     }
@@ -85,7 +88,7 @@ function EnterpriseContact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isCorporateEmail(form.email)) {
-      setEmailError("Please use a corporate email address. Personal email providers (Gmail, Hotmail, Yahoo, etc.) are not accepted.");
+      setEmailError(t("enterprise.corporateOnly"));
       return;
     }
     setLoading(true);
@@ -98,10 +101,9 @@ function EnterpriseContact() {
     <div className="mt-10 bg-primary/5 border border-primary/20 rounded-xl p-8">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
-          <h3 className="text-xl font-bold mb-2">Need more? Let's talk.</h3>
+          <h3 className="text-xl font-bold mb-2">{t("enterprise.title")}</h3>
           <p className="text-muted-foreground text-sm">
-            For detailed engineering, certification support, technical due diligence for investors,
-            or full plant implementation — we work with you outside the platform.
+            {t("enterprise.subtitle")}
           </p>
         </div>
         {submitted ? (
@@ -109,32 +111,32 @@ function EnterpriseContact() {
             <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-6 h-6 text-primary" />
             </div>
-            <h4 className="font-semibold mb-1">Message sent!</h4>
-            <p className="text-sm text-muted-foreground">We'll get back to you within 24 hours.</p>
+            <h4 className="font-semibold mb-1">{t("enterprise.sent")}</h4>
+            <p className="text-sm text-muted-foreground">{t("enterprise.sentDetail")}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name *</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("enterprise.name")} *</label>
               <input
                 required
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Your name"
+                placeholder={t("enterprise.namePlaceholder")}
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Corporate Email *
+                {t("enterprise.corporateEmail")} *
               </label>
               <input
                 required
                 type="email"
                 value={form.email}
                 onChange={handleEmailChange}
-                placeholder="you@yourcompany.com"
+                placeholder={t("enterprise.emailPlaceholder")}
                 className={`bg-background border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${
                   emailError ? "border-red-500 focus:ring-red-500" : "border-border"
                 }`}
@@ -147,30 +149,30 @@ function EnterpriseContact() {
               )}
             </div>
             <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Company / Organization *</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("enterprise.company")} *</label>
               <input
                 required
                 type="text"
                 value={form.company}
                 onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-                placeholder="Company name"
+                placeholder={t("enterprise.companyPlaceholder")}
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tell us about your project *</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("enterprise.projectDescription")} *</label>
               <textarea
                 required
                 rows={4}
                 value={form.message}
                 onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                placeholder="Describe your project: biomass type, scale, location, goals..."
+                placeholder={t("enterprise.projectPlaceholder")}
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
               />
             </div>
             <div className="sm:col-span-2 flex justify-end">
               <Button type="submit" disabled={loading || !!emailError} className="gap-2">
-                {loading ? "Sending..." : (<><Send className="w-4 h-4" /> Send message</>)}
+                {loading ? t("enterprise.sending") : (<><Send className="w-4 h-4" /> {t("enterprise.send")}</>)}
               </Button>
             </div>
           </form>
@@ -181,15 +183,20 @@ function EnterpriseContact() {
 }
 
 export default function Pricing() {
+  const { t } = useTranslation(["pricing", "common"]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV */}
       <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
-          <Link href="/app">
-            <Button size="sm">Try for free</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link href="/app">
+              <Button size="sm">{t("common:nav.tryForFree")}</Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -197,19 +204,19 @@ export default function Pricing() {
         <div className="flex items-center justify-between mb-4">
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2">
-              <ArrowLeft className="w-3 h-3" /> Back
+              <ArrowLeft className="w-3 h-3" /> {t("common:cta.back")}
             </Button>
           </Link>
           <div className="hidden sm:inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] font-medium px-2.5 py-1 rounded-full">
             <AlertCircle className="w-3 h-3" />
-            Billed quarterly · 3-month min
+            {t("pricing:billedQuarterly")}
           </div>
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold mb-1">Plans & Pricing</h1>
+          <h1 className="text-3xl font-bold mb-1">{t("pricing:title")}</h1>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Start for free and scale when your project requires it.
+            {t("pricing:subtitle")}
           </p>
         </div>
 
@@ -219,30 +226,30 @@ export default function Pricing() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <div className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Carbon Forum Colombia 2026
+                  {t("pricing:carbonForumPromo.badge")}
                 </div>
                 <div className="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                   <Sparkles className="w-2.5 h-2.5" />
-                  Limited time
+                  {t("pricing:carbonForumPromo.limitedTime")}
                 </div>
               </div>
               <h2 className="text-xl md:text-2xl font-bold mb-1">
-                Carbon Forum Pass — <span className="text-green-600 dark:text-green-400">$50</span>
-                <span className="text-xs text-muted-foreground font-normal ml-2">30-day full Analyst access</span>
+                {t("pricing:carbonForumPromo.title")} <span className="text-green-600 dark:text-green-400">$50</span>
+                <span className="text-xs text-muted-foreground font-normal ml-2">{t("pricing:carbonForumPromo.access30days")}</span>
               </h2>
               <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Pyrolysis simulator</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> T°/time optimizer</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> PDF export</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Project Manager</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> LCA (Puro.earth)</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> AI biomass search</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.simulator")}</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.optimizer")}</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.pdf")}</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.projects")}</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.lca")}</li>
+                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.aiSearch")}</li>
               </ul>
             </div>
             <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
               <CarbonForumPassButton />
               <p className="text-[10px] text-center md:text-right text-muted-foreground">
-                Code <span className="font-mono font-bold">CARBONFORUM50</span>
+                {t("pricing:carbonForumPromo.codeLabel")} <span className="font-mono font-bold">CARBONFORUM50</span>
               </p>
             </div>
           </div>
@@ -250,42 +257,49 @@ export default function Pricing() {
 
         {/* Tier cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 max-w-3xl mx-auto">
-          {TIERS.map((tier) => (
+          {TIERS.map((tier) => {
+            const localized =
+              tier.id === "free"
+                ? {
+                    description: t("pricing:tiers.explorer.description"),
+                  }
+                : {
+                    description: t("pricing:tiers.analyst.description"),
+                  };
+            return (
             <div key={tier.id} className={`${tier.bg} border border-border rounded-xl p-5 relative ${(tier as any).popular ? "ring-2 ring-primary/30" : ""}`}>
               {(tier as any).popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
-                  MOST POPULAR
+                  {t("pricing:tiers.analyst.mostPopular")}
                 </div>
               )}
               <div className="text-center">
                 <div className={`font-bold text-base mb-1 ${tier.color}`}>{tier.name}</div>
                 <div className="text-3xl font-bold mb-0.5">
-                  {tier.price === 0 ? "Free" : `$${tier.price}`}
+                  {tier.price === 0 ? t("pricing:tiers.analyst.free") : `$${tier.price}`}
                 </div>
                 {tier.price > 0 && (
                   <>
-                    <div className="text-xs text-muted-foreground">/mo</div>
+                    <div className="text-xs text-muted-foreground">{t("pricing:tiers.analyst.perMonth")}</div>
                     <div className="text-[10px] text-muted-foreground/70 mt-0.5">
-                      ${tier.quarterly} billed quarterly
+                      {t("pricing:tiers.analyst.billedQuarterlyAmount", { amount: tier.quarterly })}
                     </div>
                     {tier.savings > 0 && (
                       <div className="inline-flex items-center gap-1 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1.5">
                         <span>🏷</span>
-                        Save ${tier.savings} vs monthly
+                        {t("pricing:tiers.analyst.save", { amount: tier.savings })}
                       </div>
                     )}
                   </>
                 )}
               </div>
-              {(tier as any).description && (
-                <p className="text-[12px] text-muted-foreground leading-relaxed mt-3 mb-3 text-left">
-                  {(tier as any).description}
-                </p>
-              )}
+              <p className="text-[12px] text-muted-foreground leading-relaxed mt-3 mb-3 text-left">
+                {localized.description}
+              </p>
               {tier.price === 0 ? (
                 <Link href="/app">
                   <Button size="sm" variant="outline" className="w-full text-xs">
-                    Get started
+                    {t("common:cta.getStarted")}
                   </Button>
                 </Link>
               ) : (
@@ -295,11 +309,12 @@ export default function Pricing() {
                   variant="default"
                   className="w-full text-xs"
                 >
-                  Subscribe
+                  {t("pricing:tiers.analyst.subscribe")}
                 </SubscribeButton>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Feature comparison table */}
@@ -331,15 +346,15 @@ export default function Pricing() {
         <div className="mt-4 max-w-3xl mx-auto bg-green-500/5 border border-green-500/20 rounded-lg px-4 py-3 flex items-start gap-3">
           <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Prefer spreadsheets?</span>{" "}
-            Analyst subscribers can also download the LCA as an Excel / Google Sheets template (Puro.earth Ed. 2025, all formulas included) and work offline.
+            <span className="font-semibold text-foreground">{t("pricing:prefer.title")}</span>{" "}
+            {t("pricing:prefer.body")}
           </div>
         </div>
 
         {/* Build-in-public note */}
         <div className="mt-3 max-w-3xl mx-auto text-center">
           <p className="text-[11px] text-muted-foreground">
-            <Sparkles className="w-3 h-3 inline-block align-text-bottom text-amber-500" /> More advanced tiers (Developer · Engineer · Expert) are on the way as we build them. We won't charge for vapor.
+            <Sparkles className="w-3 h-3 inline-block align-text-bottom text-amber-500" /> {t("pricing:buildInPublic")}
           </p>
         </div>
 
@@ -348,30 +363,30 @@ export default function Pricing() {
 
         {/* FAQ */}
         <div className="mt-12 max-w-3xl mx-auto">
-          <h3 className="text-lg font-bold text-center mb-5">Frequently asked questions</h3>
+          <h3 className="text-lg font-bold text-center mb-5">{t("pricing:faq.title")}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-card border border-border rounded-lg p-4">
-              <div className="text-sm font-semibold mb-1.5">Can I cancel anytime?</div>
+              <div className="text-sm font-semibold mb-1.5">{t("pricing:faq.q1")}</div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Yes. Analyst is billed quarterly with a 3-month minimum. After that you can cancel any time and keep full access until the end of your current billing period.
+                {t("pricing:faq.a1")}
               </p>
             </div>
             <div className="bg-card border border-border rounded-lg p-4">
-              <div className="text-sm font-semibold mb-1.5">What exactly is included in Analyst?</div>
+              <div className="text-sm font-semibold mb-1.5">{t("pricing:faq.q2")}</div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Everything in the free tier plus the T°/time optimizer, PDF report export, Project Manager with geographic data, the Puro.earth Ed. 2025 LCA module, an Excel / Google Sheets LCA template and EBC / Puro.earth / Isometric compliance analysis.
+                {t("pricing:faq.a2")}
               </p>
             </div>
             <div className="bg-card border border-border rounded-lg p-4">
-              <div className="text-sm font-semibold mb-1.5">How does the Carbon Forum Pass work?</div>
+              <div className="text-sm font-semibold mb-1.5">{t("pricing:faq.q3")}</div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                A one-time $50 payment gives you 30 days of full Analyst access. Click <span className="font-semibold text-foreground">Get the Carbon Forum Pass</span>, enter code <span className="font-mono font-semibold text-foreground">CARBONFORUM50</span> to unlock the $50 price, and you'll be redirected to Stripe Checkout. No auto-renew — if you want to keep using the platform after 30 days, you subscribe normally.
+                {t("pricing:faq.a3Before")}<span className="font-semibold text-foreground">{t("pricing:faq.a3Button")}</span>{t("pricing:faq.a3Middle")}<span className="font-mono font-semibold text-foreground">{t("pricing:faq.a3Code")}</span>{t("pricing:faq.a3After")}
               </p>
             </div>
             <div className="bg-card border border-border rounded-lg p-4">
-              <div className="text-sm font-semibold mb-1.5">Is my data used to train AI models?</div>
+              <div className="text-sm font-semibold mb-1.5">{t("pricing:faq.q4")}</div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Never. Your simulations, projects and uploaded biomass data are yours. We don't sell them and we don't use them to train third-party AI models. See the <Link href="/legal/privacy"><span className="text-primary hover:underline">Privacy Policy</span></Link> for details.
+                {t("pricing:faq.a4Before")}<Link href="/legal/privacy"><span className="text-primary hover:underline">{t("pricing:faq.a4Link")}</span></Link>{t("pricing:faq.a4After")}
               </p>
             </div>
           </div>

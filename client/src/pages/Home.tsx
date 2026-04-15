@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { useTier } from "@/hooks/useTier";
 import UpgradeModal from "@/components/UpgradeModal";
 import LogoLink from "@/components/LogoLink";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PassActivatedBanner from "@/components/PassActivatedBanner";
 import SubscribedBanner from "@/components/SubscribedBanner";
 import { Link, useLocation } from "wouter";
@@ -315,6 +316,31 @@ export default function Home() {
     }
   });
 
+  // ─── Auth gate ──────────────────────────────────────────────────────────────
+  // The simulator is free to USE but requires a corporate-email signup so we
+  // can see who (and from which company) is using the platform. We redirect
+  // unauthenticated visitors to /login?signup=1 which defaults the auth page
+  // to register mode. Registration itself blocks personal email providers
+  // (Gmail, Yahoo, etc.) on the server side — see server/routers.ts.
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate("/login?signup=1&from=simulator");
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    // useEffect above is already navigating; render nothing for a clean hand-off.
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
 
@@ -384,6 +410,7 @@ export default function Home() {
                 {tier === "free" ? "FREE PLAN" : tier.toUpperCase()}
               </span>
             </Link>
+            <LanguageSwitcher />
             {user && (
               <button onClick={logout} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 Logout

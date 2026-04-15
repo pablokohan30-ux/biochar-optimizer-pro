@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Sparkles, X, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -25,7 +26,8 @@ interface CarbonForumPassButtonProps {
  *   4. Submit → createPassCheckout mutation → redirect to Stripe checkout (mode: payment)
  *   5. After payment, webhook sets tier='analyst' with accessExpiresAt = now + 30 days
  */
-export default function CarbonForumPassButton({ className, label = "Get the Pass" }: CarbonForumPassButtonProps) {
+export default function CarbonForumPassButton({ className, label }: CarbonForumPassButtonProps) {
+  const { t } = useTranslation("pass");
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
@@ -60,7 +62,7 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
 
     const normalized = code.trim().toUpperCase();
     if (normalized !== PROMO_CODE) {
-      setError(`Invalid promo code. The Carbon Forum Pass requires the code shown on-site.`);
+      setError(t("invalidCode"));
       return;
     }
 
@@ -82,7 +84,7 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
         onClick={handleClick}
         className={className ?? "w-full md:w-40 bg-green-600 hover:bg-green-700 text-white"}
       >
-        {label}
+        {label ?? t("buttonLabel")}
       </Button>
 
       {open && (
@@ -95,8 +97,8 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
                   <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-base">Carbon Forum Pass</h2>
-                  <p className="text-xs text-muted-foreground">30 days · full Analyst access</p>
+                  <h2 className="font-bold text-base">{t("header")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("subheader")}</p>
                 </div>
               </div>
               <button
@@ -115,37 +117,37 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
               {!isAuthenticated ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    You need an account to activate the pass. Sign in or create an account — it takes under a minute.
+                    {t("needAccount")}
                   </p>
                   <Button type="button" onClick={() => setLocation("/login")} className="w-full">
-                    Sign in / create account
+                    {t("signInOrCreate")}
                   </Button>
                 </>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      What you get
+                      {t("whatYouGet")}
                     </div>
                     <ul className="space-y-1.5 text-sm">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                        <span>30 days of full Analyst access</span>
+                        <span>{t("bullet30Days")}</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                        <span>No auto-renewal — one-time payment</span>
+                        <span>{t("bulletNoRenew")}</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                        <span>T°/time optimizer, LCA, PDF export, Project Manager</span>
+                        <span>{t("bulletFeatures")}</span>
                       </li>
                     </ul>
                   </div>
 
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                      Promo code
+                      {t("promoCode")}
                     </label>
                     <input
                       type="text"
@@ -161,7 +163,7 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
                       className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-mono tracking-wider text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 uppercase"
                     />
                     <p className="text-[10px] text-muted-foreground mt-1.5">
-                      Find this code on the Carbon Forum Colombia 2026 promo card.
+                      {t("promoCodeHint")}
                     </p>
                   </div>
 
@@ -173,9 +175,9 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
                   )}
 
                   <div className="flex items-baseline justify-between pt-1">
-                    <span className="text-xs text-muted-foreground">Total</span>
+                    <span className="text-xs text-muted-foreground">{t("total")}</span>
                     <span className="text-2xl font-bold text-foreground">
-                      $50<span className="text-xs font-normal text-muted-foreground ml-1">one-time</span>
+                      $50<span className="text-xs font-normal text-muted-foreground ml-1">{t("oneTime")}</span>
                     </span>
                   </div>
 
@@ -187,15 +189,15 @@ export default function CarbonForumPassButton({ className, label = "Get the Pass
                     {createPassCheckout.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Redirecting to checkout...
+                        {t("redirecting")}
                       </>
                     ) : (
-                      <>Continue to checkout</>
+                      <>{t("continueToCheckout")}</>
                     )}
                   </Button>
 
                   <p className="text-[10px] text-center text-muted-foreground">
-                    Payment processed by Stripe. Access expires automatically after 30 days.
+                    {t("stripeNote")}
                   </p>
                 </form>
               )}
