@@ -7,6 +7,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { applyMetaOverride, matchOverride } from "./seoMeta";
 
 // Inlined: production static-serving (matches the old serveStatic in vite.ts).
 // We keep it inlined so that the production bundle does NOT statically
@@ -26,9 +27,31 @@ function serveStatic(app: express.Express) {
 
   app.use(express.static(distPath));
 
-  // SPA fallback — any unmatched path returns index.html
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Load index.html once at startup. When an SPA route has a SEO override
+  // configured (see seoMeta.ts) we substitute title + description + OG tags
+  // on the fly so social-media previews render per-route content.
+  const indexPath = path.resolve(distPath, "index.html");
+  let indexHtmlCache: string | null = null;
+  try {
+    indexHtmlCache = fs.readFileSync(indexPath, "utf8");
+  } catch (err) {
+    console.warn("[serveStatic] Could not pre-load index.html:", err);
+  }
+
+  // SPA fallback — any unmatched path returns index.html (optionally with
+  // per-route meta tag overrides for social previews).
+  app.use("*", (req, res) => {
+    // Strip query string; seoMeta matches on the pathname only.
+    const pathname = (req.originalUrl || "/").split("?")[0];
+    const override = matchOverride(pathname);
+
+    if (override && indexHtmlCache) {
+      const html = applyMetaOverride(indexHtmlCache, override, pathname);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+      return;
+    }
+    res.sendFile(indexPath);
   });
 }
 

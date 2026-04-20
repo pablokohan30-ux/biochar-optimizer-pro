@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles, FileCheck, Printer } from "lucide-react";
+import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles, FileCheck, Printer, Download, ChevronDown, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -49,11 +49,15 @@ export default function ProjectDetail() {
     },
   });
 
+  const [exportLoading, setExportLoading] = useState(false);
+
   const [T, setT] = useState(650);
   const [resTime, setResTime] = useState(30);
   const [goal, setGoal] = useState<QualityGoal>("BALANCED");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [optimumToast, setOptimumToast] = useState<{ T: number; t: number; goal: string } | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [bopIdCopied, setBopIdCopied] = useState(false);
 
   const project = projectQuery.data;
 
@@ -148,6 +152,51 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleExportJson = async (methodologyId: "puro-earth" | "isometric" | "ebc" | "ibi") => {
+    setExportMenuOpen(false);
+    setExportLoading(true);
+    try {
+      const payload = await utils.projects.exportSubmission.fetch({ id: project.id, methodologyId });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeBopId = project.bopId ?? `project-${project.id}`;
+      a.href = url;
+      a.download = `${safeBopId}__${methodologyId}__submission.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSaveMessage(t("export.success", { defaultValue: "Submission JSON downloaded" }));
+      setTimeout(() => setSaveMessage(null), 2500);
+    } catch (err: any) {
+      alert(err?.message ?? "Export failed");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportPdf = (methodologyId: "puro-earth" | "isometric" | "ebc" | "ibi") => {
+    setExportMenuOpen(false);
+    // Open printable page in a new tab with ?autoprint=1 so the browser print
+    // dialog fires automatically. User can save as PDF from there.
+    const url = `/projects/${project.id}/submission/${methodologyId}?autoprint=1`;
+    window.open(url, "_blank");
+  };
+
+  const handleCopyBopId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!project.bopId) return;
+    try {
+      await navigator.clipboard.writeText(project.bopId);
+      setBopIdCopied(true);
+      setTimeout(() => setBopIdCopied(false), 1800);
+    } catch {
+      // Ignore — older browsers
+    }
+  };
+
   const pageTitle = (
     <span className="flex items-center gap-2 min-w-0">
       <Link href="/projects">
@@ -157,15 +206,28 @@ export default function ProjectDetail() {
       </Link>
       <span className="truncate font-bold">{project.name}</span>
       {project.bopId && (
-        <a
-          href={`/verify/${project.bopId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden md:inline-flex items-center gap-1 text-[9px] font-mono bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary px-1.5 py-0.5 rounded uppercase tracking-wider flex-shrink-0 transition-colors"
-          title={t("publicVerifyHint", { defaultValue: "Open the public verify page (in new tab)" })}
-        >
-          {project.bopId}
-        </a>
+        <span className="hidden md:inline-flex items-center gap-0 text-[9px] font-mono bg-primary/10 border border-primary/20 text-primary rounded overflow-hidden flex-shrink-0">
+          <a
+            href={`/verify/${project.bopId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:bg-primary/20 px-1.5 py-0.5 uppercase tracking-wider transition-colors"
+            title={t("publicVerifyHint", { defaultValue: "Open the public verify page (in new tab)" })}
+          >
+            {project.bopId}
+          </a>
+          <button
+            type="button"
+            onClick={handleCopyBopId}
+            className="border-l border-primary/20 px-1.5 py-0.5 hover:bg-primary/20 transition-colors inline-flex items-center"
+            title={bopIdCopied
+              ? t("copiedLabel", { defaultValue: "Copied!" })
+              : t("copyIdHint", { defaultValue: "Copy BOP ID" })}
+            aria-label={t("copyIdHint", { defaultValue: "Copy BOP ID" })}
+          >
+            {bopIdCopied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+          </button>
+        </span>
       )}
       {project.location && (
         <span className="hidden lg:inline-flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
@@ -198,6 +260,70 @@ export default function ProjectDetail() {
           <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("summary.openButton", { defaultValue: "Summary" })}</span>
         </button>
       </Link>
+
+      {/* Export submission package — Developer+ tier. Each methodology has
+          two formats: JSON (machine-readable) and PDF (printable). */}
+      {hasAccess("developer") && (
+        <div className="relative">
+          <button
+            onClick={() => setExportMenuOpen((v) => !v)}
+            disabled={exportLoading}
+            className="bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1 border border-emerald-600/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            title={t("export.buttonHint", { defaultValue: "Download a structured submission package for a certifier" })}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {exportLoading
+                ? t("export.generating", { defaultValue: "Generating…" })
+                : t("export.button", { defaultValue: "Export" })}
+            </span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {exportMenuOpen && (
+            <>
+              {/* Backdrop to close on outside click */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setExportMenuOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg min-w-[300px] overflow-hidden">
+                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                  {t("export.menuHeader", { defaultValue: "Submission package · pick certifier & format" })}
+                </div>
+                {[
+                  { id: "puro-earth" as const, name: "Puro.earth", desc: t("export.descPuro",      { defaultValue: "CORC methodology · credit-issuing" }) },
+                  { id: "isometric" as const,  name: "Isometric",  desc: t("export.descIsometric", { defaultValue: "200/1000-yr durability protocol" }) },
+                  { id: "ebc" as const,        name: "EBC",        desc: t("export.descEbc",       { defaultValue: "European Biochar Certificate · quality" }) },
+                  { id: "ibi" as const,        name: "IBI",        desc: t("export.descIbi",       { defaultValue: "International Biochar Initiative · quality" }) },
+                ].map((opt) => (
+                  <div key={opt.id} className="border-b border-border last:border-b-0">
+                    <div className="px-3 pt-2.5 pb-1">
+                      <div className="text-xs font-semibold">{opt.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{opt.desc}</div>
+                    </div>
+                    <div className="flex gap-0 px-2 pb-2">
+                      <button
+                        onClick={() => handleExportJson(opt.id)}
+                        className="flex-1 text-[10px] font-semibold uppercase tracking-wider bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded mr-1 border border-emerald-600/20 inline-flex items-center justify-center gap-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        {t("export.json", { defaultValue: "JSON" })}
+                      </button>
+                      <button
+                        onClick={() => handleExportPdf(opt.id)}
+                        className="flex-1 text-[10px] font-semibold uppercase tracking-wider bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded border border-blue-600/20 inline-flex items-center justify-center gap-1"
+                      >
+                        <Printer className="w-3 h-3" />
+                        {t("export.pdf", { defaultValue: "PDF" })}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <button
         onClick={handleSave}
         disabled={updateMutation.isPending || !hasUnsavedChanges}

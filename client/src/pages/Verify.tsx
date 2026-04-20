@@ -15,6 +15,7 @@
  * certifiers / partners receiving our PDFs in the wild.
  */
 
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,6 +23,7 @@ import {
   Calendar, FileCheck, Beaker, Layers, Flame, Clock,
   ExternalLink, Building2, Factory, Cpu, Leaf,
   TrendingUp, CheckCircle2, XCircle, DollarSign,
+  Copy, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
@@ -41,6 +43,26 @@ export default function Verify() {
   const params = useParams<{ bopId: string }>();
   const { t, i18n } = useTranslation(["verify", "common"]);
   const bopId = params.bopId ?? "";
+  const [copied, setCopied] = useState<"id" | "url" | null>(null);
+
+  const handleCopy = async (kind: "id" | "url", text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 1800);
+    } catch {
+      // Clipboard API failed (older browsers, iframe, etc.) — fallback to
+      // selecting the text so the user can Ctrl+C manually.
+      const range = document.createRange();
+      const el = document.createElement("span");
+      el.textContent = text;
+      document.body.appendChild(el);
+      range.selectNode(el);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      setTimeout(() => el.remove(), 1000);
+    }
+  };
 
   const query = trpc.projects.verifyByBopId.useQuery(
     { bopId },
@@ -149,8 +171,21 @@ export default function Verify() {
             <div className="border border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card rounded-lg p-6 md:p-8 mb-6">
               <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
-                    {t("verify:projectId")}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      {t("verify:projectId")}
+                    </div>
+                    <button
+                      onClick={() => handleCopy("id", project.bopId ?? "")}
+                      className="text-[10px] font-mono text-muted-foreground hover:text-primary inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-primary/40 transition-colors"
+                      title={t("verify:copyIdHint", { defaultValue: "Copy BOP ID" })}
+                    >
+                      {copied === "id" ? (
+                        <><Check className="w-2.5 h-2.5" /> {t("verify:copied", { defaultValue: "Copied" })}</>
+                      ) : (
+                        <><Copy className="w-2.5 h-2.5" /> {t("verify:copy", { defaultValue: "Copy" })}</>
+                      )}
+                    </button>
                   </div>
                   <div className="font-mono text-2xl md:text-3xl font-bold text-primary mb-3 break-all">
                     {project.bopId}
@@ -169,6 +204,24 @@ export default function Verify() {
                   <FileCheck className="w-3 h-3" />
                   {t(`verify:status.${statusKey}`)}
                 </div>
+              </div>
+              {/* Shareable verify URL */}
+              <div className="flex items-center gap-2 pt-3 border-t border-border">
+                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 font-mono text-[11px] text-muted-foreground truncate">
+                  {`https://biocharpro.io/verify/${project.bopId}`}
+                </div>
+                <button
+                  onClick={() => handleCopy("url", `https://biocharpro.io/verify/${project.bopId}`)}
+                  className="text-[10px] font-mono text-muted-foreground hover:text-primary inline-flex items-center gap-0.5 px-2 py-1 rounded border border-border hover:border-primary/40 transition-colors flex-shrink-0"
+                  title={t("verify:copyUrlHint", { defaultValue: "Copy shareable URL" })}
+                >
+                  {copied === "url" ? (
+                    <><Check className="w-2.5 h-2.5" /> {t("verify:copied", { defaultValue: "Copied" })}</>
+                  ) : (
+                    <><Copy className="w-2.5 h-2.5" /> {t("verify:copyLink", { defaultValue: "Copy link" })}</>
+                  )}
+                </button>
               </div>
             </div>
 

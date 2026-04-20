@@ -6,6 +6,7 @@ import { projects } from "../drizzle/schema";
 import { geocodeAddress, searchAddresses } from "./_core/geocoding";
 import { fetchClimateData } from "./_core/openmeteo";
 import { fetchSoilData } from "./_core/soilgrids";
+import { buildSubmissionPayload } from "./_core/submissionExporter";
 
 /**
  * Generate the next BOP project ID for the current year.
@@ -50,6 +51,16 @@ const projectInput = z.object({
 function requireAnalyst(tier: string | null | undefined, status: string | null | undefined) {
   if (tier === "free" || !tier) {
     throw new Error("UPGRADE_REQUIRED: Project management requires the Analyst plan or higher.");
+  }
+  if (status && status !== "active") {
+    throw new Error("UPGRADE_REQUIRED: Your subscription is not active. Please update your payment method.");
+  }
+}
+
+function requireDeveloper(tier: string | null | undefined, status: string | null | undefined) {
+  const ok = tier === "developer" || tier === "engineer" || tier === "expert";
+  if (!ok) {
+    throw new Error("UPGRADE_REQUIRED: Submission export requires the Developer plan or higher.");
   }
   if (status && status !== "active") {
     throw new Error("UPGRADE_REQUIRED: Your subscription is not active. Please update your payment method.");
@@ -219,6 +230,107 @@ export const projectsRouter = router({
         fetchSoilData(input.lat, input.lon),
       ]);
       return { climate, soil };
+    }),
+
+  /**
+   * Export a project's data as a structured submission JSON for the selected
+   * methodology. Developer+ tier. Returns the payload directly — the client
+   * can either trigger a JSON download or render a printable PDF page.
+   *
+   * Implemented as a query (not mutation) because it's pure read: same inputs
+   * always produce the same output, no side effects. Lets the PDF page
+   * leverage react-query caching + refetch.
+   */
+  exportSubmission: protectedProcedure
+    .input(z.object({
+      id: z.number().int(),
+      methodologyId: z.enum(["puro-earth", "isometric", "ebc", "ibi"]),
+    }))
+    .query(async ({ ctx, input }) => {
+      requireDeveloper(ctx.user.subscriptionTier, ctx.user.subscriptionStatus);
+      const db = requireDb();
+      const rows = db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.id, input.id), eq(projects.userId, ctx.user.id)))
+        .limit(1)
+        .all();
+      const project = rows[0];
+      if (!project) throw new Error("Project not found");
+
+      // Load biochar model + methodology registry dynamically
+      const { compute_all, FEEDSTOCK_DB } = await import("../client/src/lib/biocharModel");
+      const { METHODOLOGIES } = await import("../client/src/lib/methodologies");
+
+      // Resolve feedstock
+      let feedstock: any = null;
+      if (project.feedstockData) {
+        try { feedstock = JSON.parse(project.feedstockData); } catch {}
+      }
+      if (!feedstock && project.feedstockId && FEEDSTOCK_DB[project.feedstockId]) {
+        feedstock = FEEDSTOCK_DB[project.feedstockId];
+      }
+      if (!feedstock) {
+        throw new Error("Cannot resolve feedstock — export requires a valid feedstock configured on the project.");
+      }
+
+      const T = project.temperature ?? 650;
+      const t = project.residenceTime ?? 30;
+
+      const result = compute_all(T, t, feedstock);
+
+      const methodology = METHODOLOGIES[input.methodologyId];
+      if (!methodology) throw new Error(`Methodology ${input.methodologyId} not found.`);
+
+      // Evaluate auto checks
+      const autoCheckResults = methodology.checks
+        .filter((c) => c.type === "auto")
+        .map((c) => {
+          if (!c.evaluator) {
+            return { id: c.id, passed: false, critical: c.critical, detail: "no-evaluator" };
+          }
+          const r = c.evaluator({
+            result,
+            feedstock,
+            temperature: T,
+            residenceTime: t,
+            plantCapacityTph: project.plantCapacityTph,
+            country: project.country,
+          });
+          return { id: c.id, passed: r.pass, critical: c.critical, detail: r.detail };
+        });
+
+      const payload = buildSubmissionPayload({
+        methodologyId: input.methodologyId,
+        project,
+        result,
+        feedstock: {
+          id: project.feedstockId ?? undefined,
+          name: feedstock.name,
+          category: feedstock.category,
+          elemental: feedstock.elemental,
+          ash_pct: feedstock.ash,
+          moisture_pct: feedstock.moisture,
+        },
+        methodology: {
+          id: methodology.id,
+          name: methodology.name,
+          shortName: methodology.shortName,
+          priceRange: methodology.priceRange,
+          durability: methodology.durability,
+          checks: methodology.checks.map((c) => ({
+            id: c.id,
+            type: c.type,
+            critical: c.critical,
+            weight: c.weight,
+            labelKey: c.labelKey,
+            descKey: c.descKey,
+          })),
+        },
+        autoCheckResults,
+      });
+
+      return payload;
     }),
 
   /**

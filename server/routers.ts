@@ -14,6 +14,7 @@ import { sdk } from "./_core/sdk";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { projectsRouter } from "./projectsRouter";
+import { statsRouter } from "./statsRouter";
 import { hasAccess as tierHasAccess } from "./stripeProducts";
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -105,6 +106,7 @@ function isCorporateEmail(email: string): boolean {
 export const appRouter = router({
   system: systemRouter,
   projects: projectsRouter,
+  stats: statsRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

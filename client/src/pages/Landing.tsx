@@ -19,6 +19,7 @@ import SiteFooter from "@/components/SiteFooter";
 import MarketPulse from "@/components/MarketPulse";
 import ProjectJourney from "@/components/ProjectJourney";
 import MethodologyCoverage from "@/components/MethodologyCoverage";
+import LandingStats from "@/components/LandingStats";
 import CarbonForumPassButton from "@/components/CarbonForumPassButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
@@ -361,21 +362,8 @@ export default function Landing() {
                 {t("landing:hero.noCardRequired")}
               </p>
 
-              {/* Trust indicators */}
-              <div className="mt-10 pt-8 border-t border-border/50 grid grid-cols-3 gap-6 max-w-lg">
-                <div>
-                  <div className="text-2xl font-bold text-primary">50+</div>
-                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustBiomasses")}</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">BC-1</div>
-                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustPuro")}</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">100%</div>
-                  <div className="text-xs text-muted-foreground">{t("landing:hero.trustPeerReview")}</div>
-                </div>
-              </div>
+              {/* Trust indicators — data-driven via public stats endpoint */}
+              <LandingStats />
             </div>
 
             {/* Right: Visual KPI mockup (clickable → /app) */}

@@ -219,8 +219,17 @@ automated) that works on the repo should read this + `CLAUDE.md` first.
 - **Priority:** P2
 - **Effort:** 2-3 days per methodology
 - **Autonomy:** 🟢
-- **Status:** pending
-- **Why:** "Submit to Puro.earth" / "Submit to Isometric" button after PDD complete. JSON/XML export in their schema.
+- **Status:** done (2026-04-20, Phase 1: JSON export for 4 methodologies)
+- **Why:** "Submit to Puro.earth" / "Submit to Isometric" button. JSON export as supporting documentation for the official intake process.
+- **Acceptance:**
+  - [x] Generic server-side exporter `submissionExporter.ts` — methodology-agnostic base + per-methodology extras.
+  - [x] tRPC `projects.exportSubmission` mutation (Developer+ tier).
+  - [x] Supports 4 methodologies today: Puro.earth, Isometric, EBC, IBI.
+  - [x] "Export ▾" dropdown in ProjectDetail header with one entry per methodology.
+  - [x] Downloads a structured JSON with: project identity, feedstock composition, pyrolysis params, computed biochar characteristics, annual estimates at design capacity, CORC breakdown, per-methodology auto-check results + pending manual checks, methodology-specific fields (durability tier / carbon class / EBC class / CORC edition), verify URL, submission guidance per certifier.
+  - [x] Schema tagged `bop.submission.v1` + generator metadata + ISO timestamp for provenance.
+  - [x] Filename pattern: `{bopId}__{methodologyId}__submission.json`.
+- **Notes:** This is NOT the official ingestion schema of any certifier — those platforms have their own intake. It IS a machine-readable supporting-documentation package that accompanies the official submission and makes our "infrastructure layer" pitch real.
 
 ### R-017 · Partnerships page (`/company/partners`)
 - **Priority:** P3

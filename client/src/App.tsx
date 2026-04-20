@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import ExecutiveSummary from "./pages/ExecutiveSummary";
+import SubmissionPrint from "./pages/SubmissionPrint";
 import LCAPage from "./pages/LCA";
 import BatchComparison from "./pages/BatchComparison";
 import ApiDocs from "./pages/ApiDocs";
@@ -127,6 +128,7 @@ function Router() {
         <Route path={"/projects"} component={Projects} />
         <Route path={"/projects/:id"} component={ProjectDetail} />
         <Route path={"/projects/:id/summary"} component={ExecutiveSummary} />
+        <Route path={"/projects/:id/submission/:methodologyId"} component={SubmissionPrint} />
         <Route path={"/lca"} component={LCAPage} />
         <Route path={"/batch"} component={BatchComparison} />
         <Route path={"/api"} component={ApiDocs} />

@@ -1,0 +1,14 @@
+# Biochar Optimizer Pro — biocharpro.io
+# Welcome crawlers.
+
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /projects/
+Disallow: /pdd/
+Disallow: /batch/
+Disallow: /login
+Disallow: /api/
+Disallow: /legal/
+
+Sitemap: https://biocharpro.io/sitemap.xml

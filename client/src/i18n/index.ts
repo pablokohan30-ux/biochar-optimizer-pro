@@ -78,6 +78,12 @@ const resources = {
         security: "Security",
         contact: "Contact",
         about: "About",
+        partners: "Partners",
+        verifyTitle: "Verify a project",
+        verifyPlaceholder: "BOP-2026-0042",
+        verifyButton: "Verify",
+        verifyAriaLabel: "Enter a BOP project ID",
+        verifyHint: "Got a PDF stamped with a BOP code? Paste the ID here to confirm it.",
       },
       loading: "Loading…",
       language: {
@@ -1026,6 +1032,16 @@ const resources = {
     home: {
       // Loading
       loading: "Loading…",
+
+      // First-visit welcome banner (dismissable, stored in localStorage)
+      welcome: {
+        title: "Welcome — Biochar Optimizer Pro in 3 steps",
+        subtitle: "The simulator is free forever. Try the app with these 3 quick routes:",
+        ctaDemo: "See a live demo",
+        ctaUpload: "Upload your lab PDF",
+        ctaAiSearch: "Search biomass with AI",
+        dismiss: "Close welcome",
+      },
 
       // Header
       greeting: "Hi,",
@@ -2020,6 +2036,12 @@ const resources = {
         approved: "Approved",
         rejected: "Rejected",
       },
+      // Copy-to-clipboard helpers
+      copy: "Copy",
+      copied: "Copied",
+      copyLink: "Copy link",
+      copyIdHint: "Copy BOP ID to clipboard",
+      copyUrlHint: "Copy shareable verify URL",
       // Project identity block
       projectIdentity: "Project identity",
       developer: "Developer / Operator",
@@ -2131,6 +2153,12 @@ const resources = {
         security: "Seguridad",
         contact: "Contacto",
         about: "Nosotros",
+        partners: "Partners",
+        verifyTitle: "Verificar un proyecto",
+        verifyPlaceholder: "BOP-2026-0042",
+        verifyButton: "Verificar",
+        verifyAriaLabel: "Ingresá un BOP ID",
+        verifyHint: "¿Recibiste un PDF con un código BOP? Pegá el ID acá para confirmarlo.",
       },
       loading: "Cargando…",
       language: {
@@ -3079,6 +3107,16 @@ const resources = {
 
     home: {
       loading: "Cargando…",
+
+      // Banner de bienvenida (descartable, guardado en localStorage)
+      welcome: {
+        title: "Bienvenido/a — Biochar Optimizer Pro en 3 pasos",
+        subtitle: "El simulador es gratis para siempre. Probá la app con estas 3 rutas rápidas:",
+        ctaDemo: "Ver demo en vivo",
+        ctaUpload: "Subir tu PDF de laboratorio",
+        ctaAiSearch: "Buscar biomasa con IA",
+        dismiss: "Cerrar bienvenida",
+      },
 
       greeting: "Hola,",
       saveAsProject: "Guardar como Proyecto",
@@ -4059,6 +4097,12 @@ const resources = {
         approved: "Aprobado",
         rejected: "Rechazado",
       },
+      // Helpers de copiado al portapapeles
+      copy: "Copiar",
+      copied: "Copiado",
+      copyLink: "Copiar link",
+      copyIdHint: "Copiar BOP ID al portapapeles",
+      copyUrlHint: "Copiar URL de verificación",
       // Bloque de identidad del proyecto
       projectIdentity: "Identidad del proyecto",
       developer: "Developer / Operador",

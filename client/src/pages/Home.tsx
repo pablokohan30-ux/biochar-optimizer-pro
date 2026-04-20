@@ -17,6 +17,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 import SocialShareUnlock from "@/components/SocialShareUnlock";
 import PassActivatedBanner from "@/components/PassActivatedBanner";
 import SubscribedBanner from "@/components/SubscribedBanner";
+import WelcomeBanner from "@/components/WelcomeBanner";
 import PageLoader from "@/components/PageLoader";
 import { Link, useLocation } from "wouter";
 
@@ -525,7 +526,7 @@ export default function Home() {
     <AppLayout
       pageTitle={<span className="flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> {tr("pageTitle", { defaultValue: "Simulador" })}</span>}
       pageActions={pageActions}
-      banner={<><PassActivatedBanner /><SubscribedBanner /></>}
+      banner={<><WelcomeBanner /><PassActivatedBanner /><SubscribedBanner /></>}
       fullBleed
     >
       <main ref={contentRef} id="pdf-content" className="container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 print:bg-background print:text-foreground">
@@ -535,7 +536,7 @@ export default function Home() {
           
           <Card className="p-5 space-y-6">
             {/* AI Biomass Search */}
-            <div className="space-y-2">
+            <div id="ai-search" data-onboarding="ai-search" className="space-y-2 scroll-mt-24">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-primary tracking-wider flex items-center gap-1">
                   <Search className="w-3 h-3" /> {tr("aiSearch")}
@@ -591,8 +592,10 @@ export default function Home() {
 
               {/* Upload-your-own CTA — prominent card above the dropdown */}
               <button
+                id="nueva-biomasa"
+                data-onboarding="nueva-biomasa"
                 onClick={handleCreateNewFs}
-                className="w-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5 border border-primary/40 hover:border-primary/60 rounded-lg p-3 text-left transition-all group"
+                className="w-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5 border border-primary/40 hover:border-primary/60 rounded-lg p-3 text-left transition-all group scroll-mt-24"
               >
                 <div className="flex items-start gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">

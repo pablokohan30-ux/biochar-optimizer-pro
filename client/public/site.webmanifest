@@ -1,0 +1,14 @@
+{
+  "name": "Biochar Optimizer Pro",
+  "short_name": "Biochar Pro",
+  "description": "Digital infrastructure for biochar carbon projects — simulate, score, export submission packages.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#22c55e",
+  "scope": "/"
+}
