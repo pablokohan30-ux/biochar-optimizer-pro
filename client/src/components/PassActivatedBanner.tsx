@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, X, CheckCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -17,6 +18,7 @@ import { trpc } from "@/lib/trpc";
  * The banner is flow-positioned (not fixed) so it pushes the header down without overlap.
  */
 export default function PassActivatedBanner() {
+  const { t } = useTranslation("home");
   const [visible, setVisible] = useState(false);
   const [passId, setPassId] = useState<string | null>(null);
 
@@ -65,20 +67,20 @@ export default function PassActivatedBanner() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-              {passName} activated
+              {t("passBanner.activated", { name: passName })}
             </span>
             <span className="text-xs text-muted-foreground">
-              You now have full Analyst access
+              {t("passBanner.analystAccess")}
               {daysRemaining !== null && (
-                <> · <span className="font-semibold text-foreground">{daysRemaining} days</span> remaining</>
+                <> · <span className="font-semibold text-foreground">{t("passBanner.daysRemaining", { count: daysRemaining })}</span></>
               )}
               {expiresAtLabel && (
-                <> · expires <span className="font-mono">{expiresAtLabel}</span></>
+                <> · {t("passBanner.expires", { date: expiresAtLabel })}</>
               )}
             </span>
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">
-            All Analyst features are unlocked — T°/time optimizer, LCA, PDF export, Project Manager. No auto-renewal.
+            {t("passBanner.features")}
           </div>
         </div>
         <button

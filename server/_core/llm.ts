@@ -57,6 +57,53 @@ function getClient(): GoogleGenerativeAI {
   return _client;
 }
 
+// ─── PDF extraction ────────────────────────────────────────────────────────
+// Uses Gemini's native PDF support (up to ~1000 pages / 50MB).
+// Pass a base64-encoded PDF + a prompt describing what to extract.
+// Returns the raw text/JSON response from the model.
+
+export type ExtractFromPdfParams = {
+  /** Base64-encoded PDF content (no data URL prefix). */
+  pdfBase64: string;
+  /** System prompt describing the extraction task. */
+  systemInstruction: string;
+  /** User prompt — usually "Extract the requested fields from this document." */
+  userPrompt: string;
+  /** Optional JSON schema to enforce response structure. */
+  jsonSchema?: Record<string, unknown>;
+};
+
+export async function extractFromPdf(params: ExtractFromPdfParams): Promise<string> {
+  const client = getClient();
+
+  let systemInstruction = params.systemInstruction;
+  if (params.jsonSchema) {
+    systemInstruction += `\n\nCRITICAL: You MUST respond with valid JSON matching this schema:\n${JSON.stringify(params.jsonSchema, null, 2)}\n\nRespond ONLY with the JSON object, no markdown, no code fences, no other text. Use null for missing fields.`;
+  }
+
+  const model = client.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction,
+  });
+
+  const result = await model.generateContent({
+    contents: [{
+      role: "user",
+      parts: [
+        { text: params.userPrompt },
+        { inlineData: { mimeType: "application/pdf", data: params.pdfBase64 } },
+      ],
+    }],
+  });
+
+  let text = result.response.text();
+  // Strip markdown code fences if present
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  }
+  return text;
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const client = getClient();
 
@@ -75,7 +122,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   const model = client.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     systemInstruction,
   });
 
@@ -96,7 +143,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   return {
     id: `gemini-${Date.now()}`,
     created: Math.floor(Date.now() / 1000),
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     choices: [{
       index: 0,
       message: {

@@ -8,6 +8,13 @@ import path from "path";
 import fs from "fs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _sqlite: Database.Database | null = null;
+
+/** Returns the raw better-sqlite3 connection (used for tables not in drizzle schema, like api_keys). */
+export function getRawDb(): Database.Database | null {
+  if (!_sqlite) getDb(); // trigger init
+  return _sqlite;
+}
 
 function getDbPath(): string {
   const dataDir = path.resolve(process.cwd(), "data");
@@ -23,6 +30,7 @@ export function getDb() {
       const sqlite = new Database(getDbPath());
       sqlite.pragma("journal_mode = WAL");
       _db = drizzle(sqlite, { schema });
+      _sqlite = sqlite;
 
       // Create tables if they don't exist
       sqlite.exec(`
@@ -65,16 +73,52 @@ export function getDb() {
           createdAt INTEGER NOT NULL,
           updatedAt INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL DEFAULT 'Default',
+          key_hash TEXT NOT NULL UNIQUE,
+          key_prefix TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          last_used_at INTEGER,
+          revoked_at INTEGER,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS lab_analyses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          biomass_name TEXT,
+          source_pdf_name TEXT,
+          pyrolysis_T INTEGER,
+          pyrolysis_time INTEGER,
+          biomass_data TEXT,   -- JSON: C, H, N, S, O, ash, moisture, volatiles, fixed_carbon
+          biochar_data TEXT,   -- JSON: C, H, N, S, O, HCorg, BET, pH, pore_volume, etc.
+          heavy_metals TEXT,   -- JSON: Pb, Cd, Cr, Cu, Ni, Zn, Hg, As (µg/g)
+          extracted_json TEXT, -- full structured response from the AI
+          allow_public_use INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
       `);
 
-      // Migration: add accessExpiresAt column to existing users tables.
-      // SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS — catch "duplicate column" error.
-      try {
-        sqlite.exec(`ALTER TABLE users ADD COLUMN accessExpiresAt INTEGER`);
-        console.log("[Database] Migration: added accessExpiresAt column to users");
-      } catch (err: any) {
-        if (!/duplicate column/i.test(err?.message ?? "")) {
-          console.warn("[Database] accessExpiresAt migration error:", err);
+      // Migrations: SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS — catch "duplicate column" error.
+      const migrations: Array<{ col: string; sql: string }> = [
+        { col: "accessExpiresAt", sql: "ALTER TABLE users ADD COLUMN accessExpiresAt INTEGER" },
+        { col: "socialShareAiCredits", sql: "ALTER TABLE users ADD COLUMN socialShareAiCredits INTEGER NOT NULL DEFAULT 0" },
+        { col: "socialShareUrl", sql: "ALTER TABLE users ADD COLUMN socialShareUrl TEXT" },
+        { col: "projects.bopId", sql: "ALTER TABLE projects ADD COLUMN bopId TEXT" },
+        { col: "projects.status", sql: "ALTER TABLE projects ADD COLUMN status TEXT DEFAULT 'draft'" },
+        { col: "projects.publicVisibility", sql: "ALTER TABLE projects ADD COLUMN publicVisibility TEXT DEFAULT 'summary'" },
+        { col: "projects.publicMethodology", sql: "ALTER TABLE projects ADD COLUMN publicMethodology TEXT" },
+      ];
+      for (const m of migrations) {
+        try {
+          sqlite.exec(m.sql);
+          console.log(`[Database] Migration: added ${m.col} column to users`);
+        } catch (err: any) {
+          if (!/duplicate column/i.test(err?.message ?? "")) {
+            console.warn(`[Database] ${m.col} migration error:`, err);
+          }
         }
       }
     } catch (error) {

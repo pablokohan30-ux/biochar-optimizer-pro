@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, X, CheckCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -25,6 +26,7 @@ const TIER_LABELS: Record<string, string> = {
  * what's now unlocked.
  */
 export default function SubscribedBanner() {
+  const { t } = useTranslation("home");
   const [visible, setVisible] = useState(false);
 
   // Only fetch tier when we know a subscription was just activated — avoids an extra
@@ -70,16 +72,16 @@ export default function SubscribedBanner() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              {webhookLanded ? `Welcome to ${tierLabel}` : "Payment received"}
+              {webhookLanded ? t("subscribedBanner.welcome", { tier: tierLabel }) : t("subscribedBanner.paymentReceived")}
             </span>
             <span className="text-xs text-muted-foreground">
               {webhookLanded
-                ? `Your ${tierLabel} subscription is active · quarterly billing`
-                : "Your subscription is being activated — refresh in a moment if features are still locked."}
+                ? t("subscribedBanner.activeDescription", { tier: tierLabel })
+                : t("subscribedBanner.activating")}
             </span>
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">
-            All {tierLabel} features are unlocked — T°/time optimizer, LCA, PDF export, Project Manager. Cancel anytime from your account.
+            {t("subscribedBanner.features", { tier: tierLabel })}
           </div>
         </div>
         <button

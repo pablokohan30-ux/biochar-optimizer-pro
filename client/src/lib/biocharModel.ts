@@ -540,21 +540,37 @@ export function find_optimum(fs: Feedstock, goal: "MAX_CARBON" | "AGRONOMY" | "B
   let best_score = -Infinity;
   let best_T = 650;
   let best_t = 30;
-  
-  for (let T = 400; T <= 750; T += 5) {
+
+  for (let T = 400; T <= 850; T += 5) {
     for (let t = 15; t <= 60; t += 5) {
       const r = compute_all(T, t, fs);
       if (r.credits.sf === 0) continue;
-      
+
+      // ─── Carbon score: total CO₂e sequestered per tonne of biomass ────────
+      // Rewards both high per-tonne credits AND high yield. Range ~0 to 1.2.
+      const carbonScore = r.credits.net * r.yield_ / 100;
+
+      // ─── Agronomy score: optimal for soil amendment ───────────────────────
+      // - BET: caps at 400 m²/g (more isn't better for ag use)
+      // - pH: sweet spot 7.5–8.5; strong penalty outside
+      // - Stability: low H/Corg is better (more persistent in soil)
+      // Range ~0 to 1.0.
+      const betComponent = Math.min(r.BET / 400, 1.0) * 0.35;
+      const phComponent = Math.max(0, 1 - Math.max(0, Math.abs(r.pH - 8.0) - 0.5) / 1.5) * 0.35;
+      const stabilityComponent = Math.max(0, 1 - r.H_Corg / 0.7) * 0.3;
+      const agroScore = betComponent + phComponent + stabilityComponent;
+
       let score = 0;
       if (goal === "MAX_CARBON") {
-        score = r.credits.net * r.yield_ / 100;
+        score = carbonScore;
       } else if (goal === "AGRONOMY") {
-        score = (r.BET / 500) * 0.5 + Math.max(0, 1 - Math.abs(r.pH - 8.5) / 3) * 0.3 + Math.max(0, 0.4 - r.H_Corg) * 0.2;
-      } else { // BALANCED
-        score = r.credits.net * 0.6 + (r.BET / 500) * 0.4;
+        score = agroScore;
+      } else {
+        // BALANCED: true 60/40 blend of carbon + agronomy scores.
+        // Both scores are similarly normalized so the weights mean what they say.
+        score = carbonScore * 0.6 + agroScore * 0.4;
       }
-      
+
       if (score > best_score) {
         best_score = score;
         best_T = T;
@@ -562,6 +578,6 @@ export function find_optimum(fs: Feedstock, goal: "MAX_CARBON" | "AGRONOMY" | "B
       }
     }
   }
-  
+
   return { T: best_T, t: best_t };
 }

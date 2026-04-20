@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   Flame, BarChart3, FileText, Beaker, Leaf, Globe,
   Zap, CheckCircle, ArrowRight, Lock, ChevronRight, ChevronDown,
   FlaskConical, Building2, Map, Scale,
-  Microscope, Ruler, BadgeCheck, Sparkles
+  Microscope, Ruler, BadgeCheck, Sparkles,
+  ClipboardList, Factory, Plug, Shield,
+  TrendingUp, Landmark, Wheat, Code2, GraduationCap, Briefcase
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -14,6 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
+import MarketPulse from "@/components/MarketPulse";
+import ProjectJourney from "@/components/ProjectJourney";
+import MethodologyCoverage from "@/components/MethodologyCoverage";
 import CarbonForumPassButton from "@/components/CarbonForumPassButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
@@ -45,125 +50,226 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-const TIERS = [
-  {
-    id: "free",
-    name: "Explorer",
-    price: 0,
-    period: "",
-    description: "Explore biochar's potential with no commitment.",
-    color: "border-border",
-    badge: null,
-    cta: "Start for free",
-    ctaVariant: "outline" as const,
-    href: "/app",
-    features: [
-      "Interactive pyrolysis simulator",
-      "Database of 8 calibrated feedstocks",
-      "AI biomass search (3 searches/day)",
-      "Core KPIs: C%, H:Corg, CO₂e, yield",
-      "Thermal sensitivity chart",
-      "Quality radar profile",
-    ],
-  },
-  {
-    id: "analyst",
-    name: "Analyst",
-    price: 299,
-    period: "/mo",
-    description: "For teams preparing carbon certification dossiers.",
-    color: "border-green-500",
-    badge: "MOST POPULAR",
-    cta: "Get started",
-    ctaVariant: "default" as const,
-    href: "/pricing",
-    features: [
-      "Everything in Explorer",
-      "Unlimited AI biomass search",
-      "Full PDF report export",
-      "Temperature / time optimizer",
-      "Project Manager (multi-project + map)",
-      "Adaptable LCA module (Puro.earth Ed. 2025)",
-      "EBC / Puro.earth / Isometric compliance analysis",
-      "Downloadable LCA Excel / Google Sheets template",
-    ],
-  },
-];
-
-const MODULES = [
-  {
-    icon: FlaskConical,
-    title: "Technical Simulation",
-    summary: "Empirical model calibrated with peer-reviewed pyrolysis data.",
-    desc: "Predicts carbon content (C%), hydrogen-to-carbon ratio (H:Corg), mass yield, BET surface area, pH and CO₂e credits for any feedstock. Includes an AI-powered biomass search engine, thermal sensitivity charts, and a quality radar profile. Fully free — no account required.",
-    tier: "Free",
-    tierColor: "bg-green-500/10 text-green-500 border-green-500/20",
-    color: "text-green-500",
-    borderHover: "hover:border-green-500/40",
-    features: ["Interactive pyrolysis simulator", "AI biomass search (3/day free)", "C%, H:Corg, CO₂e, yield, BET, pH", "Thermal sensitivity chart", "Quality radar profile"],
-  },
-  {
-    icon: FileText,
-    title: "Life Cycle Assessment (LCA)",
-    summary: "Real net CO₂e credits per leading carbon certification methodologies.",
-    desc: "Calculates Scope 3 emissions from biomass transport, electricity consumption, and process energy to derive net CO₂e credits. Fully adaptable to project-specific data. Aligned with Puro.earth, Isometric, EBC and VERRA methodologies. Includes a downloadable LCA report.",
-    tier: "Analyst",
-    tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    color: "text-blue-500",
-    borderHover: "hover:border-blue-500/40",
-    features: ["Scope 3 transport & energy emissions", "Net CO₂e credit calculation", "Puro.earth / Isometric / EBC / VERRA", "Adaptable to project data", "Downloadable LCA report"],
-  },
-  {
-    icon: BarChart3,
-    title: "Project Design",
-    summary: "Reactor sizing, CAPEX/OPEX and full financial analysis.",
-    desc: "Dimensions the reactor from biomass input (ton/h → thermal kW → m³), calculates mass and energy balances, estimates CAPEX and OPEX, and runs a full financial analysis including IRR, NPV and payback period with a 10-year carbon credit projection. Includes a guided technical questionnaire and a reactor supplier map.",
-    tier: "Engineer",
-    tierColor: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    color: "text-purple-500",
-    borderHover: "hover:border-purple-500/40",
-    features: ["Reactor sizing (ton/h → kW → m³)", "Mass & energy balance", "CAPEX / OPEX estimation", "IRR, NPV, payback analysis", "10-year carbon credit projection"],
-  },
-  {
-    icon: Building2,
-    title: "Plant Engineering",
-    summary: "Plant layout, P&ID, equipment specs and bill of materials.",
-    desc: "Generates a process flow diagram (PFD) and a simplified P&ID for the biochar plant. Includes equipment specifications, bill of materials, and a technical document ready for investor due diligence. Integrates real reactor data from supported equipment models.",
-    tier: "Expert",
-    tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-    color: "text-yellow-500",
-    borderHover: "hover:border-yellow-500/40",
-    features: ["Process flow diagram (PFD)", "Simplified P&ID", "Equipment specifications", "Bill of materials", "Investor-ready technical document"],
-  },
-  {
-    icon: Scale,
-    title: "Regulatory Framework",
-    summary: "Interactive map of legal requirements by country.",
-    desc: "Provides an interactive map of environmental permits, industrial licenses, and certification requirements by country. Includes step-by-step certification guides for Puro.earth, Isometric, EBC and VERRA, plus automated alerts when regulations change in your target markets.",
-    tier: "Expert",
-    tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-    color: "text-yellow-500",
-    borderHover: "hover:border-yellow-500/40",
-    features: ["Permits & licenses by country", "Certification step-by-step guides", "Puro.earth / Isometric / EBC / VERRA", "Regulatory change alerts", "Interactive world map"],
-  },
-  {
-    icon: Map,
-    title: "Biochar Applications",
-    summary: "Applications map, agronomic calculator and carbon markets by region.",
-    desc: "Interactive map of biochar end-use applications: agriculture, construction, water filtration, sustainable aviation fuel (SAF), and soil remediation. Includes an agronomic value calculator by region, a carbon market platform comparator (Puro.earth vs Isometric vs Verra), and price trend analysis.",
-    tier: "Developer",
-    tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    color: "text-blue-500",
-    borderHover: "hover:border-blue-500/40",
-    features: ["Agriculture, construction, SAF, filtration", "Agronomic value calculator", "Carbon market comparator", "Price trend analysis", "Markets by region"],
-  },
-];
+/* TIERS and MODULES are built inside the component so they can use t() */
 
 
 
 export default function Landing() {
-  const { t } = useTranslation(["landing", "common", "pricing"]);
+  const { t } = useTranslation(["landing", "common", "pricing", "market"]);
+  const [, setLocation] = useLocation();
   const [openModule, setOpenModule] = useState<string | null>(null);
+
+  const TIERS = useMemo(() => [
+    {
+      id: "free",
+      name: "Explorer",
+      price: 0,
+      period: "",
+      description: t("landing:tiers.explorer.description"),
+      color: "border-border",
+      badge: null as string | null,
+      cta: t("landing:tiers.explorer.cta"),
+      ctaVariant: "outline" as const,
+      href: "/app",
+      features: [
+        t("landing:tiers.explorer.features.f1"),
+        t("landing:tiers.explorer.features.f2"),
+        t("landing:tiers.explorer.features.f3"),
+        t("landing:tiers.explorer.features.f4"),
+        t("landing:tiers.explorer.features.f5"),
+        t("landing:tiers.explorer.features.f6"),
+      ],
+    },
+    {
+      id: "analyst",
+      name: "Analyst",
+      price: 299,
+      period: t("landing:tiers.analyst.period"),
+      description: t("landing:tiers.analyst.description"),
+      color: "border-green-500",
+      badge: t("landing:tiers.analyst.badge"),
+      cta: t("landing:tiers.analyst.cta"),
+      ctaVariant: "default" as const,
+      href: "/pricing",
+      features: [
+        t("landing:tiers.analyst.features.f1"),
+        t("landing:tiers.analyst.features.f2"),
+        t("landing:tiers.analyst.features.f3"),
+        t("landing:tiers.analyst.features.f4"),
+        t("landing:tiers.analyst.features.f5"),
+        t("landing:tiers.analyst.features.f6"),
+        t("landing:tiers.analyst.features.f7"),
+        t("landing:tiers.analyst.features.f8"),
+      ],
+    },
+    {
+      id: "developer",
+      name: "Developer",
+      price: 499,
+      period: t("landing:tiers.developer.period"),
+      description: t("landing:tiers.developer.description"),
+      color: "border-blue-500/40",
+      badge: null as string | null,
+      cta: t("landing:tiers.developer.cta"),
+      ctaVariant: "default" as const,
+      href: "/pricing",
+      features: [
+        t("landing:tiers.developer.features.f1"),
+        t("landing:tiers.developer.features.f2"),
+        t("landing:tiers.developer.features.f3"),
+        t("landing:tiers.developer.features.f4"),
+      ],
+    },
+    {
+      id: "engineer",
+      name: "Engineer",
+      price: 799,
+      period: t("landing:tiers.engineer.period"),
+      description: t("landing:tiers.engineer.description"),
+      color: "border-purple-500/40",
+      badge: null as string | null,
+      cta: t("landing:tiers.engineer.cta"),
+      ctaVariant: "default" as const,
+      href: "/pricing",
+      comingSoon: true,
+      features: [
+        t("landing:tiers.engineer.features.f1"),
+        t("landing:tiers.engineer.features.f2"),
+        t("landing:tiers.engineer.features.f3"),
+        t("landing:tiers.engineer.features.f4"),
+      ],
+    },
+    {
+      id: "expert",
+      name: "Expert",
+      price: 999,
+      period: t("landing:tiers.expert.period"),
+      description: t("landing:tiers.expert.description"),
+      color: "border-amber-500/40",
+      badge: null as string | null,
+      cta: t("landing:tiers.expert.cta"),
+      ctaVariant: "default" as const,
+      href: "/pricing",
+      comingSoon: true,
+      features: [
+        t("landing:tiers.expert.features.f1"),
+        t("landing:tiers.expert.features.f2"),
+        t("landing:tiers.expert.features.f3"),
+        t("landing:tiers.expert.features.f4"),
+      ],
+    },
+  ], [t]);
+
+  const MODULES = useMemo(() => [
+    {
+      id: "technicalSimulation",
+      icon: FlaskConical,
+      title: t("landing:modules.technicalSimulation.title"),
+      summary: t("landing:modules.technicalSimulation.summary"),
+      desc: t("landing:modules.technicalSimulation.desc"),
+      tier: t("landing:modules.technicalSimulation.tier"),
+      tierColor: "bg-green-500/10 text-green-500 border-green-500/20",
+      color: "text-green-500",
+      borderHover: "hover:border-green-500/40",
+      features: [
+        t("landing:modules.technicalSimulation.features.f1"),
+        t("landing:modules.technicalSimulation.features.f2"),
+        t("landing:modules.technicalSimulation.features.f3"),
+        t("landing:modules.technicalSimulation.features.f4"),
+        t("landing:modules.technicalSimulation.features.f5"),
+      ],
+    },
+    {
+      id: "lca",
+      icon: FileText,
+      title: t("landing:modules.lca.title"),
+      summary: t("landing:modules.lca.summary"),
+      desc: t("landing:modules.lca.desc"),
+      tier: t("landing:modules.lca.tier"),
+      tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      color: "text-blue-500",
+      borderHover: "hover:border-blue-500/40",
+      features: [
+        t("landing:modules.lca.features.f1"),
+        t("landing:modules.lca.features.f2"),
+        t("landing:modules.lca.features.f3"),
+        t("landing:modules.lca.features.f4"),
+        t("landing:modules.lca.features.f5"),
+      ],
+    },
+    {
+      id: "projectDesign",
+      icon: BarChart3,
+      title: t("landing:modules.projectDesign.title"),
+      summary: t("landing:modules.projectDesign.summary"),
+      desc: t("landing:modules.projectDesign.desc"),
+      tier: t("landing:modules.projectDesign.tier"),
+      tierColor: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      color: "text-purple-500",
+      borderHover: "hover:border-purple-500/40",
+      features: [
+        t("landing:modules.projectDesign.features.f1"),
+        t("landing:modules.projectDesign.features.f2"),
+        t("landing:modules.projectDesign.features.f3"),
+        t("landing:modules.projectDesign.features.f4"),
+        t("landing:modules.projectDesign.features.f5"),
+      ],
+    },
+    {
+      id: "plantEngineering",
+      icon: Building2,
+      title: t("landing:modules.plantEngineering.title"),
+      summary: t("landing:modules.plantEngineering.summary"),
+      desc: t("landing:modules.plantEngineering.desc"),
+      tier: t("landing:modules.plantEngineering.tier"),
+      tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      color: "text-yellow-500",
+      borderHover: "hover:border-yellow-500/40",
+      features: [
+        t("landing:modules.plantEngineering.features.f1"),
+        t("landing:modules.plantEngineering.features.f2"),
+        t("landing:modules.plantEngineering.features.f3"),
+        t("landing:modules.plantEngineering.features.f4"),
+        t("landing:modules.plantEngineering.features.f5"),
+      ],
+    },
+    {
+      id: "regulatory",
+      icon: Scale,
+      title: t("landing:modules.regulatory.title"),
+      summary: t("landing:modules.regulatory.summary"),
+      desc: t("landing:modules.regulatory.desc"),
+      tier: t("landing:modules.regulatory.tier"),
+      tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      color: "text-yellow-500",
+      borderHover: "hover:border-yellow-500/40",
+      features: [
+        t("landing:modules.regulatory.features.f1"),
+        t("landing:modules.regulatory.features.f2"),
+        t("landing:modules.regulatory.features.f3"),
+        t("landing:modules.regulatory.features.f4"),
+        t("landing:modules.regulatory.features.f5"),
+      ],
+    },
+    {
+      id: "applications",
+      icon: Map,
+      title: t("landing:modules.applications.title"),
+      summary: t("landing:modules.applications.summary"),
+      desc: t("landing:modules.applications.desc"),
+      tier: t("landing:modules.applications.tier"),
+      tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      color: "text-blue-500",
+      borderHover: "hover:border-blue-500/40",
+      features: [
+        t("landing:modules.applications.features.f1"),
+        t("landing:modules.applications.features.f2"),
+        t("landing:modules.applications.features.f3"),
+        t("landing:modules.applications.features.f4"),
+        t("landing:modules.applications.features.f5"),
+      ],
+    },
+  ], [t]);
 
   // Demo data for landing-page charts (Pine Sawdust, 650°C, 30 min)
   const demoFs = FEEDSTOCK_DB["pine_sawdust"];
@@ -171,7 +277,7 @@ export default function Landing() {
 
   const sensitivityData = useMemo(() => {
     const data = [];
-    for (let T = 400; T <= 750; T += 10) {
+    for (let T = 400; T <= 850; T += 10) {
       const r = compute_all(T, 30, demoFs);
       data.push({
         T,
@@ -244,7 +350,7 @@ export default function Landing() {
                     {t("landing:hero.ctaPrimary")}
                   </Button>
                 </Link>
-                <Link href="/pricing">
+                <Link href="/demo">
                   <Button size="lg" variant="outline" className="gap-2 text-base px-8">
                     {t("landing:hero.ctaSecondary")}
                     <ChevronRight className="w-4 h-4" />
@@ -273,13 +379,13 @@ export default function Landing() {
             </div>
 
             {/* Right: Visual KPI mockup (clickable → /app) */}
-            <div className="lg:col-span-5 hidden lg:block">
+            <div className="lg:col-span-5">
               <Link href="/app">
                 <div className="relative cursor-pointer group">
                   {/* Glow */}
                   <div className="absolute -inset-4 bg-primary/10 rounded-3xl blur-2xl group-hover:bg-primary/20 transition-colors" />
 
-                  <div className="relative bg-card border border-border group-hover:border-primary/40 rounded-2xl p-6 shadow-2xl transition-all group-hover:scale-[1.01]">
+                  <div className="relative bg-card border border-border group-hover:border-primary/40 rounded-2xl p-4 lg:p-6 shadow-2xl transition-all group-hover:scale-[1.01]">
                     <div className="flex items-center justify-between mb-4">
                       <div className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -291,40 +397,40 @@ export default function Landing() {
                     <div className="text-xs text-muted-foreground mb-3">{demoFs.name}</div>
 
                     {/* KPI Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                    <div className="grid grid-cols-2 gap-2 lg:gap-3">
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-2 lg:p-3">
                         <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Carbon</div>
-                        <div className="text-2xl font-mono font-bold text-primary mt-0.5">{demoResult.C.toFixed(1)}</div>
+                        <div className="text-xl lg:text-2xl font-mono font-bold text-primary mt-0.5">{demoResult.C.toFixed(1)}</div>
                         <div className="text-[10px] text-muted-foreground">% dry mass</div>
                       </div>
-                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-2 lg:p-3">
                         <div className="text-[10px] text-muted-foreground uppercase font-bold">H:Corg</div>
-                        <div className="text-2xl font-mono font-bold mt-0.5">{demoResult.H_Corg.toFixed(3)}</div>
+                        <div className="text-xl lg:text-2xl font-mono font-bold mt-0.5">{demoResult.H_Corg.toFixed(3)}</div>
                         <span className="text-[9px] font-bold uppercase tracking-wider bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded-full">
                           {demoResult.H_Corg < 0.4 ? "BC-1" : demoResult.H_Corg < 0.7 ? "BC-2" : "FAIL"}
                         </span>
                       </div>
-                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-3">
+                      <div className="bg-background border border-border border-l-2 border-l-primary rounded-lg p-2 lg:p-3">
                         <div className="text-[10px] text-muted-foreground uppercase font-bold">Net CO₂e</div>
-                        <div className="text-2xl font-mono font-bold mt-0.5">{demoResult.credits.net.toFixed(2)}</div>
+                        <div className="text-xl lg:text-2xl font-mono font-bold mt-0.5">{demoResult.credits.net.toFixed(2)}</div>
                         <div className="text-[10px] text-muted-foreground">t/t biochar</div>
                       </div>
-                      <div className="bg-background border border-border border-l-2 border-l-cyan-500 rounded-lg p-3">
+                      <div className="bg-background border border-border border-l-2 border-l-cyan-500 rounded-lg p-2 lg:p-3">
                         <div className="text-[10px] text-muted-foreground uppercase font-bold">Yield</div>
-                        <div className="text-2xl font-mono font-bold text-cyan-500 mt-0.5">{demoResult.yield_.toFixed(1)}</div>
+                        <div className="text-xl lg:text-2xl font-mono font-bold text-cyan-500 mt-0.5">{demoResult.yield_.toFixed(1)}</div>
                         <div className="text-[10px] text-muted-foreground">% dry mass</div>
                       </div>
                     </div>
 
                     {/* Real mini chart */}
-                    <div className="mt-3 pt-3 border-t border-border">
+                    <div className="mt-2 lg:mt-3 pt-2 lg:pt-3 border-t border-border">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Thermal Sensitivity</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">{t("landing:preview.thermalSensitivity")}</div>
                         <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                          Open simulator <ArrowRight className="w-3 h-3" />
+                          {t("landing:preview.openSimulator")} <ArrowRight className="w-3 h-3" />
                         </div>
                       </div>
-                      <div className="h-14">
+                      <div className="h-12 lg:h-14">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={sensitivityData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                             <Line type="monotone" dataKey="C" stroke="rgb(34, 197, 94)" strokeWidth={2} dot={false} />
@@ -343,7 +449,7 @@ export default function Landing() {
       </section>
 
       {/* SEE IT IN ACTION — Live charts + LCA preview */}
-      <section className="py-12 border-t border-border bg-gradient-to-b from-background to-card/30">
+      <section id="demo" className="py-12 border-t border-border bg-gradient-to-b from-background to-card/30">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1 rounded-full mb-3">
@@ -364,10 +470,10 @@ export default function Landing() {
                 <div className="bg-card border border-border hover:border-primary/40 rounded-xl p-4 cursor-pointer group transition-all h-[250px] flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-                      <BarChart3 className="w-3.5 h-3.5" /> Thermal Sensitivity
+                      <BarChart3 className="w-3.5 h-3.5" /> {t("landing:preview.thermalSensitivity")}
                     </h3>
                     <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                      Try in simulator <ArrowRight className="w-3 h-3" />
+                      {t("landing:preview.tryInSimulator")} <ArrowRight className="w-3 h-3" />
                     </div>
                   </div>
                   <div className="flex-1 min-h-0">
@@ -400,7 +506,7 @@ export default function Landing() {
                 <div className="bg-card border border-border hover:border-primary/40 rounded-xl p-4 cursor-pointer group transition-all h-[250px] flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-                      <Beaker className="w-3.5 h-3.5" /> Quality Profile
+                      <Beaker className="w-3.5 h-3.5" /> {t("landing:preview.qualityProfile")}
                     </h3>
                     <div className="text-[10px] text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                       <ArrowRight className="w-3 h-3" />
@@ -421,17 +527,17 @@ export default function Landing() {
             </div>
 
             {/* RIGHT — LCA preview */}
-            <Link href="/lca?preview=1" className="block">
+            <Link href="/login?signup=1&from=lca" className="block">
               <div className="relative bg-card border border-border hover:border-green-500/50 rounded-xl p-4 cursor-pointer group transition-all h-[516px] flex flex-col">
                 <div className="absolute top-3 right-3 inline-flex items-center gap-1 bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Analyst
                 </div>
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-3.5 h-3.5 text-green-500" />
-                  <h3 className="text-xs font-bold text-muted-foreground">LCA — Puro.earth Ed. 2025</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground">{t("landing:preview.lcaTitle")}</h3>
                 </div>
                 <div className="text-[10px] text-muted-foreground mb-3">
-                  Reference case · 74,880 t/yr forestry residues · 650°C pyrolysis
+                  {t("landing:preview.lcaRefCase")}
                 </div>
 
                 {/* CORCs Hero */}
@@ -484,9 +590,9 @@ export default function Landing() {
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[10px]">
-                  <div className="text-muted-foreground">6 automatic validations · All OK</div>
+                  <div className="text-muted-foreground">{t("landing:preview.lcaValidations")}</div>
                   <div className="text-primary font-medium opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    Open full LCA <ArrowRight className="w-3 h-3" />
+                    {t("landing:preview.openFullLCA")} <ArrowRight className="w-3 h-3" />
                   </div>
                 </div>
               </div>
@@ -497,7 +603,7 @@ export default function Landing() {
             <Link href="/app">
               <Button size="lg" className="gap-2 shadow-lg shadow-primary/20">
                 <Zap className="w-4 h-4" />
-                Open the simulator
+                {t("landing:preview.openTheSimulator")}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -505,15 +611,16 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* PROJECT JOURNEY — end-to-end pipeline with live data */}
+      <ProjectJourney />
 
       {/* HOW IT WORKS */}
       <section className="py-20 border-t border-border">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold mb-3">How it works</h2>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:howItWorks.title")}</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Three stages, one platform. Each step builds on the previous one
-              as your project matures from idea to operating plant.
+              {t("landing:howItWorks.subtitle")}
             </p>
           </div>
 
@@ -533,11 +640,9 @@ export default function Landing() {
                     1
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3">Simulate</h3>
+                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step1.title")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  Input your biomass and pyrolysis conditions. The model predicts
-                  carbon content, H:Corg ratio, yield, BET surface area, pH and
-                  CO₂e credits — instantly, for any feedstock.
+                  {t("landing:howItWorks.step1.desc")}
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {["C%", "H:Corg", "CO₂e", "BET", "pH", "Yield"].map((tag) => (
@@ -558,11 +663,9 @@ export default function Landing() {
                     2
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3">Design</h3>
+                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step2.title")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  Size your reactor, run mass and energy balances, estimate
-                  CAPEX/OPEX, and generate a full financial model with IRR,
-                  NPV and a 10-year carbon credit projection.
+                  {t("landing:howItWorks.step2.desc")}
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {["LCA", "CAPEX", "OPEX", "IRR", "NPV", "P&ID"].map((tag) => (
@@ -583,14 +686,12 @@ export default function Landing() {
                     3
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3">Certify</h3>
+                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step3.title")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  Navigate environmental permits, industrial licenses and
-                  carbon certification requirements by country. Step-by-step
-                  guides for Puro.earth, Isometric, EBC and VERRA.
+                  {t("landing:howItWorks.step3.desc")}
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {["Puro.earth", "Isometric", "EBC", "VERRA", "Permits"].map((tag) => (
+                  {["Puro.earth", "Isometric", "EBC", "VERRA", t("landing:howItWorks.tagPermits")].map((tag) => (
                     <span key={tag} className="text-[11px] font-medium bg-purple-500/10 text-purple-500 border border-purple-500/20 px-2.5 py-1 rounded-full">
                       {tag}
                     </span>
@@ -602,22 +703,161 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* METHODOLOGY COVERAGE — 6 certifications with price + durability */}
+      <MethodologyCoverage />
+
+      {/* WHO USES IT — 6 verticals */}
+      <section className="py-20 border-t border-border">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+              <Briefcase className="w-3 h-3" />
+              {t("landing:whoUses.badge")}
+            </div>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:whoUses.title")}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t("landing:whoUses.subtitle")}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: Building2, key: "developer", color: "text-green-500" },
+              { icon: Briefcase, key: "consultant", color: "text-blue-500" },
+              { icon: TrendingUp, key: "trader", color: "text-purple-500" },
+              { icon: Wheat, key: "agribusiness", color: "text-amber-500" },
+              { icon: Code2, key: "integrator", color: "text-cyan-500" },
+              { icon: GraduationCap, key: "researcher", color: "text-red-500" },
+            ].map((item) => {
+              const href = `/solutions/${item.key}`;
+              return (
+                <a
+                  key={item.key}
+                  href={href}
+                  onClick={(e) => {
+                    // Allow normal behavior for middle-click, ctrl/cmd-click
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                    e.preventDefault();
+                    setLocation(href);
+                  }}
+                  className="block bg-card border border-border rounded-xl p-5 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full group no-underline text-inherit"
+                >
+                  <item.icon className={`w-6 h-6 ${item.color} mb-3`} />
+                  <h3 className="font-semibold text-sm mb-1.5 group-hover:text-primary transition-colors">{t(`landing:whoUses.items.${item.key}.title`)}</h3>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+                    {t(`landing:whoUses.items.${item.key}.desc`)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70 italic">
+                    {t(`landing:whoUses.items.${item.key}.useCase`)}
+                  </p>
+                  <div className="mt-3 text-[11px] text-primary font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {t("landing:whoUses.seeMore")} <ArrowRight className="w-3 h-3" />
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* PULL QUOTE — industry insight */}
+      <section className="py-16 border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="relative">
+            <div className="text-primary text-7xl font-serif leading-none opacity-30 absolute -top-4 left-4 md:left-0">"</div>
+            <blockquote className="relative">
+              <p className="text-2xl md:text-3xl font-semibold leading-tight md:leading-snug mb-4 max-w-3xl mx-auto">
+                {t("landing:quote.text")}
+              </p>
+              <footer className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{t("landing:quote.author")}</span>
+                <span className="mx-2">·</span>
+                <a
+                  href="https://www.linkedin.com/pulse/biochar-y-las-expectativas-mal-entendidas-miguel-%C3%A1ngel-mart%C3%ADnez-hpeoe/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  {t("landing:quote.sourceLabel")}
+                </a>
+              </footer>
+            </blockquote>
+          </div>
+          <div className="mt-8 max-w-2xl mx-auto text-sm text-muted-foreground leading-relaxed">
+            <p>{t("landing:quote.ourTake")}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* MARKET OPPORTUNITY — stats */}
+      <section className="py-20 border-t border-border bg-gradient-to-b from-green-500/5 via-transparent to-transparent">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+              <TrendingUp className="w-3 h-3" />
+              {t("landing:market.badge")}
+            </div>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:market.title")}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t("landing:market.subtitle")}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { stat: "$50B+", key: "marketSize", color: "text-green-500" },
+              { stat: "2.5 Gt", key: "biocharPotential", color: "text-primary" },
+              { stat: "5M+", key: "microsoft", color: "text-blue-500" },
+              { stat: "<100", key: "certified", color: "text-amber-500" },
+            ].map((item) => (
+              <div key={item.key} className="bg-card border border-border rounded-xl p-5 text-center">
+                <div className={`text-4xl font-bold ${item.color} mb-2`}>{item.stat}</div>
+                <div className="text-xs font-semibold text-foreground mb-1.5">
+                  {t(`landing:market.stats.${item.key}.label`)}
+                </div>
+                <div className="text-[10px] text-muted-foreground leading-relaxed">
+                  {t(`landing:market.stats.${item.key}.source`)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 max-w-3xl mx-auto text-center">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t("landing:market.conclusion")}
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/app">
+                <Button size="lg" className="gap-2">
+                  <Zap className="w-4 h-4" />
+                  {t("landing:market.ctaPrimary")}
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button size="lg" variant="outline" className="gap-2">
+                  {t("landing:market.ctaSecondary")}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* MODULES */}
       <section data-version="accordion-v3" className="py-20 border-t border-border">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">A platform that grows with your project</h2>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:modulesSection.title")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Each module solves the problem of the moment. Start with technical simulation 
-              and unlock layers as your project progresses.
+              {t("landing:modulesSection.subtitle")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {MODULES.map((mod) => (
               <div
-                key={mod.title}
-                className={`bg-card border border-border rounded-xl transition-all duration-200 cursor-pointer flex flex-col ${mod.borderHover} ${openModule === mod.title ? "border-primary/30 shadow-md" : ""}`}
-                onClick={() => setOpenModule(prev => prev === mod.title ? null : mod.title)}
+                key={mod.id}
+                className={`bg-card border border-border rounded-xl transition-all duration-200 cursor-pointer flex flex-col ${mod.borderHover} ${openModule === mod.id ? "border-primary/30 shadow-md" : ""}`}
+                onClick={() => setOpenModule(prev => prev === mod.id ? null : mod.id)}
               >
                 <div className="p-6 flex-1">
                   <div className="flex items-start justify-between gap-3">
@@ -636,11 +876,11 @@ export default function Landing() {
                       </div>
                     </div>
                     <ChevronDown
-                      className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform duration-200 ${openModule === mod.title ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform duration-200 ${openModule === mod.id ? "rotate-180" : ""}`}
                     />
                   </div>
                 </div>
-                {openModule === mod.title && (
+                {openModule === mod.id && (
                   <div className="border-t border-border bg-secondary/30 px-6 py-4 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <p className="text-sm text-muted-foreground leading-relaxed">{mod.desc}</p>
                     <ul className="space-y-1.5">
@@ -653,7 +893,7 @@ export default function Landing() {
                     </ul>
                     <Link href="/pricing" onClick={(e) => e.stopPropagation()}>
                       <Button size="sm" variant="outline" className="mt-2 text-xs gap-1">
-                        View plans <ArrowRight className="w-3 h-3" />
+                        {t("landing:modules.viewPlans")} <ArrowRight className="w-3 h-3" />
                       </Button>
                     </Link>
                   </div>
@@ -668,10 +908,9 @@ export default function Landing() {
       <section id="pricing" className="py-20 border-t border-border bg-secondary/20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3">Plans & Pricing</h2>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:pricingSection.title")}</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Start for free and scale when your project requires it.
-              All plans include access to the technical simulator.
+              {t("landing:pricingSection.subtitle")}
             </p>
           </div>
 
@@ -681,27 +920,27 @@ export default function Landing() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <div className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Carbon Forum Colombia 2026
+                    {t("landing:pricingSection.carbonForumBadge")}
                   </div>
                   <div className="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                     <Sparkles className="w-2.5 h-2.5" />
-                    Limited time
+                    {t("landing:pricingSection.limitedTime")}
                   </div>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold mb-1">
-                  Carbon Forum Pass — <span className="text-foreground">$100</span>
+                  {t("landing:pricingSection.carbonForumTitle")} <span className="text-foreground">$100</span>
                   <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
-                    or $50 if you share about us
+                    {t("landing:pricingSection.carbonForumOrShare")}
                   </span>
-                  <span className="text-xs text-muted-foreground font-normal ml-2">30-day full Analyst access</span>
+                  <span className="text-xs text-muted-foreground font-normal ml-2">{t("landing:pricingSection.carbonForum30day")}</span>
                 </h3>
                 <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Pyrolysis simulator</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> T°/time optimizer</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> PDF export</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> Project Manager</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> LCA (Puro.earth)</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> AI biomass search</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.simulator")}</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.optimizer")}</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.pdf")}</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.projects")}</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.lca")}</li>
+                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.aiSearch")}</li>
                 </ul>
               </div>
               <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
@@ -713,29 +952,31 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Tier cards — Free + Analyst */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
-            {TIERS.map((tier) => (
+          {/* Tier cards — all 5 tiers */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {TIERS.map((tier) => {
+              const isComingSoon = !!(tier as any).comingSoon;
+              return (
               <div
                 key={tier.id}
-                className={`relative bg-card rounded-xl border-2 ${tier.color} p-6 flex flex-col ${tier.badge ? "ring-2 ring-primary/20" : ""}`}
+                className={`relative bg-card rounded-xl border-2 ${tier.color} p-5 flex flex-col ${tier.badge ? "ring-2 ring-green-500/30" : ""}`}
               >
                 {tier.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
                     {tier.badge}
                   </div>
                 )}
-                <div className="mb-4">
-                  <h3 className="font-bold text-base mb-1">{tier.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-3xl font-bold">{tier.price === 0 ? "Free" : `$${tier.price}`}</span>
+                <div className="mb-3">
+                  <h3 className="font-bold text-sm mb-1">{tier.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-1.5">
+                    <span className="text-2xl font-bold">{tier.price === 0 ? t("landing:tiers.explorer.free") : `$${tier.price}`}</span>
                     {tier.period && <span className="text-xs text-muted-foreground">{tier.period}</span>}
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{tier.description}</p>
                 </div>
-                <ul className="space-y-1.5 mb-6 flex-1">
+                <ul className="space-y-1 mb-4 flex-1">
                   {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-1.5 text-xs">
+                    <li key={f} className="flex items-start gap-1.5 text-[11px]">
                       <CheckCircle className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                       <span>{f}</span>
                     </li>
@@ -744,6 +985,12 @@ export default function Landing() {
                 {tier.id === "free" ? (
                   <Link href={tier.href}>
                     <Button variant={tier.ctaVariant} size="sm" className="w-full text-xs">
+                      {tier.cta}
+                    </Button>
+                  </Link>
+                ) : isComingSoon ? (
+                  <Link href="/pricing">
+                    <Button variant="default" size="sm" className="w-full text-xs">
                       {tier.cta}
                     </Button>
                   </Link>
@@ -758,59 +1005,93 @@ export default function Landing() {
                   </SubscribeButton>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
-          <p className="text-center text-[11px] text-muted-foreground mt-6">
-            <Sparkles className="w-3 h-3 inline-block align-text-bottom text-amber-500" /> More advanced tiers (Developer · Engineer · Expert) are on the way as we build them. We won't charge for vapor.
-          </p>
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Need detailed engineering, certification support or technical due diligence for investors?{" "}
-            <Link href="/pricing"><span className="text-primary hover:underline">Contact us for an Enterprise plan</span></Link>
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            {t("landing:pricingSection.enterprisePrompt")}{" "}
+            <Link href="/pricing#contact"><span className="text-primary hover:underline">{t("landing:pricingSection.enterpriseLink")}</span></Link>
           </p>
         </div>
       </section>
 
 
+      {/* COMPLETE PROJECT PACKAGE */}
+      <section className="py-20 border-t border-border bg-gradient-to-b from-purple-500/5 via-transparent to-transparent">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+              <Factory className="w-3 h-3" />
+              {t("landing:projectPackage.badge")}
+            </div>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:projectPackage.title")}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t("landing:projectPackage.subtitle")}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: ClipboardList, titleKey: "landing:projectPackage.items.pdd.title", descKey: "landing:projectPackage.items.pdd.desc", color: "text-purple-500" },
+              { icon: Factory, titleKey: "landing:projectPackage.items.equipment.title", descKey: "landing:projectPackage.items.equipment.desc", color: "text-blue-500" },
+              { icon: Map, titleKey: "landing:projectPackage.items.layout.title", descKey: "landing:projectPackage.items.layout.desc", color: "text-green-500" },
+              { icon: Plug, titleKey: "landing:projectPackage.items.electrical.title", descKey: "landing:projectPackage.items.electrical.desc", color: "text-amber-500" },
+              { icon: Microscope, titleKey: "landing:projectPackage.items.quality.title", descKey: "landing:projectPackage.items.quality.desc", color: "text-red-500" },
+              { icon: Shield, titleKey: "landing:projectPackage.items.certification.title", descKey: "landing:projectPackage.items.certification.desc", color: "text-emerald-500" },
+            ].map((item) => (
+              <div key={item.titleKey} className="bg-card border border-border rounded-xl p-5 hover:border-purple-500/30 transition-colors">
+                <item.icon className={`w-6 h-6 ${item.color} mb-3`} />
+                <h3 className="font-semibold text-sm mb-1.5">{t(item.titleKey)}</h3>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{t(item.descKey)}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link href="/pricing">
+              <Button size="lg" className="gap-2">
+                {t("landing:projectPackage.cta")} <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {t("landing:projectPackage.ctaHint")}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* MARKET PULSE — live biochar industry news */}
+      <section className="py-20 border-t border-border">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" />
+              {t("market:sectionTitle")}
+            </div>
+            <h2 className="text-3xl font-bold mb-3">{t("market:sectionTitle")}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t("market:sectionSubtitle")}
+            </p>
+          </div>
+          <MarketPulse limit={6} />
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="py-20 border-t border-border">
         <div className="max-w-3xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">Frequently asked questions</h2>
-            <p className="text-muted-foreground">Everything you need to know before getting started.</p>
+            <h2 className="text-3xl font-bold mb-3">{t("landing:faq.title")}</h2>
+            <p className="text-muted-foreground">{t("landing:faq.subtitle")}</p>
           </div>
           <div className="space-y-2">
-            {[
-              {
-                q: "How accurate is the pyrolysis model?",
-                a: "The empirical model predicts carbon content (C%), H:Corg ratio, biochar yield, BET surface area, pH, and CO₂e credits. Predictions are calibrated against peer-reviewed pyrolysis literature data and validated across a range of feedstocks. For most woody and agricultural residue feedstocks, C% and H:Corg predictions fall within ±5–8% of reported lab values. Accuracy decreases for highly heterogeneous or exotic feedstocks — in those cases, we recommend using the AI biomass search to obtain literature-sourced proximate/ultimate analysis data."
-              },
-              {
-                q: "Which certification standards does the platform cover?",
-                a: "The current simulator is calibrated against the EBC (European Biochar Certificate) and Puro.earth methodology requirements, specifically the H:Corg ≤ 0.7 threshold for permanence classification and the BC-1/BC-2/BC-3 quality tiers. Isometric and Verra VM0044 coverage is planned for the Developer tier in an upcoming release."
-              },
-              {
-                q: "Can I use my own lab data to calibrate the model?",
-                a: "Not yet directly, but the \"Custom Biomass\" feature in the simulator lets you input your own proximate/ultimate analysis values (C, H, O, N, S, ash, moisture) as anchor points. This gives you model predictions based on your specific feedstock composition rather than the built-in database. Full lab-data calibration is planned as a feature for the Engineer tier."
-              },
-              {
-                q: "What feedstocks are included in the database?",
-                a: "The built-in database includes 8 common feedstocks: pine sawdust, eucalyptus wood, rice husk, corn stover, sugarcane bagasse, wheat straw, sewage sludge, and olive pomace. The AI biomass search extends this to virtually any feedstock by querying peer-reviewed literature data in real time. Free plan users are limited to 3 AI searches per day; paid plans have unlimited searches."
-              },
-              {
-                q: "What does the CO₂e credit calculation include?",
-                a: "The CO₂e calculation follows the Puro.earth methodology: it converts the stable carbon fraction (based on C% and H:Corg) to CO₂ equivalents, applies a permanence factor based on the H:Corg ratio, and subtracts a default Scope 3 emission factor for transport and energy. The result is expressed as net tonnes of CO₂e per tonne of dry biochar. For a full LCA with site-specific Scope 3 data, the LCA module is available in the Analyst plan."
-              },
-              {
-                q: "Can I cancel my subscription at any time?",
-                a: "Yes. All plans are billed monthly and can be cancelled at any time from your account settings. You retain access to your plan features until the end of the current billing period. There are no cancellation fees or long-term commitments."
-              },
-              {
-                q: "Is my data private?",
-                a: "Yes. Your simulation inputs, saved scenarios, and AI biomass searches are private to your account and are never shared with third parties. We do not use your project data to train models or for any purpose other than delivering the platform features to you."
-              },
-            ].map((item, i) => (
-              <FaqItem key={i} question={item.q} answer={item.a} />
+            {([1, 2, 3, 4, 5, 6, 7] as const).map((n) => (
+              <FaqItem
+                key={n}
+                question={t(`landing:faq.q${n}`)}
+                answer={t(`landing:faq.a${n}`)}
+              />
             ))}
           </div>
         </div>

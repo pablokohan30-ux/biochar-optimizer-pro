@@ -7,10 +7,13 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 export type SubscribeTierId = "analyst" | "developer" | "engineer" | "expert";
+export type BillingCycle = "monthly" | "quarterly";
 
 interface SubscribeButtonProps {
   /** Which subscription tier to start checkout for. */
   tierId: SubscribeTierId;
+  /** Billing frequency — monthly (full price) or quarterly (20% off). Defaults to quarterly. */
+  billingCycle?: BillingCycle;
   /** Override the default button label. */
   children?: React.ReactNode;
   /** Forwarded to the underlying Button's className for layout control. */
@@ -39,6 +42,7 @@ interface SubscribeButtonProps {
  */
 export default function SubscribeButton({
   tierId,
+  billingCycle = "quarterly",
   children,
   className,
   size = "sm",
@@ -71,7 +75,7 @@ export default function SubscribeButton({
       return;
     }
     setLocalLoading(true);
-    createCheckout.mutate({ tierId });
+    createCheckout.mutate({ tierId, billingCycle });
   };
 
   const loading = localLoading || createCheckout.isPending;

@@ -35,13 +35,21 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
+            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+            <p className="text-sm text-muted-foreground mb-6">An unexpected error occurred. Please reload the page.</p>
 
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
+            {this.state.error?.stack && (
+              <details className="w-full mb-6">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                  Technical details
+                </summary>
+                <div className="p-3 mt-2 rounded bg-muted overflow-auto">
+                  <pre className="text-xs text-muted-foreground whitespace-break-spaces">
+                    {this.state.error.stack}
+                  </pre>
+                </div>
+              </details>
+            )}
 
             <button
               onClick={() => window.location.reload()}
@@ -52,7 +60,7 @@ class ErrorBoundary extends Component<Props, State> {
               )}
             >
               <RotateCcw size={16} />
-              Reload Page
+              Reload
             </button>
           </div>
         </div>

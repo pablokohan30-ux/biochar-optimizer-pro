@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR — Biochar Optimizer Pro — Carbon Forum Colombia 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .card {
+      background: #0a0a0a;
+      width: 100%;
+      max-width: 500px;
+      padding: 48px 40px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* Leaf icon */
+    .logo {
+      width: 56px;
+      height: 56px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .title span {
+      color: #22c55e;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #a1a1aa;
+      line-height: 1.5;
+      max-width: 380px;
+    }
+
+    .qr-wrapper {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      display: inline-block;
+    }
+
+    .qr-wrapper img {
+      width: 260px;
+      height: 260px;
+      display: block;
+    }
+
+    .scan-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: #22c55e;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .url {
+      font-size: 12px;
+      color: #71717a;
+      letter-spacing: 0.02em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #22c55e;
+    }
+
+    .badge svg { width: 14px; height: 14px; }
+
+    .footer {
+      font-size: 11px;
+      color: #52525b;
+      line-height: 1.5;
+    }
+
+    /* Print optimizations */
+    @media print {
+      body {
+        background: #0a0a0a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .card {
+        padding: 60px 40px;
+        max-width: none;
+      }
+      .qr-wrapper img {
+        width: 300px;
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Leaf logo -->
+    <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="6" fill="#0a0a0a"/>
+      <g transform="translate(4, 3) scale(1.5)">
+        <path d="M8 2C5.5 5 4 8.5 4 12c0 4 2.5 6 4 6s4-2 4-6C12 8.5 10.5 5 8 2z" fill="#22c55e" opacity="0.9"/>
+        <path d="M8 6C6.5 8 5.5 10 5.5 12c0 2.5 1.2 3.5 2.5 3.5s2.5-1 2.5-3.5C10.5 10 9.5 8 8 6z" fill="#16a34a"/>
+        <line x1="8" y1="7" x2="8" y2="16" stroke="#0a0a0a" stroke-width="0.6" opacity="0.5"/>
+        <line x1="8" y1="10" x2="6" y2="8.5" stroke="#0a0a0a" stroke-width="0.4" opacity="0.4"/>
+        <line x1="8" y1="12" x2="10" y2="10.5" stroke="#0a0a0a" stroke-width="0.4" opacity="0.4"/>
+      </g>
+    </svg>
+
+    <div>
+      <div class="title"><span>Biochar</span> Optimizer Pro</div>
+    </div>
+
+    <p class="subtitle">
+      Simulador de pirolis con IA &mdash; Calculá rendimiento, captura de carbono y créditos CO₂e para cualquier biomasa
+    </p>
+
+    <div class="scan-label">Escaneá el QR</div>
+
+    <div class="qr-wrapper">
+      <img src="/qr-carbon-forum.svg" alt="QR Code — biocharpro.io">
+    </div>
+
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      Acceso gratuito &mdash; Probalo ahora
+    </div>
+
+    <p class="url">biocharpro.io</p>
+
+    <p class="footer">
+      Carbon Forum Colombia 2026 &bull; Emisiones Nautras
+    </p>
+  </div>
+</body>
+</html>

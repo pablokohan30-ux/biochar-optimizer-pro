@@ -1,19 +1,23 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis,
+  ReferenceLine, ReferenceDot
 } from "recharts";
-import { Settings, Zap, Activity, Beaker, BarChart3, Download, Save, X, Plus, Edit2, Search, Loader2, AlertCircle, Lock, Eye, FolderOpen, MapPin, FileText } from "lucide-react";
+import { Settings, Zap, Activity, Beaker, BarChart3, Download, Save, X, Plus, Edit2, Search, Loader2, AlertCircle, Lock, Eye, FolderOpen, MapPin, FileText, Layers, Code2, CheckCircle2 } from "lucide-react";
+import AppLayout from "@/components/AppLayout";
 import { useReactToPrint } from "react-to-print";
 import { FEEDSTOCK_DB, compute_all, find_optimum, Feedstock, safeAnchorH, searchFeedstockLocal, FREE_FEEDSTOCK_IDS, isFreeFeedstock } from "@/lib/biocharModel";
+import { getFeedstockName } from "@/lib/feedstockI18n";
 import { trpc } from "@/lib/trpc";
 import { useTier } from "@/hooks/useTier";
 import UpgradeModal from "@/components/UpgradeModal";
-import LogoLink from "@/components/LogoLink";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import SocialShareUnlock from "@/components/SocialShareUnlock";
 import PassActivatedBanner from "@/components/PassActivatedBanner";
 import SubscribedBanner from "@/components/SubscribedBanner";
+import PageLoader from "@/components/PageLoader";
 import { Link, useLocation } from "wouter";
 
 // UI Components (inline for simplicity, using Tailwind)
@@ -51,6 +55,8 @@ export default function Home() {
   // The userAuth hooks provides authentication state
   // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
   const { user, loading, error, isAuthenticated, logout } = useAuth();
+  const { t: tr } = useTranslation("home");
+  const { t: tFs } = useTranslation("feedstocks");
 
   // State
   const [activeFeedstock, setActiveFeedstock] = useState<string>("pine_sawdust");
@@ -84,10 +90,28 @@ export default function Home() {
   const [showPreview, setShowPreview] = useState(false);
   const isFree = !hasAccess("analyst");
 
+  // Social share unlock modal
+  const [showShareUnlock, setShowShareUnlock] = useState(false);
+  const creditsQuery = trpc.biomass.getCredits.useQuery(undefined, { enabled: isAuthenticated });
+  const aiCredits = creditsQuery.data;
+
   // Save as Project modal
   const [showSaveProject, setShowSaveProject] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectLocation, setProjectLocation] = useState("");
+  // Selected lat/lon/country from the autocomplete dropdown — avoids re-geocoding on save.
+  const [selectedLocationCoords, setSelectedLocationCoords] = useState<{ lat: number; lon: number; country: string | null } | null>(null);
+  // Debounced query for location autocomplete
+  const [locationQuery, setLocationQuery] = useState("");
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setLocationQuery(projectLocation.trim()), 300);
+    return () => clearTimeout(id);
+  }, [projectLocation]);
+  const locationSearch = trpc.projects.searchLocation.useQuery(
+    { query: locationQuery },
+    { enabled: locationQuery.length >= 3 && showLocationDropdown, staleTime: 60_000 },
+  );
   const [projectCapacity, setProjectCapacity] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [, navigate] = useLocation();
@@ -105,7 +129,7 @@ export default function Home() {
   const biomassSearch = trpc.biomass.search.useMutation({
     onSuccess: (data) => {
       if (!data) {
-        setSearchError("No data found for that biomass. Try a more specific name.");
+        setSearchError(tr("noDataFound"));
         setSearchSuccess(null);
         return;
       }
@@ -123,11 +147,21 @@ export default function Home() {
       setIsCustom(true);
       setSearchQuery("");
       setSearchError(null);
-      setSearchSuccess(`"${data.name}" loaded successfully. Source: ${data.source}`);
+      setSearchSuccess(`"${data.name}" ${tr("loadedSuccess")} ${data.source}`);
       setTimeout(() => setSearchSuccess(null), 5000);
     },
-    onError: () => {
-      setSearchError("Connection error. Please try again.");
+    onError: (err) => {
+      const msg = err.message ?? "";
+      if (msg.startsWith("SHARE_REQUIRED:")) {
+        // Free user needs to share first — open the social share unlock modal
+        setShowShareUnlock(true);
+        setSearchError(null);
+      } else if (msg.startsWith("LIMIT_REACHED:")) {
+        // All credits used up — prompt upgrade
+        setSearchError(tr("allCreditsUsed"));
+      } else {
+        setSearchError(tr("connectionError"));
+      }
       setSearchSuccess(null);
     }
   });
@@ -143,21 +177,27 @@ export default function Home() {
       setActiveFeedstock(id);
       setIsCustom(true);
       setSearchQuery("");
-      setSearchSuccess(`"${result.feedstock.name}" loaded. Source: ${result.feedstock.source}`);
+      setSearchSuccess(`"${result.feedstock.name}" ${tr("loadedSource")} ${result.feedstock.source}`);
       return;
     }
     if (result.status === "locked") {
-      setSearchError(`"${result.feedstock.name}" is in the premium database. Upgrade to Analyst to unlock 50+ biomasses.`);
-      setTimeout(() => openUpgrade("Access the full biomass database", "analyst"), 100);
+      setSearchError(`"${result.feedstock.name}" ${tr("premiumLocked")}`);
+      setTimeout(() => openUpgrade(tr("fullBiomassDBShort"), "analyst"), 100);
       return;
     }
-    // Fallback to AI search
+    // Fallback to AI search — requires login
+    if (!isAuthenticated) {
+      navigate("/login?signup=1&from=app");
+      return;
+    }
     biomassSearch.mutate({ query });
   };
 
   // Current feedstock object
   const fs = isCustom ? (savedCustomFs[activeFeedstock] || customFs || FEEDSTOCK_DB["pine_sawdust"]) : (FEEDSTOCK_DB[activeFeedstock] || FEEDSTOCK_DB["pine_sawdust"]);
   const currentFs = fs || FEEDSTOCK_DB["pine_sawdust"];
+  // Display name: translated if it's a DB feedstock, otherwise the raw name (custom/AI)
+  const currentFsName = getFeedstockName(isCustom ? null : activeFeedstock, currentFs.name, tFs);
 
   // Compute current results
   const result = useMemo(() => {
@@ -197,7 +237,7 @@ export default function Home() {
   // transport distances, energy inputs etc. remain user-entered.
   const handleRunLCA = () => {
     if (!hasAccess("analyst")) {
-      openUpgrade("Run LCA on this biochar", "analyst");
+      openUpgrade(tr("runLCAFeature"), "analyst");
       return;
     }
     const prefill = {
@@ -219,6 +259,100 @@ export default function Home() {
     navigate("/lca");
   };
 
+  // ─── Lab analysis PDF upload ────────────────────────────────────────────
+  const [extractingLab, setExtractingLab] = useState(false);
+  const [labError, setLabError] = useState<string | null>(null);
+  const [labSuccess, setLabSuccess] = useState<string | null>(null);
+  const [allowPublicUse, setAllowPublicUse] = useState(true);
+  const extractLabMutation = trpc.biomass.extractLabAnalysis.useMutation();
+
+  const handleLabUpload = async (file: File) => {
+    setLabError(null);
+    setLabSuccess(null);
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setLabError(tr("labUpload.errNotPdf", { defaultValue: "Please upload a PDF file." }));
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setLabError(tr("labUpload.errTooLarge", { defaultValue: "PDF is too large (max 10 MB)." }));
+      return;
+    }
+    setExtractingLab(true);
+    try {
+      // Read as base64
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const pdfBase64 = btoa(binary);
+
+      const result = await extractLabMutation.mutateAsync({
+        pdfBase64,
+        pdfName: file.name,
+        allowPublicUse,
+      });
+
+      // Pre-fill the custom feedstock form with extracted values
+      const bm = result?.biomass ?? {};
+      const bc = result?.biochar ?? {};
+      const py = result?.pyrolysis ?? {};
+
+      setCustomFs((prev) => ({
+        ...prev,
+        name: result?.biomassName || prev.name,
+        C: bm.C ?? prev.C,
+        H: bm.H ?? prev.H,
+        O: bm.O ?? prev.O,
+        N: bm.N ?? prev.N,
+        S: bm.S ?? prev.S,
+        ash: bm.ash ?? prev.ash,
+        moisture: bm.moisture ?? prev.moisture,
+        anchor_T: py.temperature ?? prev.anchor_T,
+        anchor_t: py.residenceTime ?? prev.anchor_t,
+        anchor_C: bc.C ?? prev.anchor_C,
+        anchor_H: bc.H ?? prev.anchor_H,
+        source: result?.source || prev.source,
+      }));
+
+      // Fill pyrolysis params for the main simulator if present
+      if (py.temperature) setT(py.temperature);
+      if (py.residenceTime) setT_res(py.residenceTime);
+
+      const extractedFields = [
+        bm.C != null && "C",
+        bm.H != null && "H",
+        bm.O != null && "O",
+        bc.BET != null && "BET",
+        py.temperature != null && "T°",
+      ].filter(Boolean).length;
+      setLabSuccess(tr("labUpload.success", {
+        count: extractedFields,
+        defaultValue: `Extracted ${extractedFields} fields. Review and save.`,
+      }));
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.startsWith("UPGRADE_REQUIRED")) {
+        setLabError(tr("labUpload.errUpgrade", { defaultValue: "Lab upload requires Analyst plan or higher." }));
+      } else if (msg.startsWith("PDF_TOO_LARGE")) {
+        setLabError(tr("labUpload.errTooLarge", { defaultValue: "PDF is too large (max 10 MB)." }));
+      } else if (msg.startsWith("AI_QUOTA_EXCEEDED")) {
+        setLabError(tr("labUpload.errQuota", { defaultValue: "AI service temporarily over capacity. Try again in a few minutes, or fill the form manually." }));
+      } else if (msg.startsWith("AI_TIMEOUT")) {
+        setLabError(tr("labUpload.errTimeout", { defaultValue: "Extraction took too long. Try a smaller PDF or fill in manually." }));
+      } else if (msg.startsWith("AI_UNAVAILABLE")) {
+        setLabError(tr("labUpload.errUnavailable", { defaultValue: "AI extraction is currently unavailable. Please fill the form manually." }));
+      } else if (msg.startsWith("EXTRACTION_FAILED")) {
+        setLabError(tr("labUpload.errExtraction", { defaultValue: "Couldn't read this PDF. Try a clearer scan or fill in manually." }));
+      } else {
+        // Show the raw message for unknown errors — helps diagnose real issues
+        setLabError(msg.length < 200 ? msg : tr("labUpload.errGeneric", { defaultValue: "Upload failed. Please try again." }));
+      }
+    } finally {
+      setExtractingLab(false);
+    }
+  };
+
   // Handle Custom Feedstock Save
   const handleSaveCustomFs = () => {
     const id = editingFsId || `custom_${Date.now()}`;
@@ -235,6 +369,8 @@ export default function Home() {
   const handleEditCustomFs = (id: string) => {
     setCustomFs({ ...savedCustomFs[id] });
     setEditingFsId(id);
+    setLabError(null);
+    setLabSuccess(null);
     setShowCustomModal(true);
   };
 
@@ -247,13 +383,15 @@ export default function Home() {
       source: "Custom"
     });
     setEditingFsId(null);
+    setLabError(null);
+    setLabSuccess(null);
     setShowCustomModal(true);
   };
 
   // Generate sensitivity data
   const sensitivityData = useMemo(() => {
     const data = [];
-    for (let temp = 400; temp <= 750; temp += 10) {
+    for (let temp = 400; temp <= 850; temp += 10) {
       const res = compute_all(temp, t, currentFs);
       data.push({
         T: temp,
@@ -311,7 +449,7 @@ export default function Home() {
     },
     onPrintError: (error) => {
       console.error("Error exporting PDF:", error);
-      alert("There was an error exporting the PDF. Please try again.");
+      alert(tr("pdfError"));
       setIsExporting(false);
     }
   });
@@ -329,11 +467,7 @@ export default function Home() {
   }, [loading, isAuthenticated, navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {
@@ -341,86 +475,60 @@ export default function Home() {
     return null;
   }
 
+  // Page-specific actions for the AppLayout top bar
+  const pageActions = (
+    <>
+      <button
+        onClick={() => {
+          if (isFree) {
+            openUpgrade(tr("saveProjectsFeature"), "analyst");
+            return;
+          }
+          setProjectName(currentFsName);
+          setProjectLocation("");
+          setProjectCapacity("");
+          setProjectDescription("");
+          setShowSaveProject(true);
+        }}
+        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors"
+        title={tr("saveAsProject")}
+      >
+        {isFree && <Lock className="w-3 h-3" />}
+        <FolderOpen className="w-3.5 h-3.5" /> <span className="hidden lg:inline">{tr("saveAsProject")}</span>
+      </button>
+      <button
+        onClick={handleRunLCA}
+        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors"
+        title={hasAccess("analyst") ? tr("runLCAHint") : tr("analystRequired")}
+      >
+        {!hasAccess("analyst") && <Lock className="w-3 h-3" />}
+        <FileText className="w-3.5 h-3.5" /> <span className="hidden lg:inline">{tr("runLCA")}</span>
+      </button>
+      <button
+        onClick={() => {
+          if (!hasAccess("analyst")) { setShowPreview(true); return; }
+          handleExportPDF();
+        }}
+        disabled={isExporting}
+        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors disabled:opacity-50"
+        title={hasAccess("analyst") ? tr("exportPDF") : tr("previewReport")}
+      >
+        {hasAccess("analyst") ? <Download className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        <span className="hidden lg:inline">
+          {isExporting ? tr("exporting") : hasAccess("analyst") ? tr("exportPDF") : tr("previewReport")}
+        </span>
+      </button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
-
-      {/* Carbon Forum Pass activation banner (only renders when ?pass=... in URL) */}
-      <PassActivatedBanner />
-
-      {/* Regular subscription activation banner (only renders when ?subscribed=1 in URL) */}
-      <SubscribedBanner />
-
-      {/* HEADER */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <LogoLink iconType="activity" />
-          <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-            {user && (
-              <span className="text-xs text-muted-foreground">
-                Hi, <span className="text-foreground font-medium">{user.name || user.email}</span>
-              </span>
-            )}
-            <button
-              onClick={() => {
-                if (isFree) {
-                  openUpgrade("Save projects with location data", "analyst");
-                  return;
-                }
-                // Fresh form every time (don't carry over location/capacity from a previous save)
-                setProjectName(currentFs.name);
-                setProjectLocation("");
-                setProjectCapacity("");
-                setProjectDescription("");
-                setShowSaveProject(true);
-              }}
-              className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors"
-            >
-              {isFree && <Lock className="w-3 h-3" />}
-              <FolderOpen className="w-4 h-4" /> Save as Project
-            </button>
-            {!isFree && (
-              <Link href="/projects">
-                <button className="text-xs text-muted-foreground hover:text-foreground">My Projects</button>
-              </Link>
-            )}
-            <button
-              onClick={handleRunLCA}
-              className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors"
-              title={hasAccess("analyst") ? "Run LCA on this biochar — pre-fills Puro.earth Ed. 2025 form with C, H, yield and moisture" : "Analyst plan required"}
-            >
-              {!hasAccess("analyst") && <Lock className="w-3 h-3" />}
-              <FileText className="w-4 h-4" /> Run LCA
-            </button>
-            <button
-              onClick={() => {
-                if (!hasAccess("analyst")) {
-                  setShowPreview(true);
-                  return;
-                }
-                handleExportPDF();
-              }}
-              disabled={isExporting}
-              className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-            >
-              {hasAccess("analyst") ? <Download className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              {isExporting ? "Exporting..." : hasAccess("analyst") ? "Export PDF" : "Preview Report"}
-            </button>
-            <Link href="/pricing">
-              <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded-full font-medium cursor-pointer hover:bg-primary/20 transition-colors">
-                {tier === "free" ? "FREE PLAN" : tier.toUpperCase()}
-              </span>
-            </Link>
-            <LanguageSwitcher />
-            {user && (
-              <button onClick={logout} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Logout
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main ref={contentRef} id="pdf-content" className="flex-1 container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 print:bg-background print:text-foreground">
+    <AppLayout
+      pageTitle={<span className="flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> {tr("pageTitle", { defaultValue: "Simulador" })}</span>}
+      pageActions={pageActions}
+      banner={<><PassActivatedBanner /><SubscribedBanner /></>}
+      fullBleed
+    >
+      <main ref={contentRef} id="pdf-content" className="container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 print:bg-background print:text-foreground">
         
         {/* LEFT PANEL: CONTROLS */}
         <aside className="w-full lg:w-80 flex-shrink-0 space-y-6">
@@ -428,13 +536,29 @@ export default function Home() {
           <Card className="p-5 space-y-6">
             {/* AI Biomass Search */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-primary tracking-wider flex items-center gap-1">
-                <Search className="w-3 h-3" /> AI BIOMASS SEARCH
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-primary tracking-wider flex items-center gap-1">
+                  <Search className="w-3 h-3" /> {tr("aiSearch")}
+                </label>
+                {isAuthenticated && aiCredits && !aiCredits.unlimited && (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${aiCredits.credits > 0 ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20" : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 cursor-pointer hover:bg-yellow-500/20"}`}
+                    onClick={aiCredits.credits <= 0 ? () => setShowShareUnlock(true) : undefined}
+                  >
+                    {aiCredits.credits > 0
+                      ? `${aiCredits.credits} ${tr("aiCreditsRemaining")}`
+                      : tr("shareToAnalyze")}
+                  </span>
+                )}
+                {isAuthenticated && aiCredits?.unlimited && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                    {tr("aiCreditsUnlimited")}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. walnut shell, sugarcane bagasse..."
+                  placeholder={tr("searchPlaceholder")}
                   className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setSearchError(null); }}
@@ -463,14 +587,35 @@ export default function Home() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-primary tracking-wider">FEEDSTOCK</label>
-                <button 
-                  onClick={handleCreateNewFs}
-                  className="text-[10px] flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Plus className="w-3 h-3" /> New
-                </button>
+              <label className="text-xs font-bold text-primary tracking-wider">{tr("feedstock")}</label>
+
+              {/* Upload-your-own CTA — prominent card above the dropdown */}
+              <button
+                onClick={handleCreateNewFs}
+                className="w-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5 border border-primary/40 hover:border-primary/60 rounded-lg p-3 text-left transition-all group"
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-primary leading-tight">
+                      {tr("newBiomassTitle", { defaultValue: "Nueva biomasa" })}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                      {tr("newBiomassHint", { defaultValue: "Subí tu análisis de laboratorio (PDF) y extraemos C/H/N/S/O, ash, humedad y condiciones de pirólisis automáticamente." })}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Subtle "or pick from database" separator */}
+              <div className="flex items-center gap-2 py-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                  {tr("orPickFromDB", { defaultValue: "o elegí de la base" })}
+                </span>
+                <div className="flex-1 h-px bg-border" />
               </div>
               <div className="flex gap-2">
                 <select
@@ -479,7 +624,7 @@ export default function Home() {
                   onChange={(e) => {
                     const val = e.target.value;
                     if (val === "__locked__") {
-                      openUpgrade("Access the full biomass database (50+ biomasses)", "analyst");
+                      openUpgrade(tr("fullBiomassDB"), "analyst");
                       return;
                     }
                     if (val.startsWith('custom_')) {
@@ -491,27 +636,27 @@ export default function Home() {
                     }
                   }}
                 >
-                  <optgroup label={isFree ? "Free Database" : "Database"}>
+                  <optgroup label={isFree ? tr("freeDatabase") : tr("database")}>
                     {Object.entries(FEEDSTOCK_DB)
                       .filter(([k]) => !isFree || isFreeFeedstock(k))
                       .map(([k, v]) => (
-                        <option key={k} value={k}>{v.name}</option>
+                        <option key={k} value={k}>{getFeedstockName(k, v.name, tFs)}</option>
                       ))}
                   </optgroup>
                   {isFree && (
-                    <optgroup label="🔒 Premium (Analyst+)">
-                      <option value="__locked__">Unlock 35+ more biomasses →</option>
+                    <optgroup label={tr("premiumAnalyst")}>
+                      <option value="__locked__">{tr("unlockMore")}</option>
                     </optgroup>
                   )}
                   {Object.keys(savedCustomFs).filter(k => !k.startsWith('ai_') && !k.startsWith('local_')).length > 0 && (
-                    <optgroup label="Custom">
+                    <optgroup label={tr("custom")}>
                       {Object.entries(savedCustomFs).filter(([k]) => !k.startsWith('ai_') && !k.startsWith('local_')).map(([k, v]) => (
                         <option key={k} value={k}>{v.name}</option>
                       ))}
                     </optgroup>
                   )}
                   {Object.keys(savedCustomFs).filter(k => k.startsWith('ai_') || k.startsWith('local_')).length > 0 && (
-                    <optgroup label="Search Results">
+                    <optgroup label={tr("searchResults")}>
                       {Object.entries(savedCustomFs).filter(([k]) => k.startsWith('ai_') || k.startsWith('local_')).map(([k, v]) => (
                         <option key={k} value={k}>{v.name}</option>
                       ))}
@@ -522,7 +667,7 @@ export default function Home() {
                   <button 
                     onClick={() => handleEditCustomFs(activeFeedstock)}
                     className="bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2 rounded-md transition-colors"
-                    title="Edit feedstock"
+                    title={tr("editFeedstock")}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -531,55 +676,55 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs font-bold text-primary tracking-wider">QUALITY GOAL</label>
+              <label className="text-xs font-bold text-primary tracking-wider">{tr("qualityGoal")}</label>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer group">
                   <input type="radio" name="goal" checked={goal === "MAX_CARBON"} onChange={() => setGoal("MAX_CARBON")} className="accent-primary" />
-                  <span className="group-hover:text-primary transition-colors">Max Carbon Capture (CO₂e)</span>
+                  <span className="group-hover:text-primary transition-colors">{tr("maxCarbon")}</span>
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer group">
                   <input type="radio" name="goal" checked={goal === "AGRONOMY"} onChange={() => setGoal("AGRONOMY")} className="accent-primary" />
-                  <span className="group-hover:text-primary transition-colors">Max Agronomy (BET/pH)</span>
+                  <span className="group-hover:text-primary transition-colors">{tr("maxAgronomy")}</span>
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer group">
                   <input type="radio" name="goal" checked={goal === "BALANCED"} onChange={() => setGoal("BALANCED")} className="accent-primary" />
-                  <span className="group-hover:text-primary transition-colors">Balanced (60% C / 40% Agro)</span>
+                  <span className="group-hover:text-primary transition-colors">{tr("balanced")}</span>
                 </label>
               </div>
               <button 
                 onClick={() => {
                   if (!hasAccess("analyst")) {
-                    openUpgrade("Automatic temperature/time optimizer", "analyst");
+                    openUpgrade(tr("optimizerFeature"), "analyst");
                     return;
                   }
                   handleOptimize();
                 }}
                 className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-md transition-all shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] flex items-center justify-center gap-2 relative"
               >
-                {!hasAccess("analyst") && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] bg-primary-foreground/20 text-primary-foreground px-1 rounded">PRO</span>}
-                <Zap className="w-4 h-4" /> OPTIMIZE
+                {!hasAccess("analyst") && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] bg-primary-foreground/20 text-primary-foreground px-1 rounded">{tr("pro")}</span>}
+                <Zap className="w-4 h-4" /> {tr("optimize")}
               </button>
             </div>
 
             <div className="pt-4 border-t border-border space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold text-primary tracking-wider">
-                  <label>TEMPERATURE</label>
+                  <label>{tr("temperature")}</label>
                   <span>{T} °C</span>
                 </div>
-                <input 
-                  type="range" min="400" max="750" step="5" 
+                <input
+                  type="range" min="400" max="850" step="5"
                   value={T} onChange={(e) => setT(Number(e.target.value))}
                   className="w-full accent-primary"
                 />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>400</span><span>750</span>
+                  <span>400</span><span>850</span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold text-primary tracking-wider">
-                  <label>RES. TIME</label>
+                  <label>{tr("resTime")}</label>
                   <span>{t} min</span>
                 </div>
                 <input 
@@ -595,7 +740,7 @@ export default function Home() {
           </Card>
 
           <div className="text-[10px] text-muted-foreground text-center px-4">
-            Empirical model calibrated with peer-reviewed pyrolysis literature data.
+            {tr("modelDisclaimer")}
           </div>
         </aside>
 
@@ -605,39 +750,39 @@ export default function Home() {
           {/* KPI CARDS */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-primary">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Total Carbon</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{tr("totalCarbon")}</span>
               <div className="text-2xl font-mono font-bold text-primary my-1">{result.C.toFixed(1)}</div>
-              <span className="text-[10px] text-muted-foreground">% dry mass</span>
+              <span className="text-[10px] text-muted-foreground">{tr("dryMass")}</span>
             </Card>
-            
+
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-primary">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">H:Corg Ratio</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{tr("hCorgRatio")}</span>
               <div className="text-2xl font-mono font-bold text-foreground my-1">{result.H_Corg.toFixed(3)}</div>
               <div><Badge variant={hCorgVariant}>{result.H_Corg < 0.4 ? "BC-1" : (result.H_Corg < 0.7 ? "BC-2" : "FAIL")}</Badge></div>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-primary">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Net CO₂e</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{tr("netCO2e")}</span>
               <div className="text-2xl font-mono font-bold text-foreground my-1">{result.credits.net.toFixed(2)}</div>
-              <span className="text-[10px] text-muted-foreground">t/t biochar</span>
+              <span className="text-[10px] text-muted-foreground">{tr("ttBiochar")}</span>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-cyan-500">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Yield</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{tr("yield")}</span>
               <div className="text-2xl font-mono font-bold text-cyan-500 my-1">{result.yield_.toFixed(1)}</div>
-              <span className="text-[10px] text-muted-foreground">% dry mass</span>
+              <span className="text-[10px] text-muted-foreground">{tr("dryMass")}</span>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-purple-500">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">BET Surface</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{tr("betSurface")}</span>
               <div className="text-2xl font-mono font-bold text-purple-500 my-1">{Math.round(result.BET)}</div>
-              <span className="text-[10px] text-muted-foreground">m²/g (est.)</span>
+              <span className="text-[10px] text-muted-foreground">{tr("m2g")}</span>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-2 border-l-yellow-500">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">pH</span>
               <div className="text-2xl font-mono font-bold text-yellow-500 my-1">{result.pH.toFixed(1)}</div>
-              <span className="text-[10px] text-muted-foreground">{result.pH > 7.5 ? "alkaline" : "neutral"}</span>
+              <span className="text-[10px] text-muted-foreground">{result.pH > 7.5 ? tr("alkaline") : tr("neutral")}</span>
             </Card>
             
 
@@ -648,7 +793,7 @@ export default function Home() {
             
             <Card className="p-4 lg:col-span-2 h-[350px] flex flex-col">
               <h2 className="text-sm font-bold text-muted-foreground mb-4 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" /> Thermal Sensitivity
+                <BarChart3 className="w-4 h-4" /> {tr("thermalSensitivity")}
               </h2>
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -662,12 +807,22 @@ export default function Home() {
                       itemStyle={{ color: 'var(--color-foreground)' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
-                    <Line yAxisId="left" type="monotone" dataKey="C" name="C%" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
-                    <Line yAxisId="left" type="monotone" dataKey="yield" name="Yield %" stroke="var(--color-cyan-500)" strokeWidth={2} dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="CO2e" name="CO₂e" stroke="var(--color-purple-500)" strokeWidth={2} dot={false} />
-                    
-                    {/* Current point marker */}
-                    <Scatter yAxisId="left" data={[{ T, C: result.C }]} fill="var(--color-foreground)" />
+                    <Line yAxisId="left" type="monotone" dataKey="C" name="C%" stroke="var(--color-primary)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="yield" name="Yield %" stroke="var(--color-cyan-500)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="CO2e" name="CO₂e" stroke="var(--color-purple-500)" strokeWidth={2} dot={false} isAnimationActive={false} />
+
+                    {/* Vertical line + dot markers at current temperature */}
+                    <ReferenceLine
+                      yAxisId="left"
+                      x={T}
+                      stroke="var(--color-foreground)"
+                      strokeDasharray="4 2"
+                      strokeWidth={1.5}
+                      label={{ value: `${T}°C`, position: "top", fill: "var(--color-foreground)", fontSize: 10, fontWeight: 700 }}
+                    />
+                    <ReferenceDot yAxisId="left" x={T} y={result.C} r={5} fill="var(--color-primary)" stroke="var(--color-foreground)" strokeWidth={2} isFront />
+                    <ReferenceDot yAxisId="left" x={T} y={result.yield_} r={5} fill="var(--color-cyan-500)" stroke="var(--color-foreground)" strokeWidth={2} isFront />
+                    <ReferenceDot yAxisId="right" x={T} y={result.credits.net} r={5} fill="var(--color-purple-500)" stroke="var(--color-foreground)" strokeWidth={2} isFront />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -676,14 +831,14 @@ export default function Home() {
             <Card className="p-4 h-[350px] flex flex-col relative">
               <div className="flex justify-between items-start mb-0">
                 <h2 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-                  <Beaker className="w-4 h-4" /> Quality Profile
+                  <Beaker className="w-4 h-4" /> {tr("qualityProfile")}
                 </h2>
                 <div className="flex flex-col items-end gap-1">
                   {!savedScenario ? (
                     <button
                       onClick={() => {
                         if (isFree) {
-                          openUpgrade("Save and compare scenarios", "analyst");
+                          openUpgrade(tr("compareFeature"), "analyst");
                           return;
                         }
                         handleSaveScenario();
@@ -691,7 +846,7 @@ export default function Home() {
                       className="text-[10px] flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2 py-1 rounded transition-colors relative"
                     >
                       {isFree && <Lock className="w-2.5 h-2.5" />}
-                      <Save className="w-3 h-3" /> Save to compare
+                      <Save className="w-3 h-3" /> {tr("saveToCompare")}
                     </button>
                   ) : (
                     <div className="flex items-center gap-2 bg-accent/10 border border-accent/30 px-2 py-1 rounded">
@@ -712,9 +867,9 @@ export default function Home() {
                     <PolarGrid stroke="var(--color-border)" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
-                    <Radar name="Current" dataKey="A" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.3} />
+                    <Radar name="Current" dataKey="A" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.3} isAnimationActive={false} />
                     {savedScenario && (
-                      <Radar name="Saved" dataKey="B" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.3} />
+                      <Radar name="Saved" dataKey="B" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.3} isAnimationActive={false} />
                     )}
                     {savedScenario && <Legend wrapperStyle={{ fontSize: '10px' }} />}
                   </RadarChart>
@@ -730,7 +885,7 @@ export default function Home() {
               <Card className="w-full max-w-md p-6 space-y-4 border-primary/50 shadow-lg shadow-primary/10">
                 <div className="flex justify-between items-center border-b border-border pb-2">
                   <h2 className="text-lg font-bold text-foreground">
-                    {editingFsId ? "Edit Feedstock" : "New Feedstock"}
+                    {editingFsId ? tr("editFeedstock") : tr("newFeedstock")}
                   </h2>
                   <button onClick={() => setShowCustomModal(false)} className="text-muted-foreground hover:text-foreground">
                     <X className="w-5 h-5" />
@@ -738,10 +893,78 @@ export default function Home() {
                 </div>
                 
                 <div className="space-y-4">
+                  {/* Lab analysis PDF upload — Analyst+ only */}
+                  <div className="border border-dashed border-primary/40 bg-primary/5 rounded-lg p-3">
+                    <div className="flex items-start gap-2 mb-2">
+                      <Beaker className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-primary">
+                          {tr("labUpload.title", { defaultValue: "Upload lab analysis (PDF)" })}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {tr("labUpload.hint", {
+                            defaultValue: "We'll extract C/H/N/S/O, ash, moisture, pyrolysis conditions and biochar properties to pre-fill this form.",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    {extractingLab ? (
+                      <div className="flex items-center justify-center gap-2 py-3 text-xs text-primary">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {tr("labUpload.extracting", { defaultValue: "Extracting data from PDF…" })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <label className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+                          !hasAccess("analyst")
+                            ? "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+                            : "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30"
+                        }`}>
+                          {!hasAccess("analyst") && <Lock className="w-3 h-3" />}
+                          <FileText className="w-3.5 h-3.5" />
+                          {tr("labUpload.choose", { defaultValue: "Choose PDF…" })}
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            disabled={!hasAccess("analyst")}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleLabUpload(f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={allowPublicUse}
+                            onChange={(e) => setAllowPublicUse(e.target.checked)}
+                            className="accent-primary"
+                          />
+                          {tr("labUpload.sharePlatform", {
+                            defaultValue: "Contribute anonymized data to improve the model",
+                          })}
+                        </label>
+                      </div>
+                    )}
+                    {labError && (
+                      <div className="mt-2 text-[11px] text-red-500 flex items-start gap-1">
+                        <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        {labError}
+                      </div>
+                    )}
+                    {labSuccess && (
+                      <div className="mt-2 text-[11px] text-green-500">
+                        ✓ {labSuccess}
+                      </div>
+                    )}
+                  </div>
+
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Name</label>
-                    <input 
-                      type="text" 
+                    <label className="text-xs text-muted-foreground block mb-1">{tr("name")}</label>
+                    <input
+                      type="text"
                       className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
                       value={customFs.name}
                       onChange={e => setCustomFs({...customFs, name: e.target.value})}
@@ -750,7 +973,7 @@ export default function Home() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Carbon (C %)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("carbonC")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -759,7 +982,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Hydrogen (H %)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("hydrogenH")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -768,7 +991,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Oxygen (O %)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("oxygenO")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -777,7 +1000,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Nitrogen (N %)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("nitrogenN")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -786,7 +1009,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Ash (%)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("ash")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -795,7 +1018,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Moisture (%)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{tr("moisture")}</label>
                       <input 
                         type="number" step="0.1"
                         className="w-full bg-background border border-border rounded px-3 py-1.5 text-sm"
@@ -810,13 +1033,13 @@ export default function Home() {
                       onClick={() => setShowCustomModal(false)}
                       className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      Cancel
+                      {tr("cancel")}
                     </button>
-                    <button 
+                    <button
                       onClick={handleSaveCustomFs}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-2"
                     >
-                      <Save className="w-4 h-4" /> Save
+                      <Save className="w-4 h-4" /> {tr("save")}
                     </button>
                   </div>
                 </div>
@@ -829,41 +1052,56 @@ export default function Home() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                 <tr>
-                  <th className="px-4 py-3 rounded-tl-md">Parameter</th>
-                  <th className="px-4 py-3">Current Value</th>
-                  <th className="px-4 py-3">Puro.earth Threshold</th>
-                  <th className="px-4 py-3 rounded-tr-md">Status</th>
+                  <th className="px-4 py-3 rounded-tl-md">{tr("parameter")}</th>
+                  <th className="px-4 py-3">{tr("currentValue")}</th>
+                  <th className="px-4 py-3">{tr("puroThreshold")}</th>
+                  <th className="px-4 py-3 rounded-tr-md">{tr("status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 <tr className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">Temperature / Time</td>
+                  <td className="px-4 py-3 font-medium">{tr("tempTime")}</td>
                   <td className="px-4 py-3 font-mono">{T} °C / {t} min</td>
-                  <td className="px-4 py-3 text-muted-foreground">400–750 °C / 15–60 min</td>
+                  <td className="px-4 py-3 text-muted-foreground">400–850 °C / 15–60 min</td>
                   <td className="px-4 py-3"><Badge variant="success">✓</Badge></td>
                 </tr>
                 <tr className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">Total Carbon (C%)</td>
+                  <td className="px-4 py-3 font-medium">{tr("totalCarbonC")}</td>
                   <td className="px-4 py-3 font-mono">{result.C.toFixed(1)} %</td>
                   <td className="px-4 py-3 text-muted-foreground">&gt; 50%</td>
                   <td className="px-4 py-3"><Badge variant={result.C > 50 ? "success" : "danger"}>{result.C > 50 ? "✓" : "✗"}</Badge></td>
                 </tr>
                 <tr className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">Molar H:Corg Ratio</td>
+                  <td className="px-4 py-3 font-medium">{tr("molarHCorg")}</td>
                   <td className="px-4 py-3 font-mono">{result.H_Corg.toFixed(3)}</td>
                   <td className="px-4 py-3 text-muted-foreground">&lt; 0.7 (BC-2) / &lt; 0.4 (BC-1)</td>
                   <td className="px-4 py-3"><Badge variant={hCorgVariant}>{result.H_Corg < 0.4 ? "BC-1" : (result.H_Corg < 0.7 ? "BC-2" : "FAIL")}</Badge></td>
                 </tr>
                 <tr className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">CO₂e per tonne</td>
+                  <td className="px-4 py-3 font-medium">{tr("co2ePerTonne")}</td>
                   <td className="px-4 py-3 font-mono">{result.credits.net.toFixed(2)} t</td>
-                  <td className="px-4 py-3 text-muted-foreground">N/A (Depends on LCA)</td>
+                  <td className="px-4 py-3 text-muted-foreground">{tr("naLCA")}</td>
                   <td className="px-4 py-3"><Badge variant="default">INFO</Badge></td>
                 </tr>
 
               </tbody>
             </table>
           </Card>
+
+          {/* Print-only footer — watermark + generation metadata. Only visible in PDF exports. */}
+          <div className="hidden print:block mt-6 pt-4 border-t border-gray-300 text-[9px] text-gray-500">
+            <div className="flex justify-between items-center">
+              <span>
+                Generated with <strong>Biochar Optimizer Pro</strong> · biocharpro.io
+              </span>
+              <span className="font-mono">
+                {new Date().toLocaleDateString()} · {currentFs.name}
+              </span>
+            </div>
+            <div className="mt-1 text-[8px] text-gray-400">
+              This report was produced by an empirical pyrolysis model calibrated against peer-reviewed literature. Simulation parameters: T={T}°C, residence time={t} min. Model predictions are subject to ±5–8% uncertainty for feedstocks within the calibration range.
+            </div>
+          </div>
 
         </div>
       </main>
@@ -875,7 +1113,7 @@ export default function Home() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <FolderOpen className="w-5 h-5 text-primary" />
-                <h2 className="font-bold">Save as Project</h2>
+                <h2 className="font-bold">{tr("saveAsProjectTitle")}</h2>
               </div>
               <button onClick={() => setShowSaveProject(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
@@ -884,35 +1122,89 @@ export default function Home() {
             <div className="px-6 py-5 space-y-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Project Name *
+                  {tr("projectName")}
                 </label>
                 <input
                   type="text"
                   value={projectName}
                   onChange={e => setProjectName(e.target.value)}
-                  placeholder="e.g. My First Biochar Plant"
+                  placeholder={tr("projectNamePlaceholder")}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Location (address or city)
+                  {tr("locationLabel")}
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                   <input
                     type="text"
                     value={projectLocation}
-                    onChange={e => setProjectLocation(e.target.value)}
-                    placeholder="Buenos Aires, Argentina"
-                    className="w-full pl-10 pr-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    onChange={(e) => {
+                      setProjectLocation(e.target.value);
+                      setSelectedLocationCoords(null);
+                      setShowLocationDropdown(true);
+                    }}
+                    onFocus={() => setShowLocationDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
+                    placeholder={tr("locationPlaceholder")}
+                    className="w-full pl-10 pr-10 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    autoComplete="off"
                   />
+                  {selectedLocationCoords && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" title="Geolocated">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  )}
+                  {locationSearch.isFetching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {/* Suggestions dropdown */}
+                  {showLocationDropdown && projectLocation.length >= 3 && !locationSearch.isFetching && (locationSearch.data?.length ?? 0) > 0 && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                      {(locationSearch.data ?? []).map((s, idx) => (
+                        <button
+                          key={`${s.lat}-${s.lon}-${idx}`}
+                          type="button"
+                          onMouseDown={(e) => {
+                            // onMouseDown fires before onBlur — prevents the dropdown from closing before selection
+                            e.preventDefault();
+                            setProjectLocation(s.displayName);
+                            setSelectedLocationCoords({ lat: s.lat, lon: s.lon, country: s.country });
+                            setShowLocationDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors flex items-start gap-2 border-b border-border last:border-b-0"
+                        >
+                          <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-foreground line-clamp-2">{s.displayName}</div>
+                            {s.country && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">{s.country}</div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showLocationDropdown && projectLocation.length >= 3 && !locationSearch.isFetching && locationSearch.data?.length === 0 && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg px-3 py-2 text-xs text-muted-foreground">
+                      {tr("locationNoResults", { defaultValue: "No matches found. You can still save with this text." })}
+                    </div>
+                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">We'll geocode this to show on the map.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {selectedLocationCoords
+                    ? tr("locationSelected", { defaultValue: "✓ Location confirmed." })
+                    : tr("geocodeHint")}
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Plant Capacity (tonnes/hour)
+                  {tr("plantCapacity")}
                 </label>
                 <input
                   type="number"
@@ -925,13 +1217,13 @@ export default function Home() {
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Description
+                  {tr("description")}
                 </label>
                 <textarea
                   value={projectDescription}
                   onChange={e => setProjectDescription(e.target.value)}
                   rows={2}
-                  placeholder="Short notes about the project"
+                  placeholder={tr("descriptionPlaceholder")}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                 />
               </div>
@@ -944,7 +1236,7 @@ export default function Home() {
             </div>
             <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3">
               <button onClick={() => setShowSaveProject(false)} className="text-sm text-muted-foreground hover:text-foreground">
-                Cancel
+                {tr("cancel")}
               </button>
               <button
                 onClick={() => {
@@ -953,6 +1245,11 @@ export default function Home() {
                     name: projectName.trim(),
                     description: projectDescription.trim() || null,
                     location: projectLocation.trim() || null,
+                    // If the user picked a suggestion, pass coords so the server
+                    // doesn't re-geocode (faster + exact match)
+                    latitude: selectedLocationCoords?.lat ?? null,
+                    longitude: selectedLocationCoords?.lon ?? null,
+                    country: selectedLocationCoords?.country ?? null,
                     plantCapacityTph: projectCapacity ? Number(projectCapacity) : null,
                     feedstockId: activeFeedstock,
                     feedstockData: JSON.stringify(currentFs),
@@ -969,7 +1266,7 @@ export default function Home() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                Save Project
+                {tr("saveProject")}
               </button>
             </div>
           </div>
@@ -991,8 +1288,8 @@ export default function Home() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
-                <h2 className="font-bold text-foreground">Report Preview</h2>
-                <p className="text-xs text-muted-foreground">Biochar Optimizer Pro — {currentFs.name}</p>
+                <h2 className="font-bold text-foreground">{tr("reportPreview")}</h2>
+                <p className="text-xs text-muted-foreground">Biochar Optimizer Pro — {currentFsName}</p>
               </div>
               <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
@@ -1042,7 +1339,7 @@ export default function Home() {
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="bg-card/90 border border-border rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shadow-lg">
-                    <Lock className="w-3.5 h-3.5 text-primary" /> Upgrade to unlock
+                    <Lock className="w-3.5 h-3.5 text-primary" /> {tr("upgradeToUnlock")}
                   </span>
                 </div>
               </div>
@@ -1059,7 +1356,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    <tr><td className="px-3 py-2">Temperature</td><td className="px-3 py-2">650°C</td><td className="px-3 py-2">400-750°C</td><td className="px-3 py-2">Pass</td></tr>
+                    <tr><td className="px-3 py-2">Temperature</td><td className="px-3 py-2">650°C</td><td className="px-3 py-2">400-850°C</td><td className="px-3 py-2">Pass</td></tr>
                     <tr><td className="px-3 py-2">Total Carbon</td><td className="px-3 py-2">87.4%</td><td className="px-3 py-2">&gt;50%</td><td className="px-3 py-2">Pass</td></tr>
                     <tr><td className="px-3 py-2">H:Corg</td><td className="px-3 py-2">0.200</td><td className="px-3 py-2">&lt;0.7</td><td className="px-3 py-2">BC-1</td></tr>
                     <tr><td className="px-3 py-2">CO₂e net</td><td className="px-3 py-2">3.04 t</td><td className="px-3 py-2">LCA</td><td className="px-3 py-2">Info</td></tr>
@@ -1067,7 +1364,7 @@ export default function Home() {
                 </table>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="bg-card/90 border border-border rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shadow-lg">
-                    <Lock className="w-3.5 h-3.5 text-primary" /> Puro.earth compliance table
+                    <Lock className="w-3.5 h-3.5 text-primary" /> {tr("complianceTable")}
                   </span>
                 </div>
               </div>
@@ -1076,23 +1373,44 @@ export default function Home() {
             {/* Footer CTA */}
             <div className="px-6 py-4 border-t border-border bg-primary/5 flex items-center justify-between gap-4">
               <p className="text-xs text-muted-foreground">
-                Unlock the full report with CO₂e credits, BET surface, pH, and Puro.earth compliance data.
+                {tr("unlockFullReport")}
               </p>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button onClick={() => setShowPreview(false)} className="text-xs text-muted-foreground hover:text-foreground">
-                  Close
+                  {tr("close")}
                 </button>
                 <button
-                  onClick={() => { setShowPreview(false); openUpgrade("Export full PDF report", "analyst"); }}
+                  onClick={() => { setShowPreview(false); openUpgrade(tr("exportPDFFeature"), "analyst"); }}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
-                  <Lock className="w-4 h-4" /> Upgrade to Analyst — $299/mo
+                  <Lock className="w-4 h-4" /> {tr("upgradeAnalyst")}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* SOCIAL SHARE UNLOCK MODAL */}
+      <SocialShareUnlock
+        open={showShareUnlock}
+        onClose={() => setShowShareUnlock(false)}
+        onUnlocked={() => {
+          creditsQuery.refetch();
+        }}
+      />
+
+      {/* Mini footer */}
+      <footer className="border-t border-border py-4 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <Link href="/pricing">{tr("footer.pricing", { defaultValue: "Precios" })}</Link>
+          <Link href="/pricing#contact">{tr("footer.contact", { defaultValue: "Contacto" })}</Link>
+          <span className="text-border">·</span>
+          <Link href="/legal/terms">{tr("footer.terms", { defaultValue: "Términos" })}</Link>
+          <Link href="/legal/privacy">{tr("footer.privacy", { defaultValue: "Privacidad" })}</Link>
+          <Link href="/legal/security">{tr("footer.security", { defaultValue: "Seguridad" })}</Link>
+        </div>
+      </footer>
+    </AppLayout>
   );
 }

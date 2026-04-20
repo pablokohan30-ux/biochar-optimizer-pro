@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Flame, Leaf, Factory, Truck, Activity, CheckCircle2, AlertTriangle, XCircle, RotateCcw, FileText, ChevronDown, ChevronRight, FileSpreadsheet,
 } from "lucide-react";
@@ -338,6 +339,7 @@ export default function LCAModule({
   onResultChange?: (result: LCAResult) => void;
   readOnly?: boolean;
 }) {
+  const { t } = useTranslation("lcaModule");
   const [inputs, setInputs] = useState<LCAInputs>({
     ...DEFAULT_LCA_INPUTS,
     ...(initialInputs ?? {}),
@@ -366,11 +368,10 @@ export default function LCAModule({
           <div>
             <h2 className="text-lg font-bold flex items-center gap-2">
               <Flame className="w-5 h-5 text-primary" />
-              LCA — Puro.earth Edition 2025
+              {t("header.title")}
             </h2>
             <p className="text-[11px] text-muted-foreground">
-              Life Cycle Assessment for biochar CORCs certification. All equations
-              implemented per Puro.earth Biochar Methodology Ed. 2025 V1.
+              {t("header.subtitle")}
             </p>
           </div>
           {!disabled && (
@@ -379,17 +380,17 @@ export default function LCAModule({
                 type="button"
                 onClick={() => exportLCAToCSV(inputs, result)}
                 className="flex items-center gap-1 px-2 py-1 text-[11px] text-green-700 dark:text-green-400 hover:bg-green-500/10 border border-green-500/30 rounded"
-                title="Download CSV — opens in Excel / Google Sheets with all formulas and inputs"
+                title={t("buttons.exportCsvTooltip")}
               >
-                <FileSpreadsheet className="w-3 h-3" /> Excel / Sheets
+                <FileSpreadsheet className="w-3 h-3" /> {t("buttons.exportCsv")}
               </button>
               <button
                 type="button"
                 onClick={reset}
                 className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
-                title="Reset to reference defaults"
+                title={t("buttons.resetTooltip")}
               >
-                <RotateCcw className="w-3 h-3" /> Reset
+                <RotateCcw className="w-3 h-3" /> {t("buttons.reset")}
               </button>
             </div>
           )}
@@ -397,38 +398,38 @@ export default function LCAModule({
 
         <div className="space-y-3 lg:flex-1 lg:overflow-y-auto lg:pr-2 lg:min-h-0">
         {/* 1. PROJECT PARAMETERS */}
-        <Section title="1. Project parameters" icon={FileText} color="text-blue-500">
+        <Section title={t("sections.project.title")} icon={FileText} color="text-blue-500">
           <div className="grid grid-cols-2 gap-3 mt-2">
-            <TextField label="Project name" value={inputs.projectName} onChange={(v) => update("projectName", v)} />
-            <TextField label="Country" value={inputs.country} onChange={(v) => update("country", v)} />
+            <TextField label={t("sections.project.projectName")} value={inputs.projectName} onChange={(v) => update("projectName", v)} />
+            <TextField label={t("sections.project.country")} value={inputs.country} onChange={(v) => update("country", v)} />
             <SelectField<FacilityType>
-              label="Facility type"
+              label={t("sections.project.facilityType")}
               value={inputs.facilityType}
               onChange={(v) => update("facilityType", v)}
               options={[
-                { value: "New Facility", label: "New Facility (baseline = 0)" },
-                { value: "Existing Facility", label: "Existing Facility" },
+                { value: "New Facility", label: t("sections.project.newFacility") },
+                { value: "Existing Facility", label: t("sections.project.existingFacility") },
               ]}
             />
             <NumberField
-              label="Monitoring period"
-              unit="years"
+              label={t("sections.project.monitoringPeriod")}
+              unit={t("units.years")}
               value={inputs.monitoringPeriodYears}
               onChange={(v) => update("monitoringPeriodYears", v)}
               min={1}
             />
             <NumberField
-              label="Crediting period"
-              unit="years"
+              label={t("sections.project.creditingPeriod")}
+              unit={t("units.years")}
               value={inputs.creditingPeriodYears}
               onChange={(v) => update("creditingPeriodYears", v)}
-              hint="Max 15y (Rule 2.2.2)"
+              hint={t("sections.project.creditingPeriodHint")}
               min={1}
               max={15}
             />
             <NumberField
-              label="Facility lifetime"
-              unit="years"
+              label={t("sections.project.facilityLifetime")}
+              unit={t("units.years")}
               value={inputs.facilityLifetimeYears}
               onChange={(v) => update("facilityLifetimeYears", v)}
               min={1}
@@ -437,17 +438,17 @@ export default function LCAModule({
         </Section>
 
         {/* 2. BIOMASS */}
-        <Section title="2. Biomass & feedstock" icon={Leaf} color="text-green-500">
+        <Section title={t("sections.biomass.title")} icon={Leaf} color="text-green-500">
           <div className="grid grid-cols-2 gap-3 mt-2">
             <NumberField
-              label="Wet biomass"
+              label={t("sections.biomass.wetBiomass")}
               unit="t/yr"
               value={inputs.wetBiomassTonsPerYear}
               onChange={(v) => update("wetBiomassTonsPerYear", v)}
               step={100}
             />
             <NumberField
-              label="Biomass moisture"
+              label={t("sections.biomass.biomassMoisture")}
               unit="%"
               value={inputs.biomassMoisturePct}
               onChange={(v) => update("biomassMoisturePct", v)}
@@ -455,38 +456,38 @@ export default function LCAModule({
               min={0}
               max={100}
             />
-            <TextField label="Biomass type" value={inputs.biomassType} onChange={(v) => update("biomassType", v)} />
+            <TextField label={t("sections.biomass.biomassType")} value={inputs.biomassType} onChange={(v) => update("biomassType", v)} />
             <NumberField
-              label="Soil temperature (Ts)"
-              unit="°C (integer)"
+              label={t("sections.biomass.soilTemperature")}
+              unit={t("sections.biomass.soilTemperatureUnit")}
               value={inputs.soilTemperatureC}
               onChange={(v) => update("soilTemperatureC", Math.round(v))}
               min={7}
               max={40}
-              hint="Rule 6.2.4 — integer [7, 40]"
+              hint={t("sections.biomass.soilTemperatureHint")}
             />
             <NumberField
-              label="Biomass transport distance"
+              label={t("sections.biomass.biomassTransportDistance")}
               unit="km"
               value={inputs.biomassTransportDistanceKm}
               onChange={(v) => update("biomassTransportDistanceKm", v)}
             />
             <SelectField<ApplicationType>
-              label="Application"
+              label={t("sections.biomass.application")}
               value={inputs.applicationType}
               onChange={(v) => update("applicationType", v)}
               options={[
-                { value: "Soil improver", label: "Soil improver" },
-                { value: "Concrete", label: "Concrete" },
-                { value: "Asphalt", label: "Asphalt" },
-                { value: "Other", label: "Other" },
+                { value: "Soil improver", label: t("sections.biomass.soilImprover") },
+                { value: "Concrete", label: t("sections.biomass.concrete") },
+                { value: "Asphalt", label: t("sections.biomass.asphalt") },
+                { value: "Other", label: t("sections.biomass.other") },
               ]}
             />
           </div>
           <div className="mt-3 border-t border-border pt-2">
             <ToggleField
-              label="Biomass is residue (burden-free)"
-              hint="Rule 7.3.4 — if Yes, E_production_biomass = 0 and iLUC = 0"
+              label={t("sections.biomass.biomassIsResidue")}
+              hint={t("sections.biomass.biomassIsResidueHint")}
               value={inputs.biomassIsResidue}
               onChange={(v) => update("biomassIsResidue", v)}
             />
@@ -494,10 +495,10 @@ export default function LCAModule({
         </Section>
 
         {/* 3. BIOCHAR PROPERTIES */}
-        <Section title="3. Biochar properties (dry basis)" icon={Flame} color="text-amber-500">
+        <Section title={t("sections.biochar.title")} icon={Flame} color="text-amber-500">
           <div className="grid grid-cols-2 gap-3 mt-2">
             <NumberField
-              label="Yield (biochar/biomass)"
+              label={t("sections.biochar.yield")}
               unit="%"
               value={inputs.yieldPct}
               onChange={(v) => update("yieldPct", v)}
@@ -506,7 +507,7 @@ export default function LCAModule({
               max={100}
             />
             <NumberField
-              label="Biochar moisture"
+              label={t("sections.biochar.biocharMoisture")}
               unit="%"
               value={inputs.biocharMoisturePct}
               onChange={(v) => update("biocharMoisturePct", v)}
@@ -515,31 +516,31 @@ export default function LCAModule({
               max={100}
             />
             <NumberField
-              label="C_tot (total carbon)"
+              label={t("sections.biochar.cTot")}
               unit="%"
               value={inputs.C_tot_pct}
               onChange={(v) => update("C_tot_pct", v)}
               step={0.1}
-              hint="Rule 6.1.6 — ISO 16948"
+              hint={t("sections.biochar.cTotHint")}
             />
             <NumberField
-              label="C_inorg (inorganic C)"
+              label={t("sections.biochar.cInorg")}
               unit="%"
               value={inputs.C_inorg_pct}
               onChange={(v) => update("C_inorg_pct", v)}
               step={0.1}
-              hint="Default low if unknown"
+              hint={t("sections.biochar.cInorgHint")}
             />
             <NumberField
-              label="H (hydrogen)"
+              label={t("sections.biochar.hydrogen")}
               unit="%"
               value={inputs.H_pct}
               onChange={(v) => update("H_pct", v)}
               step={0.01}
-              hint="Rule 6.2.3"
+              hint={t("sections.biochar.hydrogenHint")}
             />
             <NumberField
-              label="O (oxygen, optional)"
+              label={t("sections.biochar.oxygen")}
               unit="%"
               value={inputs.O_pct ?? 0}
               onChange={(v) => update("O_pct", v)}
@@ -549,98 +550,98 @@ export default function LCAModule({
         </Section>
 
         {/* 4. ENERGY & PROCESS */}
-        <Section title="4. Energy & process consumption" icon={Factory} color="text-purple-500" defaultOpen={false}>
+        <Section title={t("sections.energy.title")} icon={Factory} color="text-purple-500" defaultOpen={false}>
           <div className="grid grid-cols-2 gap-3 mt-2">
             <NumberField
-              label="Pre-processing electricity"
+              label={t("sections.energy.preProcessingElectricity")}
               unit="kWh/yr"
               value={inputs.preProcessingElectricityKwhPerYear}
               onChange={(v) => update("preProcessingElectricityKwhPerYear", v)}
               step={10000}
             />
             <NumberField
-              label="Production electricity"
+              label={t("sections.energy.productionElectricity")}
               unit="kWh/yr"
               value={inputs.productionElectricityKwhPerYear}
               onChange={(v) => update("productionElectricityKwhPerYear", v)}
               step={10000}
             />
             <NumberField
-              label="LPG (startup/auxiliary)"
+              label={t("sections.energy.lpg")}
               unit="kg/yr"
               value={inputs.productionLPGKgPerYear}
               onChange={(v) => update("productionLPGKgPerYear", v)}
               step={100}
             />
             <NumberField
-              label="Diesel (optional)"
+              label={t("sections.energy.diesel")}
               unit="L/yr"
               value={inputs.productionDieselLitersPerYear ?? 0}
               onChange={(v) => update("productionDieselLitersPerYear", v)}
               step={100}
             />
             <NumberField
-              label="Natural gas (optional)"
+              label={t("sections.energy.naturalGas")}
               unit="m³/yr"
               value={inputs.productionNaturalGasM3PerYear ?? 0}
               onChange={(v) => update("productionNaturalGasM3PerYear", v)}
               step={100}
             />
             <NumberField
-              label="Grid EF override"
+              label={t("sections.energy.gridEF")}
               unit="tCO₂/kWh"
               value={inputs.electricityEF ?? 0.00023}
               onChange={(v) => update("electricityEF", v)}
               step={0.00001}
-              hint="Default: Argentina (Cammesa 0.00023)"
+              hint={t("sections.energy.gridEFHint")}
             />
           </div>
         </Section>
 
         {/* 5. TRANSPORT & INFRASTRUCTURE */}
-        <Section title="5. Transport, use & infrastructure" icon={Truck} color="text-cyan-500" defaultOpen={false}>
+        <Section title={t("sections.transport.title")} icon={Truck} color="text-cyan-500" defaultOpen={false}>
           <div className="grid grid-cols-2 gap-3 mt-2">
             <NumberField
-              label="Biochar transport distance"
+              label={t("sections.transport.biocharTransportDistance")}
               unit="km"
               value={inputs.biocharTransportDistanceKm}
               onChange={(v) => update("biocharTransportDistanceKm", v)}
             />
             <NumberField
-              label="Application emissions"
+              label={t("sections.transport.applicationEmissions")}
               unit="tCO₂/yr"
               value={inputs.applicationEmissionsTPerYear ?? 0}
               onChange={(v) => update("applicationEmissionsTPerYear", v)}
               step={1}
             />
             <NumberField
-              label="Infra manufacturing (one-time)"
+              label={t("sections.transport.infraManufacturing")}
               unit="tCO₂"
               value={inputs.infrastructureManufacturingTCO2}
               onChange={(v) => update("infrastructureManufacturingTCO2", v)}
               step={10}
-              hint="Steel, concrete, mfg — amortized"
+              hint={t("sections.transport.infraManufacturingHint")}
             />
             <NumberField
-              label="Infra transport (one-time)"
+              label={t("sections.transport.infraTransport")}
               unit="tCO₂"
               value={inputs.infrastructureTransportTCO2}
               onChange={(v) => update("infrastructureTransportTCO2", v)}
               step={1}
-              hint="Equipment shipping"
+              hint={t("sections.transport.infraTransportHint")}
             />
           </div>
           <div className="mt-3 border-t border-border pt-2">
             <ToggleField
-              label="Direct land-use change (dLUC)"
-              hint="Rule 7.4.4 — usually No for residue projects"
+              label={t("sections.transport.dLUC")}
+              hint={t("sections.transport.dLUCHint")}
               value={inputs.hasLandUseChange}
               onChange={(v) => update("hasLandUseChange", v)}
             />
             {inputs.hasLandUseChange && (
               <div className="mt-2">
                 <NumberField
-                  label="dLUC annual emissions"
+                  label={t("sections.transport.dLUCAnnual")}
                   unit="tCO₂/yr"
                   value={inputs.dLUCAnnualTCO2 ?? 0}
                   onChange={(v) => update("dLUCAnnualTCO2", v)}
@@ -651,17 +652,17 @@ export default function LCAModule({
         </Section>
 
         {/* 6. LEAKAGE */}
-        <Section title="6. Leakage assessment" icon={Activity} color="text-pink-500" defaultOpen={false}>
+        <Section title={t("sections.leakage.title")} icon={Activity} color="text-pink-500" defaultOpen={false}>
           <ToggleField
-            label="Ecological leakage mitigated"
-            hint="Rule 8.2.1c — check if no ecosystem impact"
+            label={t("sections.leakage.ecologicalLeakageMitigated")}
+            hint={t("sections.leakage.ecologicalLeakageMitigatedHint")}
             value={inputs.ecologicalLeakageMitigated}
             onChange={(v) => update("ecologicalLeakageMitigated", v)}
           />
           {!inputs.ecologicalLeakageMitigated && (
             <div className="mt-2">
               <NumberField
-                label="Absolute ecological leakage (total)"
+                label={t("sections.leakage.absoluteEcologicalLeakage")}
                 unit="tCO₂"
                 value={inputs.absoluteEcologicalLeakageTotal ?? 0}
                 onChange={(v) => update("absoluteEcologicalLeakageTotal", v)}
@@ -670,8 +671,8 @@ export default function LCAModule({
           )}
           <div className="mt-2 border-t border-border pt-2">
             <ToggleField
-              label="Feedstock diverted from productive use"
-              hint="Rule 8.2.4 — triggers market leakage assessment"
+              label={t("sections.leakage.feedstockDiverted")}
+              hint={t("sections.leakage.feedstockDivertedHint")}
               value={inputs.feedstockDivertedFromProductiveUse}
               onChange={(v) => update("feedstockDivertedFromProductiveUse", v)}
             />
@@ -691,7 +692,7 @@ export default function LCAModule({
           }`}
         >
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
-            CORCs Netos (Eq. 5.1)
+            {t("results.hero.label")}
           </div>
           <div className={`text-3xl font-bold ${result.isValid ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
             {fmt(result.CORCs_tCO2PerYear, 0)}
@@ -699,11 +700,11 @@ export default function LCAModule({
           <div className="text-[11px] text-muted-foreground">tCO₂eq / year</div>
           <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-border/50">
             <div>
-              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">per t biochar</div>
+              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">{t("results.hero.perTBiochar")}</div>
               <div className="text-sm font-semibold">{fmt(result.CORCsPerTonDryBiochar, 2)}</div>
             </div>
             <div>
-              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">efficiency</div>
+              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">{t("results.hero.efficiency")}</div>
               <div className="text-sm font-semibold">{fmt(result.removalEfficiencyPct, 1)}%</div>
             </div>
           </div>
@@ -712,7 +713,7 @@ export default function LCAModule({
         {/* BREAKDOWN */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border bg-secondary/30">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CORC Calculation</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("results.corcCalc.title")}</h3>
           </div>
           <div className="divide-y divide-border text-[11px]">
             <Row label="C_stored" value={result.C_stored_tCO2PerYear} positive eq="6.1" />
@@ -725,7 +726,7 @@ export default function LCAModule({
             <Row label="− E_project" value={-result.E_project_tCO2PerYear} eq="7.1" />
             <Row label="− E_leakage" value={-result.E_leakage_tCO2PerYear} eq="8.1" />
             <div className="px-4 py-2 bg-secondary/20 flex justify-between items-center">
-              <span className="font-bold text-foreground">= CORCs Netos</span>
+              <span className="font-bold text-foreground">= {t("results.corcCalc.netCORCs")}</span>
               <span className="font-bold text-green-600 dark:text-green-400">
                 {fmtTCO2(result.CORCs_tCO2PerYear)}
               </span>
@@ -737,17 +738,17 @@ export default function LCAModule({
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border bg-secondary/30">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              E_project breakdown (Eq. 7.2)
+              {t("results.eProject.title")}
             </h3>
           </div>
           <div className="divide-y divide-border text-[11px]">
-            <Row label="E_biomass (transport + pre-proc)" value={result.E_biomass_subtotal} />
-            <Row label="E_production (electricity + fuel + CH₄)" value={result.E_production_subtotal} />
-            <Row label="E_use (transport + app)" value={result.E_use_subtotal} />
-            <Row label="E_ops subtotal" value={result.E_ops} bold />
-            <Row label={`E_emb (infra ÷ ${result.amortizationYears}y)`} value={result.E_emb} />
+            <Row label={t("results.eProject.eBiomass")} value={result.E_biomass_subtotal} />
+            <Row label={t("results.eProject.eProduction")} value={result.E_production_subtotal} />
+            <Row label={t("results.eProject.eUse")} value={result.E_use_subtotal} />
+            <Row label={t("results.eProject.eOps")} value={result.E_ops} bold />
+            <Row label={t("results.eProject.eEmb", { years: result.amortizationYears })} value={result.E_emb} />
             <div className="px-4 py-2 bg-secondary/20 flex justify-between items-center">
-              <span className="font-bold text-foreground">E_project total</span>
+              <span className="font-bold text-foreground">{t("results.eProject.total")}</span>
               <span className="font-bold">{fmtTCO2(result.E_project_tCO2PerYear)}</span>
             </div>
           </div>
@@ -756,11 +757,11 @@ export default function LCAModule({
         {/* VALIDATIONS */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border bg-secondary/30 flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Validations</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("results.validations.title")}</h3>
             {result.isValid ? (
-              <span className="text-[10px] font-bold text-green-600 dark:text-green-400">ALL OK</span>
+              <span className="text-[10px] font-bold text-green-600 dark:text-green-400">{t("results.validations.allOk")}</span>
             ) : (
-              <span className="text-[10px] font-bold text-red-500">ERRORS</span>
+              <span className="text-[10px] font-bold text-red-500">{t("results.validations.errors")}</span>
             )}
           </div>
           <div className="divide-y divide-border">
@@ -785,14 +786,14 @@ export default function LCAModule({
         {/* FEEDSTOCK + BIOCHAR STATS */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border bg-secondary/30">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mass balance</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("results.massBalance.title")}</h3>
           </div>
           <div className="divide-y divide-border text-[11px]">
-            <Row label="Dry biomass" value={result.dryBiomassTPerYear} unit="t/yr" />
-            <Row label="Dry biochar" value={result.dryBiocharTPerYear} unit="t/yr" />
-            <Row label="Wet biochar" value={result.wetBiocharTPerYear} unit="t/yr" />
+            <Row label={t("results.massBalance.dryBiomass")} value={result.dryBiomassTPerYear} unit="t/yr" />
+            <Row label={t("results.massBalance.dryBiochar")} value={result.dryBiocharTPerYear} unit="t/yr" />
+            <Row label={t("results.massBalance.wetBiochar")} value={result.wetBiocharTPerYear} unit="t/yr" />
             <Row label="C_org" value={result.C_org_pct} unit="%" digits={2} />
-            <Row label="H/C_org molar ratio" value={result.HC_org_molar} unit="" digits={3} />
+            <Row label={t("results.massBalance.hcOrgMolar")} value={result.HC_org_molar} unit="" digits={3} />
           </div>
         </div>
       </div>

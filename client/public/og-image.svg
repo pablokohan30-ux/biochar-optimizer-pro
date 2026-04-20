@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Green accent line -->
+  <rect x="0" y="0" width="1200" height="4" fill="#22c55e"/>
+  <!-- Leaf icon -->
+  <g transform="translate(540, 120) scale(4)">
+    <path d="M15 3C11.5 7.5 9.5 12.5 9.5 18c0 6 3.5 9 5.5 9s5.5-3 5.5-9c0-5.5-2-10.5-5.5-15z" fill="#22c55e" opacity="0.9"/>
+    <path d="M15 9c-2 2.5-3.5 5-3.5 8c0 3.5 1.5 5 3.5 5s3.5-1.5 3.5-5c0-3-1.5-5.5-3.5-8z" fill="#16a34a"/>
+  </g>
+  <!-- Title -->
+  <text x="600" y="300" text-anchor="middle" fill="#fafafa" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="800">
+    <tspan fill="#22c55e">Biochar</tspan> Optimizer Pro
+  </text>
+  <!-- Subtitle -->
+  <text x="600" y="360" text-anchor="middle" fill="#a1a1aa" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="400">
+    AI-Powered Pyrolysis Simulator &amp; LCA Platform
+  </text>
+  <!-- Features -->
+  <text x="600" y="430" text-anchor="middle" fill="#71717a" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="400">
+    Carbon Capture  |  CO2e Credits  |  Puro.earth Methodology  |  Project Management
+  </text>
+  <!-- URL -->
+  <text x="600" y="560" text-anchor="middle" fill="#22c55e" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="600">
+    biocharpro.io
+  </text>
+  <!-- Bottom border -->
+  <rect x="0" y="626" width="1200" height="4" fill="#22c55e" opacity="0.5"/>
+</svg>

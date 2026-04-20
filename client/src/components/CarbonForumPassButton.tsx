@@ -29,14 +29,23 @@ import { useAuth } from "@/_core/hooks/useAuth";
  * server is the source of truth and re-validates before creating the session.
  */
 
-const SITE_URL = "https://biochar-optimizer-pro.fly.dev";
+const SITE_URL = "https://biocharpro.io";
 
+/** Matches the server-side validation: must be a real post URL, not a homepage/profile. */
 function isValidSocialShareUrl(raw: string): boolean {
   try {
     const url = new URL(raw.trim());
     if (url.protocol !== "https:" && url.protocol !== "http:") return false;
     const host = url.host.toLowerCase().replace(/^www\./, "");
-    return host === "linkedin.com" || host === "x.com" || host === "twitter.com";
+    // X / Twitter: /<user>/status/<id>
+    if (host === "x.com" || host === "twitter.com") {
+      return /^\/[a-zA-Z0-9_]{1,15}\/status\/\d+/.test(url.pathname);
+    }
+    // LinkedIn: /posts/<slug> or /feed/update/<urn>
+    if (host === "linkedin.com") {
+      return /^\/(posts\/|feed\/update\/)/.test(url.pathname);
+    }
+    return false;
   } catch {
     return false;
   }
@@ -74,7 +83,7 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
   // uses OG metadata from the target page, so we only pass `url`. X accepts
   // both text and url, so we send the full post.
   const shareText = t("shareTemplate");
-  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SITE_URL)}`;
+  const linkedInShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(SITE_URL)}&title=${encodeURIComponent("Biochar Optimizer Pro")}&summary=${encodeURIComponent(shareText)}`;
   const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(SITE_URL)}`;
 
   const handleClick = () => {
@@ -83,7 +92,7 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
   };
 
   const openShare = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer,width=600,height=540");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const submitFull = () => {

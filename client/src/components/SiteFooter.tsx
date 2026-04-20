@@ -22,6 +22,9 @@ export default function SiteFooter() {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <Link href="/app" className="hover:text-foreground transition-colors">{t("nav.simulator")}</Link>
           <Link href="/pricing" className="hover:text-foreground transition-colors">{t("nav.pricing")}</Link>
+          <Link href="/company/about" className="hover:text-foreground transition-colors">{t("footer.about", { defaultValue: "About" })}</Link>
+          <Link href="/company/partners" className="hover:text-foreground transition-colors">{t("footer.partners", { defaultValue: "Partners" })}</Link>
+          <Link href="/pricing#contact" className="hover:text-foreground transition-colors">{t("footer.contact")}</Link>
           <span className="text-border">·</span>
           <Link href="/legal/terms" className="hover:text-foreground transition-colors">{t("footer.terms")}</Link>
           <Link href="/legal/privacy" className="hover:text-foreground transition-colors">{t("footer.privacy")}</Link>

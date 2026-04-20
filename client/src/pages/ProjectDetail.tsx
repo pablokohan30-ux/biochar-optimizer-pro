@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles } from "lucide-react";
+import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles, FileCheck, Printer } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
 import { compute_all, find_optimum, FEEDSTOCK_DB, Feedstock } from "@/lib/biocharModel";
+import { getFeedstockName } from "@/lib/feedstockI18n";
 import ProjectMap from "@/components/ProjectMap";
+import RegionalAnalysis from "@/components/RegionalAnalysis";
+import MethodologyAssessment from "@/components/MethodologyAssessment";
+import MethodologyComparison from "@/components/MethodologyComparison";
 import SiteFooter from "@/components/SiteFooter";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import PageLoader from "@/components/PageLoader";
+import AppLayout from "@/components/AppLayout";
 
 type QualityGoal = "MAX_CARBON" | "AGRONOMY" | "BALANCED";
 
 export default function ProjectDetail() {
+  const { t } = useTranslation("projectDetail");
+  const { t: tFs } = useTranslation("feedstocks");
   const params = useParams<{ id: string }>();
   const projectId = Number(params.id);
   const [, setLocation] = useLocation();
@@ -28,7 +36,7 @@ export default function ProjectDetail() {
     onSuccess: () => {
       utils.projects.get.invalidate({ id: projectId });
       utils.projects.list.invalidate();
-      setSaveMessage("Project updated");
+      setSaveMessage(t("projectUpdated"));
       setTimeout(() => setSaveMessage(null), 2000);
     },
     onError: (err) => setSaveMessage(`Error: ${err.message}`),
@@ -45,6 +53,7 @@ export default function ProjectDetail() {
   const [resTime, setResTime] = useState(30);
   const [goal, setGoal] = useState<QualityGoal>("BALANCED");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [optimumToast, setOptimumToast] = useState<{ T: number; t: number; goal: string } | null>(null);
 
   const project = projectQuery.data;
 
@@ -84,11 +93,7 @@ export default function ProjectDetail() {
   const result = useMemo(() => compute_all(T, resTime, feedstock), [T, resTime, feedstock]);
 
   if (authLoading || tierLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -102,11 +107,7 @@ export default function ProjectDetail() {
   }
 
   if (projectQuery.isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading project...</div>
-      </div>
-    );
+    return <PageLoader label={t("loadingProject")} />;
   }
 
   if (!project) {
@@ -114,9 +115,9 @@ export default function ProjectDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground">Project not found.</p>
+          <p className="text-muted-foreground">{t("notFound")}</p>
           <Link href="/projects">
-            <button className="text-xs text-primary hover:underline">← Back to projects</button>
+            <button className="text-xs text-primary hover:underline">{t("backToProjects")}</button>
           </Link>
         </div>
       </div>
@@ -133,65 +134,89 @@ export default function ProjectDetail() {
   const handleFindOptimum = () => {
     const optimum = find_optimum(feedstock, goal);
     // Round T to nearest slider step (5°C)
-    const roundedT = Math.round(optimum.T / 5) * 5;
-    const roundedRes = Math.round(optimum.t / 5) * 5;
-    setT(Math.min(Math.max(roundedT, 400), 750));
-    setResTime(Math.min(Math.max(roundedRes, 15), 60));
+    const roundedT = Math.min(Math.max(Math.round(optimum.T / 5) * 5, 400), 850);
+    const roundedRes = Math.min(Math.max(Math.round(optimum.t / 5) * 5, 15), 60);
+    setT(roundedT);
+    setResTime(roundedRes);
+    setOptimumToast({ T: roundedT, t: roundedRes, goal });
+    setTimeout(() => setOptimumToast(null), 5000);
   };
 
   const handleDelete = () => {
-    if (confirm(`Delete project "${project.name}"? This cannot be undone.`)) {
+    if (confirm(t("deleteConfirm", { name: project.name }))) {
       deleteMutation.mutate({ id: project.id });
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border px-4 py-4 sticky top-0 bg-background/95 backdrop-blur z-10">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link href="/projects">
-              <button className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm">
-                <ArrowLeft className="w-4 h-4" /> Projects
-              </button>
-            </Link>
-            <div className="w-px h-6 bg-border" />
-            <div>
-              <h1 className="font-bold text-lg text-foreground">{project.name}</h1>
-              {project.location && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> {project.location}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {saveMessage && (
-              <span className="text-xs text-green-500">{saveMessage}</span>
-            )}
-            {hasUnsavedChanges && !saveMessage && (
-              <span className="text-[10px] text-yellow-500 uppercase tracking-wider">Unsaved</span>
-            )}
-            <LanguageSwitcher />
-            <button
-              onClick={handleSave}
-              disabled={updateMutation.isPending || !hasUnsavedChanges}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" /> {updateMutation.isPending ? "Saving..." : "Save"}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="bg-destructive/10 hover:bg-destructive/20 text-destructive px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+  const pageTitle = (
+    <span className="flex items-center gap-2 min-w-0">
+      <Link href="/projects">
+        <button className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs flex-shrink-0">
+          <ArrowLeft className="w-3.5 h-3.5" />
+        </button>
+      </Link>
+      <span className="truncate font-bold">{project.name}</span>
+      {project.bopId && (
+        <a
+          href={`/verify/${project.bopId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:inline-flex items-center gap-1 text-[9px] font-mono bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary px-1.5 py-0.5 rounded uppercase tracking-wider flex-shrink-0 transition-colors"
+          title={t("publicVerifyHint", { defaultValue: "Open the public verify page (in new tab)" })}
+        >
+          {project.bopId}
+        </a>
+      )}
+      {project.location && (
+        <span className="hidden lg:inline-flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
+          <MapPin className="w-3 h-3" /> {project.location}
+        </span>
+      )}
+    </span>
+  );
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+  const pageActions = (
+    <>
+      {saveMessage && (
+        <span className="text-xs text-green-500 hidden sm:inline">{saveMessage}</span>
+      )}
+      {hasUnsavedChanges && !saveMessage && (
+        <span className="text-[10px] text-yellow-500 uppercase tracking-wider hidden sm:inline">{t("unsaved")}</span>
+      )}
+      {hasAccess("engineer") && (
+        <Link href={`/pdd/${project.id}`}>
+          <button className="bg-purple-600/10 hover:bg-purple-600/20 text-purple-600 dark:text-purple-400 px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1 border border-purple-600/20">
+            <FileCheck className="w-3.5 h-3.5" /> <span className="hidden sm:inline">PDD</span>
+          </button>
+        </Link>
+      )}
+      <Link href={`/projects/${project.id}/summary`}>
+        <button
+          className="bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1 border border-blue-600/20"
+          title={t("summary.openButtonHint", { defaultValue: "Open the 2-page board-ready Executive Summary (printable PDF)" })}
+        >
+          <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("summary.openButton", { defaultValue: "Summary" })}</span>
+        </button>
+      </Link>
+      <button
+        onClick={handleSave}
+        disabled={updateMutation.isPending || !hasUnsavedChanges}
+        className="bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Save className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{updateMutation.isPending ? t("saving") : t("save")}</span>
+      </button>
+      <button
+        onClick={handleDelete}
+        className="bg-destructive/10 hover:bg-destructive/20 text-destructive px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </>
+  );
+
+  return (
+    <AppLayout pageTitle={pageTitle} pageActions={pageActions}>
+      <div className="space-y-6">
         {/* Location + Map */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-card border border-border rounded-xl overflow-hidden h-[360px]">
@@ -206,59 +231,117 @@ export default function ProjectDetail() {
 
           {/* Project info sidebar */}
           <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Project Info</h3>
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">{t("info.title")}</h3>
             <div className="space-y-3 text-sm">
               {project.description && (
                 <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Description</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.description")}</div>
                   <p className="text-foreground">{project.description}</p>
                 </div>
               )}
               {project.plantCapacityTph !== null && (
                 <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Plant Capacity</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.plantCapacity")}</div>
                   <p className="text-foreground font-mono flex items-center gap-1">
                     <Leaf className="w-3 h-3 text-primary" /> {project.plantCapacityTph} t/h
                   </p>
                 </div>
               )}
               <div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Feedstock</div>
-                <p className="text-foreground">{feedstock.name}</p>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.feedstock")}</div>
+                <p className="text-foreground">{getFeedstockName(project.feedstockId, feedstock.name, tFs)}</p>
               </div>
               {project.country && (
                 <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Country</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.country")}</div>
                   <p className="text-foreground">{project.country}</p>
+                </div>
+              )}
+
+              {/* Public visibility selector — controls /verify/:bopId page */}
+              {project.bopId && (
+                <div className="pt-3 border-t border-border">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    {t("info.publicVisibility", { defaultValue: "Public verify page" })}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {([
+                      { id: "summary", label: t("info.visibilitySummary", { defaultValue: "Summary (default)" }), hint: t("info.visibilitySummaryHint", { defaultValue: "Shows name, country, status, methodology, dates" }) },
+                      { id: "full",    label: t("info.visibilityFull",    { defaultValue: "Full" }),                hint: t("info.visibilityFullHint",    { defaultValue: "Above + city location + pyrolysis params (no lab data)" }) },
+                      { id: "private", label: t("info.visibilityPrivate", { defaultValue: "Private (404)" }),       hint: t("info.visibilityPrivateHint", { defaultValue: "The verify page returns not-found" }) },
+                    ] as const).map((v) => {
+                      const isActive = (project.publicVisibility ?? "summary") === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          onClick={() => updateMutation.mutate({ id: project.id, data: { publicVisibility: v.id } })}
+                          disabled={updateMutation.isPending}
+                          title={v.hint}
+                          className={`px-2 py-1.5 rounded-md text-[11px] text-left border transition-colors ${
+                            isActive
+                              ? "bg-primary/10 border-primary text-primary font-semibold"
+                              : "bg-background border-border text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {v.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <a
+                    href={`/verify/${project.bopId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline mt-2 inline-block"
+                  >
+                    {t("info.viewPublicPage", { defaultValue: "→ Preview public page" })}
+                  </a>
+                </div>
+              )}
+
+              {/* Project lifecycle status */}
+              {project.bopId && (
+                <div className="pt-3 border-t border-border">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    {t("info.projectStatus", { defaultValue: "Project status" })}
+                  </div>
+                  <select
+                    value={project.status ?? "draft"}
+                    onChange={(e) => updateMutation.mutate({ id: project.id, data: { status: e.target.value as "draft" | "submitted" | "approved" | "rejected" } })}
+                    disabled={updateMutation.isPending}
+                    className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-md focus:border-primary focus:outline-none"
+                  >
+                    <option value="draft">{t("info.statusDraft", { defaultValue: "Draft" })}</option>
+                    <option value="submitted">{t("info.statusSubmitted", { defaultValue: "Submitted to certifier" })}</option>
+                    <option value="approved">{t("info.statusApproved", { defaultValue: "Approved" })}</option>
+                    <option value="rejected">{t("info.statusRejected", { defaultValue: "Rejected" })}</option>
+                  </select>
                 </div>
               )}
             </div>
           </div>
         </div>
 
+        {/* Regional Analysis — climate + soil */}
+        <RegionalAnalysis latitude={project.latitude} longitude={project.longitude} />
+
         {/* Parameters */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Pyrolysis Parameters</h3>
-            <button
-              onClick={handleFindOptimum}
-              className="bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1 rounded text-xs font-medium flex items-center gap-1 border border-border"
-              title="Run grid search across T°/time to maximize the selected goal"
-            >
-              <Sparkles className="w-3 h-3 text-primary" /> Find optimum
-            </button>
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">{t("params.title")}</h3>
           </div>
 
-          {/* Quality goal selector */}
+          {/* Quality goal selector — with explanations */}
           <div className="mb-5">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Target className="w-3 h-3" /> Optimization Goal
+              <Target className="w-3 h-3" /> {t("params.goal")}
+              <span className="text-muted-foreground/70 normal-case font-normal ml-1">— {t("params.goalDescription", { defaultValue: "Qué querés priorizar:" })}</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               {([
-                { id: "MAX_CARBON", label: "Max Carbon", hint: "Maximize CO₂e credits × yield" },
-                { id: "BALANCED", label: "Balanced", hint: "Carbon + surface area" },
-                { id: "AGRONOMY", label: "Agronomy", hint: "BET + pH + H:Corg" },
+                { id: "MAX_CARBON", label: t("params.maxCarbon"), hint: t("params.maxCarbonHint") },
+                { id: "BALANCED", label: t("params.balanced"), hint: t("params.balancedHint") },
+                { id: "AGRONOMY", label: t("params.agronomy"), hint: t("params.agronomyHint") },
               ] as const).map((g) => (
                 <button
                   key={g.id}
@@ -274,29 +357,67 @@ export default function ProjectDetail() {
                 </button>
               ))}
             </div>
+            {/* Goal explanation + optimize button */}
+            <div className="mt-2 bg-secondary/30 border border-border rounded-lg p-3 flex items-start gap-3">
+              <Target className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                  {goal === "MAX_CARBON" && t("params.maxCarbonHintFull", { defaultValue: "Maximizar el CO₂e capturado por tonelada de biomasa. Prioriza yield × créditos. Ideal para proyectos con objetivo principal de carbono." })}
+                  {goal === "BALANCED" && t("params.balancedHintFull", { defaultValue: "Balance 60/40 entre captura de carbono y calidad agronómica. Recomendado cuando el biochar va a uso mixto (venta de créditos + aplicación al suelo)." })}
+                  {goal === "AGRONOMY" && t("params.agronomyHintFull", { defaultValue: "Optimizar propiedades agronómicas: BET alto, pH 7.5–8.5, estabilidad. Ideal si el biochar va a uso agrícola como enmienda." })}
+                </div>
+              </div>
+              <button
+                onClick={handleFindOptimum}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 shadow-sm hover:shadow-md transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {goal === "MAX_CARBON" && t("params.optimizeForCarbon", { defaultValue: "Optimizar para carbono" })}
+                {goal === "BALANCED" && t("params.optimizeBalanced", { defaultValue: "Optimizar balanceado" })}
+                {goal === "AGRONOMY" && t("params.optimizeForAgronomy", { defaultValue: "Optimizar para agronomía" })}
+              </button>
+            </div>
+            {/* Optimum toast */}
+            {optimumToast && (
+              <div className="mt-2 bg-green-500/10 border border-green-500/30 rounded-lg p-3 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                <Sparkles className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-green-500">
+                    {t("params.optimumFound", { defaultValue: "Óptimo encontrado" })}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {t("params.optimumDesc", {
+                      T: optimumToast.T,
+                      t: optimumToast.t,
+                      defaultValue: `Los sliders se ajustaron a T=${optimumToast.T}°C y tiempo=${optimumToast.t} min — valores que maximizan tu objetivo actual para este feedstock.`,
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <label className="font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Thermometer className="w-3 h-3" /> Temperature
+                  <Thermometer className="w-3 h-3" /> {t("params.temperature")}
                 </label>
                 <span className="text-primary font-mono font-bold">{T} °C</span>
               </div>
               <input
-                type="range" min="400" max="750" step="5" value={T}
+                type="range" min="400" max="850" step="5" value={T}
                 onChange={(e) => setT(Number(e.target.value))}
                 className="w-full accent-primary"
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>400</span><span>750</span>
+                <span>400</span><span>850</span>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <label className="font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Residence Time
+                  <Clock className="w-3 h-3" /> {t("params.residenceTime")}
                 </label>
                 <span className="text-primary font-mono font-bold">{resTime} min</span>
               </div>
@@ -315,40 +436,64 @@ export default function ProjectDetail() {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="bg-card border border-border border-l-2 border-l-primary rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Total Carbon</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.totalCarbon")}</div>
             <div className="text-2xl font-mono font-bold text-primary my-1">{result.C.toFixed(1)}</div>
-            <div className="text-[10px] text-muted-foreground">% dry mass</div>
+            <div className="text-[10px] text-muted-foreground">{t("kpi.dryMass")}</div>
           </div>
           <div className="bg-card border border-border border-l-2 border-l-primary rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">H:Corg Ratio</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.hcorgRatio")}</div>
             <div className="text-2xl font-mono font-bold my-1">{result.H_Corg.toFixed(3)}</div>
             <div className="text-[10px] text-muted-foreground">
               {result.H_Corg < 0.4 ? "BC-1" : result.H_Corg < 0.7 ? "BC-2" : "FAIL"}
             </div>
           </div>
           <div className="bg-card border border-border border-l-2 border-l-primary rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Net CO₂e</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.netCo2e")}</div>
             <div className="text-2xl font-mono font-bold my-1">{result.credits.net.toFixed(2)}</div>
-            <div className="text-[10px] text-muted-foreground">t/t biochar</div>
+            <div className="text-[10px] text-muted-foreground">{t("kpi.ttBiochar")}</div>
           </div>
           <div className="bg-card border border-border border-l-2 border-l-cyan-500 rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Yield</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.yield")}</div>
             <div className="text-2xl font-mono font-bold text-cyan-500 my-1">{result.yield_.toFixed(1)}</div>
-            <div className="text-[10px] text-muted-foreground">% dry mass</div>
+            <div className="text-[10px] text-muted-foreground">{t("kpi.dryMass")}</div>
           </div>
           <div className="bg-card border border-border border-l-2 border-l-purple-500 rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">BET Surface</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.betSurface")}</div>
             <div className="text-2xl font-mono font-bold text-purple-500 my-1">{Math.round(result.BET)}</div>
-            <div className="text-[10px] text-muted-foreground">m²/g (est.)</div>
+            <div className="text-[10px] text-muted-foreground">{t("kpi.betUnit")}</div>
           </div>
           <div className="bg-card border border-border border-l-2 border-l-yellow-500 rounded-lg p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">pH</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{t("kpi.ph")}</div>
             <div className="text-2xl font-mono font-bold text-yellow-500 my-1">{result.pH.toFixed(1)}</div>
-            <div className="text-[10px] text-muted-foreground">{result.pH > 7.5 ? "alkaline" : "neutral"}</div>
+            <div className="text-[10px] text-muted-foreground">{result.pH > 7.5 ? t("kpi.alkaline") : t("kpi.neutral")}</div>
           </div>
         </div>
-      </main>
-      <SiteFooter />
-    </div>
+
+        {/* BiocharPro Score — multi-methodology assessment */}
+        <MethodologyAssessment
+          result={result}
+          feedstock={feedstock}
+          temperature={T}
+          residenceTime={resTime}
+          plantCapacityTph={project.plantCapacityTph}
+          country={project.country}
+          projectKey={`project-${project.id}`}
+        />
+
+        {/* Cross-methodology comparison — killer feature for Engineer+ */}
+        <MethodologyComparison
+          result={result}
+          feedstock={feedstock}
+          temperature={T}
+          residenceTime={resTime}
+          plantCapacityTph={project.plantCapacityTph}
+          country={project.country}
+          projectKey={`project-${project.id}`}
+        />
+      </div>
+      <div className="mt-8">
+        <SiteFooter />
+      </div>
+    </AppLayout>
   );
 }

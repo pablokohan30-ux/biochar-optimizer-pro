@@ -80,22 +80,28 @@ for (const tierId of expectedTiers) {
   const tier = TIER_PRODUCTS.find((p) => p.id === tierId);
   expect(!!tier, `${tierId} tier exists`);
   if (tier) {
-    expect(tier.pricePerMonthUsd > 0, `${tierId}: pricePerMonthUsd > 0 (got ${tier.pricePerMonthUsd})`);
+    expect(tier.monthlyPriceUsd > 0, `${tierId}: monthlyPriceUsd > 0 (got ${tier.monthlyPriceUsd})`);
     expect(
-      tier.quarterlyTotalUsd === tier.pricePerMonthUsd * 3,
-      `${tierId}: quarterlyTotal === monthly × 3 (got ${tier.quarterlyTotalUsd}, expected ${tier.pricePerMonthUsd * 3})`,
+      tier.quarterlyPricePerMonthUsd < tier.monthlyPriceUsd,
+      `${tierId}: quarterly per-month < monthly (${tier.quarterlyPricePerMonthUsd} < ${tier.monthlyPriceUsd})`,
     );
-    expect(typeof tier.lookupKey === "string" && tier.lookupKey.length > 0, `${tierId}: lookupKey is non-empty`);
-    expect(tier.lookupKey.startsWith("biochar_"), `${tierId}: lookupKey has biochar_ prefix`);
+    expect(
+      tier.quarterlyTotalUsd === tier.quarterlyPricePerMonthUsd * 3,
+      `${tierId}: quarterlyTotal === quarterlyPerMonth × 3 (got ${tier.quarterlyTotalUsd}, expected ${tier.quarterlyPricePerMonthUsd * 3})`,
+    );
+    expect(typeof tier.monthlyLookupKey === "string" && tier.monthlyLookupKey.length > 0, `${tierId}: monthlyLookupKey is non-empty`);
+    expect(tier.monthlyLookupKey.startsWith("biochar_"), `${tierId}: monthlyLookupKey has biochar_ prefix`);
+    expect(typeof tier.quarterlyLookupKey === "string" && tier.quarterlyLookupKey.length > 0, `${tierId}: quarterlyLookupKey is non-empty`);
+    expect(tier.quarterlyLookupKey.startsWith("biochar_"), `${tierId}: quarterlyLookupKey has biochar_ prefix`);
   }
 }
 
-// Lookup keys must be unique across tiers
-const lookupKeys = TIER_PRODUCTS.map((p) => p.lookupKey);
-expect(new Set(lookupKeys).size === lookupKeys.length, "All lookup_keys are unique");
+// Lookup keys must be unique across tiers (both monthly and quarterly)
+const allLookupKeys = TIER_PRODUCTS.flatMap((p) => [p.monthlyLookupKey, p.quarterlyLookupKey]);
+expect(new Set(allLookupKeys).size === allLookupKeys.length, "All lookup_keys are unique");
 
 // Prices must be monotonically increasing across tiers
-const priceOrder = TIER_PRODUCTS.map((p) => p.pricePerMonthUsd);
+const priceOrder = TIER_PRODUCTS.map((p) => p.monthlyPriceUsd);
 const isSorted = priceOrder.every((v, i) => i === 0 || priceOrder[i - 1] < v);
 expect(isSorted, `Tier prices are strictly increasing (${priceOrder.join(" < ")})`);
 
@@ -173,8 +179,8 @@ if (!stripeKey) {
       createdCustomerIds.push(customer.id);
       pass(`[${tierProduct.id}] Created test customer ${customer.id}`);
 
-      // Find or create recurring price
-      const existing = await stripe.prices.list({ lookup_keys: [tierProduct.lookupKey], limit: 1 });
+      // Find or create recurring price (test quarterly lookup key)
+      const existing = await stripe.prices.list({ lookup_keys: [tierProduct.quarterlyLookupKey], limit: 1 });
       let priceId: string;
       if (existing.data.length > 0) {
         priceId = existing.data[0].id;
@@ -199,7 +205,7 @@ if (!stripeKey) {
           unit_amount: tierProduct.quarterlyTotalUsd * 100,
           currency: "usd",
           recurring: { interval: "month", interval_count: 3 },
-          lookup_key: tierProduct.lookupKey,
+          lookup_key: tierProduct.quarterlyLookupKey,
         });
         priceId = price.id;
         createdPriceIds.push(price.id);

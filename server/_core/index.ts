@@ -65,6 +65,10 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Public REST API (Developer+ tier, API key auth)
+  const { apiRouter } = await import("../apiRouter");
+  app.use(apiRouter);
+
   // Plain liveness probe for Fly.io / load balancers.
   // Intentionally outside tRPC so it's a no-arg GET that just confirms the
   // process is up. Does NOT touch the database — separate `/ready` could check

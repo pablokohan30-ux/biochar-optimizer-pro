@@ -31,37 +31,7 @@ const TIER_PRICES: Record<TierId, number> = {
   expert: 999,
 };
 
-const TIER_FEATURES: Record<TierId, string[]> = {
-  free: [],
-  analyst: [
-    "Export full PDF reports",
-    "Temperature/time optimizer",
-    "LCA module (Life Cycle Assessment)",
-    "Unlimited AI biomass search",
-    "EBC / Puro.earth compliance analysis",
-  ],
-  developer: [
-    "Everything in Analyst",
-    "Reactor sizing",
-    "CAPEX / OPEX estimation",
-    "Financial analysis (IRR, NPV, payback)",
-    "10-year carbon credit projection",
-  ],
-  engineer: [
-    "Everything in Developer",
-    "Plant layout and P&ID",
-    "Regulatory framework by country",
-    "International certification guides",
-    "Technical document for investors",
-  ],
-  expert: [
-    "Everything in Engineer",
-    "Carbon market module",
-    "Interactive applications map",
-    "Priority technical support",
-    "Early access to new modules",
-  ],
-};
+// Feature lists moved to i18n (upgrade.features.*)
 
 export default function UpgradeModal({ isOpen, onClose, featureName, requiredTier }: UpgradeModalProps) {
   const { t } = useTranslation("upgrade");
@@ -70,11 +40,11 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
     onSuccess: (data) => {
       if (data?.url) {
         window.open(data.url, "_blank");
-        toast.info("Redirecting to payment page...");
+        toast.info(t("redirecting"));
       }
     },
     onError: (err) => {
-      toast.error("Error creating payment session: " + err.message);
+      toast.error(t("checkoutError") + ": " + err.message);
     },
   });
 
@@ -118,8 +88,8 @@ export default function UpgradeModal({ isOpen, onClose, featureName, requiredTie
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               {t("includedIn", { tier: TIER_NAMES[requiredTier] })}
             </p>
-            {TIER_FEATURES[requiredTier].map((feat) => (
-              <div key={feat} className="flex items-start gap-2 text-sm">
+            {(t(`features.${requiredTier}`, { returnObjects: true }) as string[]).map((feat: string, i: number) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
                 <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                 <span>{feat}</span>
               </div>
