@@ -46,10 +46,13 @@ export default function ProjectJourney() {
     [feedstock]
   );
 
-  // Annual throughputs
+  // Annual throughputs.
+  // NOTE: `result.credits.net` is t CO2e per tonne of BIOCHAR (not feedstock).
+  // We multiply by annualBiochar, not annualFeedstock.
   const annualFeedstock = REF.plantCapacityTph * REF.annualHours; // t/year
   const annualBiochar = annualFeedstock * (result.yield_ / 100);
-  const annualCO2 = annualFeedstock * result.credits.net;
+  const annualCO2 = annualBiochar * result.credits.net;
+  const netCO2PerTFeedstock = result.credits.net * (result.yield_ / 100);
 
   // Puro.earth score (auto checks only — no manual states in a public landing)
   const puroScore = useMemo(
@@ -80,8 +83,8 @@ export default function ProjectJourney() {
       border: "border-green-500/30",
       labelKey: "journey.step1.label",
       labelFallback: "Biomasa",
-      value: fmt(annualFeedstock / 1000),
-      unit: "kt / año",
+      value: fmt(annualFeedstock, 0),
+      unit: "t / año",
       subKey: "journey.step1.sub",
       subFallback: "Cáscara de café · beneficios locales",
     },
@@ -116,8 +119,8 @@ export default function ProjectJourney() {
       border: "border-slate-500/30",
       labelKey: "journey.step4.label",
       labelFallback: "Biochar",
-      value: fmt(annualBiochar / 1000),
-      unit: "kt / año",
+      value: fmt(annualBiochar, 0),
+      unit: "t / año",
       subKey: "journey.step4.sub",
       subFallback: `C ${fmt(result.C)}% · H:Corg ${fmt(result.H_Corg, 3)}`,
     },
@@ -128,10 +131,10 @@ export default function ProjectJourney() {
       border: "border-primary/30",
       labelKey: "journey.step5.label",
       labelFallback: "Remoción CO₂",
-      value: fmt(annualCO2 / 1000),
-      unit: "kt CO₂e / año",
+      value: fmt(annualCO2, 0),
+      unit: "t CO₂e / año",
       subKey: "journey.step5.sub",
-      subFallback: `Net ${fmt(result.credits.net, 2)} t CO₂e / t feedstock`,
+      subFallback: `Net ${fmt(netCO2PerTFeedstock, 2)} t CO₂e / t feedstock`,
     },
     {
       icon: Award,
@@ -153,7 +156,7 @@ export default function ProjectJourney() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-            {t("journey.badge", { defaultValue: "Live data · reference project" })}
+            {t("journey.badge", { defaultValue: "The carbon journey · biomass → CORC" })}
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
             {t("journey.title", { defaultValue: "Un proyecto real, de punta a punta" })}

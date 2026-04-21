@@ -256,12 +256,12 @@ export default function SubmissionPrint() {
           )}
 
           {/* CORC breakdown */}
-          <Section title={t("export.corcBreakdown", { defaultValue: "CORC breakdown (per tonne feedstock)" })}>
+          <Section title={t("export.corcBreakdown", { defaultValue: "CORC breakdown (per tonne of biochar)" })}>
             <KVGrid rows={[
-              [t("export.durabilityClass", { defaultValue: "Durability class" }), payload.corc_breakdown_per_t_feedstock.durability_class],
-              [t("export.stabilityFactor", { defaultValue: "Stability factor" }), fmtNumber(payload.corc_breakdown_per_t_feedstock.stability_factor, 3)],
-              [t("export.corcGross", { defaultValue: "Gross removal" }), `${fmtNumber(payload.corc_breakdown_per_t_feedstock.gross, 4)} t CO₂e/t`],
-              [t("export.corcNet", { defaultValue: "Net removal" }), `${fmtNumber(payload.corc_breakdown_per_t_feedstock.net, 4)} t CO₂e/t`],
+              [t("export.durabilityClass", { defaultValue: "Durability class" }), payload.corc_breakdown_per_t_biochar.durability_class],
+              [t("export.stabilityFactor", { defaultValue: "Stability factor" }), fmtNumber(payload.corc_breakdown_per_t_biochar.stability_factor, 3)],
+              [t("export.corcGross", { defaultValue: "Gross removal" }), `${fmtNumber(payload.corc_breakdown_per_t_biochar.gross, 4)} t CO₂e / t biochar`],
+              [t("export.corcNet", { defaultValue: "Net removal" }), `${fmtNumber(payload.corc_breakdown_per_t_biochar.net, 4)} t CO₂e / t biochar`],
             ]} />
           </Section>
 

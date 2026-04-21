@@ -56,7 +56,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 
 export default function Landing() {
-  const { t } = useTranslation(["landing", "common", "pricing", "market"]);
+  const { t, i18n } = useTranslation(["landing", "common", "pricing", "market"]);
   const [, setLocation] = useLocation();
   const [openModule, setOpenModule] = useState<string | null>(null);
 
@@ -272,9 +272,38 @@ export default function Landing() {
     },
   ], [t]);
 
-  // Demo data for landing-page charts (Pine Sawdust, 650°C, 30 min)
-  const demoFs = FEEDSTOCK_DB["pine_sawdust"];
+  // Demo data for landing-page charts + LCA preview.
+  // Shared demo feedstock — kept in sync with /demo and the Project Journey
+  // section so the whole landing tells one story (Huila Coffee Husk).
+  const demoFs = FEEDSTOCK_DB["coffee_husk"];
   const demoResult = useMemo(() => compute_all(650, 30, demoFs), [demoFs]);
+
+  // LCA preview is anchored to the same 1.5 t/h × 8000 h/yr reference plant
+  // shown on /demo. Computes the Puro.earth Edition 2025 breakdown (C_stored,
+  // C_loss, E_project, leakage) using typical ratios — this is a PREVIEW of
+  // the LCA surface, not a replacement for running the real calc.
+  const lcaPreview = useMemo(() => {
+    // NOTE: credits.net is t CO2e per tonne of BIOCHAR, not feedstock.
+    // Annual CO2 = annualBiochar × credits.net (NOT annualFeedstock × credits.net).
+    const capacityTph = 1.5;
+    const hoursPerYear = 8000;
+    const annualFeedstock = capacityTph * hoursPerYear; // 12,000 t/year
+    const annualBiochar = annualFeedstock * (demoResult.yield_ / 100);
+    const netCO2 = annualBiochar * demoResult.credits.net;
+    const sf = demoResult.credits.sf; // stability factor 0-1
+    const cStored = netCO2 / Math.max(sf, 0.5); // approximate gross
+    const cLoss = cStored - netCO2;
+    const eProject = netCO2 * 0.09; // typical ~9% of net (pyrolysis energy + transport)
+    const perBiochar = annualBiochar > 0 ? netCO2 / annualBiochar : 0;
+    const efficiency = cStored > 0 ? netCO2 / cStored : 0;
+    return { netCO2, annualBiochar, cStored, cLoss, eProject, perBiochar, efficiency };
+  }, [demoResult]);
+
+  const fmt = (n: number, decimals = 0) =>
+    n.toLocaleString(i18n.language === "es" ? "es-AR" : "en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
 
   const sensitivityData = useMemo(() => {
     const data = [];
@@ -506,7 +535,7 @@ export default function Landing() {
                         <PolarGrid stroke="var(--color-border)" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--color-muted-foreground)", fontSize: 9 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
-                        <Radar name="Pine Sawdust" dataKey="A" stroke="rgb(34, 197, 94)" fill="rgb(34, 197, 94)" fillOpacity={0.3} />
+                        <Radar name={demoFs.name} dataKey="A" stroke="rgb(34, 197, 94)" fill="rgb(34, 197, 94)" fillOpacity={0.3} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
@@ -525,7 +554,7 @@ export default function Landing() {
                   <h3 className="text-xs font-bold text-muted-foreground">{t("landing:preview.lcaTitle")}</h3>
                 </div>
                 <div className="text-[10px] text-muted-foreground mb-3">
-                  {t("landing:preview.lcaRefCase")}
+                  {t("landing:preview.lcaRefCase", { defaultValue: `Ref: ${demoFs.name} · 1.5 t/h · 8,000 h/yr` })}
                 </div>
 
                 {/* CORCs Hero */}
@@ -534,17 +563,17 @@ export default function Landing() {
                     CORCs Netos (Eq. 5.1)
                   </div>
                   <div className="text-3xl font-bold text-green-600 dark:text-green-400 leading-none">
-                    53,946
+                    {fmt(lcaPreview.netCO2, 0)}
                     <span className="text-xs font-normal text-muted-foreground ml-2">tCO₂eq / yr</span>
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-[10px]">
                     <div>
                       <span className="text-muted-foreground">Per t biochar: </span>
-                      <span className="font-semibold">2.45</span>
+                      <span className="font-semibold">{fmt(lcaPreview.perBiochar, 2)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Efficiency: </span>
-                      <span className="font-semibold">76.9%</span>
+                      <span className="font-semibold">{fmt(lcaPreview.efficiency * 100, 1)}%</span>
                     </div>
                   </div>
                 </div>
@@ -553,19 +582,19 @@ export default function Landing() {
                 <div className="space-y-1 text-[11px] flex-1">
                   <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground">C_stored (Eq. 6.1)</span>
-                    <span className="font-mono font-semibold text-green-600 dark:text-green-400">+70,125</span>
+                    <span className="font-mono font-semibold text-green-600 dark:text-green-400">+{fmt(lcaPreview.cStored, 0)}</span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground">− C_baseline</span>
                     <span className="font-mono text-muted-foreground">−0</span>
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-muted-foreground">− C_loss <span className="text-[9px]">(PF 83.7%)</span></span>
-                    <span className="font-mono text-red-500">−11,428</span>
+                    <span className="text-muted-foreground">− C_loss <span className="text-[9px]">(PF {fmt(demoResult.credits.sf * 100, 1)}%)</span></span>
+                    <span className="font-mono text-red-500">−{fmt(lcaPreview.cLoss, 0)}</span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground">− E_project <span className="text-[9px]">(Eq. 7.1)</span></span>
-                    <span className="font-mono text-red-500">−4,752</span>
+                    <span className="font-mono text-red-500">−{fmt(lcaPreview.eProject, 0)}</span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground">− E_leakage <span className="text-[9px]">(Eq. 8.1)</span></span>
@@ -573,7 +602,7 @@ export default function Landing() {
                   </div>
                   <div className="border-t border-border pt-1 mt-1 flex justify-between items-baseline">
                     <span className="font-bold">= CORCs Netos</span>
-                    <span className="font-mono font-bold text-green-600 dark:text-green-400">53,946</span>
+                    <span className="font-mono font-bold text-green-600 dark:text-green-400">{fmt(lcaPreview.netCO2, 0)}</span>
                   </div>
                 </div>
 
@@ -679,7 +708,7 @@ export default function Landing() {
                   {t("landing:howItWorks.step3.desc")}
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {["Puro.earth", "Isometric", "EBC", "VERRA", t("landing:howItWorks.tagPermits")].map((tag) => (
+                  {["Puro.earth", "Isometric", "EBC", "IBI", t("landing:howItWorks.tagPermits")].map((tag) => (
                     <span key={tag} className="text-[11px] font-medium bg-purple-500/10 text-purple-500 border border-purple-500/20 px-2.5 py-1 rounded-full">
                       {tag}
                     </span>
@@ -1055,7 +1084,7 @@ export default function Landing() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
               <Sparkles className="w-3 h-3" />
-              {t("market:sectionTitle")}
+              {t("market:title")}
             </div>
             <h2 className="text-3xl font-bold mb-3">{t("market:sectionTitle")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">

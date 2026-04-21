@@ -269,24 +269,24 @@ export default function Verify() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <AnnualCard
                     label={t("verify:annualCO2")}
-                    value={fmtNumber((project.annualCO2Removals ?? 0) / 1000, 1)}
+                    value={fmtNumber(project.annualCO2Removals ?? 0, 0)}
                     unit={t("verify:annualCO2Unit")}
                     highlight
                   />
                   <AnnualCard
                     label={t("verify:annualBiochar")}
-                    value={fmtNumber((project.annualBiocharOutput ?? 0) / 1000, 1)}
+                    value={fmtNumber(project.annualBiocharOutput ?? 0, 0)}
                     unit={t("verify:annualBiocharUnit")}
                   />
                   <AnnualCard
                     label={t("verify:annualFeedstock")}
-                    value={fmtNumber((project.annualFeedstock ?? 0) / 1000, 1)}
+                    value={fmtNumber(project.annualFeedstock ?? 0, 0)}
                     unit={t("verify:annualFeedstockUnit")}
                   />
                   {project.annualRevenuePotential !== null && project.annualRevenuePotential !== undefined && (
                     <AnnualCard
                       label={t("verify:annualRevenue")}
-                      value={fmtNumber((project.annualRevenuePotential ?? 0) / 1000, 0)}
+                      value={fmtNumber((project.annualRevenuePotential ?? 0) / 1e6, 2)}
                       unit={t("verify:annualRevenueUnit")}
                     />
                   )}

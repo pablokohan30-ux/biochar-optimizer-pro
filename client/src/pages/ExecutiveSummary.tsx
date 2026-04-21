@@ -111,12 +111,17 @@ export default function ExecutiveSummary() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project]);
 
-  // Annual CO2 estimate (rough — only valid if plantCapacityTph + 8000 h/year operating)
+  // Annual CO2 estimate.
+  // NOTE: `result.credits.net` is t CO2e per tonne of BIOCHAR (not feedstock).
+  // Correct formula: annualBiochar × credits.net = (feedstock × yield/100) × credits.net.
   const annualHours = 8000;
   const annualCO2 = useMemo(() => {
     if (!project?.plantCapacityTph) return null;
-    return project.plantCapacityTph * annualHours * result.credits.net;
+    const annualFeedstock = project.plantCapacityTph * annualHours;
+    const annualBiochar = annualFeedstock * (result.yield_ / 100);
+    return annualBiochar * result.credits.net;
   }, [project, result]);
+  const netCO2PerTFeedstock = result.credits.net * (result.yield_ / 100);
 
   if (authLoading || tierLoading) return <PageLoader />;
   if (!user || !hasAccess("analyst")) {
@@ -239,7 +244,7 @@ export default function ExecutiveSummary() {
           <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <KPICard label={t("summary.kpi.yield", { defaultValue: "Biochar yield" })} value={`${fmtNumber(result.yield_)}%`} unit={t("summary.kpi.yieldUnit", { defaultValue: "of feedstock dry mass" })} />
             <KPICard label={t("summary.kpi.carbonContent", { defaultValue: "Fixed carbon" })} value={`${fmtNumber(result.C)}%`} unit={t("summary.kpi.carbonUnit", { defaultValue: "of biochar mass" })} />
-            <KPICard label={t("summary.kpi.netRemoval", { defaultValue: "Net CO₂ removal" })} value={fmtNumber(result.credits.net, 2)} unit={t("summary.kpi.tCO2eUnit", { defaultValue: "t CO₂e per t feedstock" })} />
+            <KPICard label={t("summary.kpi.netRemoval", { defaultValue: "Net CO₂ removal" })} value={fmtNumber(netCO2PerTFeedstock, 2)} unit={t("summary.kpi.tCO2eUnit", { defaultValue: "t CO₂e per t feedstock" })} />
             <KPICard label="H:Corg" value={fmtNumber(result.H_Corg, 3)} unit={t("summary.kpi.stabilityUnit", { defaultValue: "stability indicator" })} />
           </section>
 
@@ -251,11 +256,11 @@ export default function ExecutiveSummary() {
               </div>
               <div className="grid grid-cols-2 gap-6 mt-2">
                 <div>
-                  <div className="text-2xl font-bold">{fmtNumber(annualCO2 / 1000, 1)} kt CO₂e</div>
+                  <div className="text-2xl font-bold">{fmtNumber(annualCO2, 0)} t CO₂e</div>
                   <div className="text-xs text-muted-foreground print:text-black">{t("summary.annualEstimate.removalsPerYear", { defaultValue: "Estimated removals per year" })}</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{fmtNumber(project.plantCapacityTph * annualHours / 1000, 1)} kt</div>
+                  <div className="text-2xl font-bold">{fmtNumber(project.plantCapacityTph * annualHours, 0)} t</div>
                   <div className="text-xs text-muted-foreground print:text-black">{t("summary.annualEstimate.feedstockProcessed", { defaultValue: "Feedstock processed per year" })}</div>
                 </div>
               </div>

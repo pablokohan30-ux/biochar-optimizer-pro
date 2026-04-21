@@ -403,10 +403,15 @@ export const projectsRouter = router({
 
         const result = compute_all(T, t, feedstock);
 
-        // Annual throughput (only if we know capacity)
+        // Annual throughput (only if we know capacity).
+        //
+        // IMPORTANT unit convention:
+        //   `result.credits.net` is t CO2e per tonne of BIOCHAR (not feedstock).
+        //   Per tonne of feedstock: multiply by yield fraction.
+        //   Equivalent: annualBiochar × credits.net (used below for clarity).
         const annualFeedstock = cap ? cap * ANNUAL_OPERATING_HOURS : null;
         const annualBiocharOutput = annualFeedstock ? annualFeedstock * (result.yield_ / 100) : null;
-        const annualCO2Removals = annualFeedstock ? annualFeedstock * result.credits.net : null;
+        const annualCO2Removals = annualBiocharOutput ? annualBiocharOutput * result.credits.net : null;
         const annualRevenuePotential = annualCO2Removals ? annualCO2Removals * CORC_PRICE_USD : null;
 
         // Auto-check summary for the target methodology
@@ -462,7 +467,7 @@ export const projectsRouter = router({
           updatedAt: now,
           visibility: "full" as const,
           // NEW: demographics / project identity
-          developer: "3verde · Emisiones Neutras",
+          developer: "Anonymous developer · demo project",
           projectType: "Industrial continuous pyrolysis",
           technology: "Continuous screw reactor · mid-temperature regime",
           commissioningDate: "Q2 2026 (planned)",

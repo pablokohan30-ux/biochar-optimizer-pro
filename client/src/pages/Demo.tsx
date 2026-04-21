@@ -61,11 +61,15 @@ export default function Demo() {
     [feedstock]
   );
 
-  // Annual estimates
+  // Annual estimates.
+  // NOTE: `result.credits.net` is t CO2e per tonne of BIOCHAR (not feedstock).
+  // To get annual CO2e we multiply by annualBiochar, not annualFeedstock.
   const annualFeedstock = DEMO.plantCapacityTph * ANNUAL_HOURS;        // tonnes/year
   const annualBiochar = annualFeedstock * (result.yield_ / 100);       // tonnes/year
-  const annualCO2 = annualFeedstock * result.credits.net;              // t CO2e/year
+  const annualCO2 = annualBiochar * result.credits.net;                // t CO2e/year
   const annualRevenue = annualCO2 * CORC_PRICE_USD;                    // USD/year
+  // Per-feedstock intensity for KPI display (derived from credits.net × yield)
+  const netCO2PerTFeedstock = result.credits.net * (result.yield_ / 100);
 
   const fmtNumber = (n: number, decimals = 1) =>
     n.toLocaleString(i18n.language === "es" ? "es-AR" : "en-US", {
@@ -163,7 +167,7 @@ export default function Demo() {
             <div className="space-y-3 text-sm">
               <InfoRow
                 label={t("demo.infoDeveloper", { defaultValue: "Developer / Operator" })}
-                value="3verde · Emisiones Neutras"
+                value={t("demo.developerValue", { defaultValue: "Developer anónimo · proyecto demo" })}
                 icon={Building2}
               />
               <InfoRow
@@ -219,24 +223,24 @@ export default function Demo() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <AnnualCard
               label={t("demo.annualCO2", { defaultValue: "CO₂ removals" })}
-              value={fmtNumber(annualCO2 / 1000, 1)}
-              unit={t("demo.annualCO2Unit", { defaultValue: "kt CO₂e / year" })}
+              value={fmtNumber(annualCO2, 0)}
+              unit={t("demo.annualCO2Unit", { defaultValue: "t CO₂e / year" })}
               highlight
             />
             <AnnualCard
               label={t("demo.annualBiochar", { defaultValue: "Biochar output" })}
-              value={fmtNumber(annualBiochar / 1000, 1)}
-              unit={t("demo.annualBiocharUnit", { defaultValue: "kt / year" })}
+              value={fmtNumber(annualBiochar, 0)}
+              unit={t("demo.annualBiocharUnit", { defaultValue: "t / year" })}
             />
             <AnnualCard
               label={t("demo.annualFeedstock", { defaultValue: "Feedstock processed" })}
-              value={fmtNumber(annualFeedstock / 1000, 1)}
-              unit={t("demo.annualFeedstockUnit", { defaultValue: "kt / year" })}
+              value={fmtNumber(annualFeedstock, 0)}
+              unit={t("demo.annualFeedstockUnit", { defaultValue: "t / year" })}
             />
             <AnnualCard
               label={t("demo.annualRevenue", { defaultValue: "CORC revenue potential" })}
-              value={fmtNumber(annualRevenue / 1000, 0)}
-              unit={t("demo.annualRevenueUnit", { defaultValue: "k USD / year (at $150/tCO₂e)" })}
+              value={fmtNumber(annualRevenue / 1e6, 2)}
+              unit={t("demo.annualRevenueUnit", { defaultValue: "M USD / year (at $150/tCO₂e)" })}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
@@ -276,7 +280,7 @@ export default function Demo() {
           />
           <KPI
             label={t("demo.kpiNetCO2", { defaultValue: "Net CO₂ removal" })}
-            value={result.credits.net.toFixed(2)}
+            value={netCO2PerTFeedstock.toFixed(2)}
             sub={t("demo.kpiNetCO2Sub", { defaultValue: "t CO₂e per t feedstock" })}
           />
           <KPI

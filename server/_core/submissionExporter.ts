@@ -142,8 +142,10 @@ export interface SubmissionPayload {
     corc_reference_price_usd: number;
   };
 
-  // ─── LCA / CORC breakdown (t CO2e per t feedstock) ────────────────────
-  corc_breakdown_per_t_feedstock: {
+  // ─── LCA / CORC breakdown (t CO2e per tonne of BIOCHAR) ───────────────
+  // Note: `net` is per t biochar produced, not per t feedstock processed.
+  // To express per t feedstock: multiply by yield fraction (yield_pct / 100).
+  corc_breakdown_per_t_biochar: {
     durability_class: string;
     stability_factor: number;
     gross: number;
@@ -271,10 +273,14 @@ export function buildSubmissionPayload(opts: SubmissionExportOptions): Submissio
   const autoPassed = autoCheckPayload.filter((x) => x.passed).length;
 
   // Annual estimates — only meaningful when plantCapacityTph is known.
+  //
+  // IMPORTANT unit convention: `result.credits.net` is t CO2e per tonne of
+  // BIOCHAR (not feedstock). Per tonne of feedstock: multiply by yield fraction.
+  // Equivalent: annualBiochar × credits.net (used here for clarity).
   const cap = project.plantCapacityTph;
   const annualFeedstock = cap ? cap * ANNUAL_OPERATING_HOURS : null;
   const annualBiochar = annualFeedstock ? annualFeedstock * (result.yield_ / 100) : null;
-  const annualCO2 = annualFeedstock ? annualFeedstock * result.credits.net : null;
+  const annualCO2 = annualBiochar ? annualBiochar * result.credits.net : null;
   const annualRevenue = annualCO2 ? annualCO2 * CORC_PRICE_USD : null;
 
   return {
@@ -343,7 +349,7 @@ export function buildSubmissionPayload(opts: SubmissionExportOptions): Submissio
       corc_reference_price_usd: CORC_PRICE_USD,
     },
 
-    corc_breakdown_per_t_feedstock: {
+    corc_breakdown_per_t_biochar: {
       durability_class: result.credits.class,
       stability_factor: round(result.credits.sf, 3),
       gross: round(result.credits.gross, 4),
