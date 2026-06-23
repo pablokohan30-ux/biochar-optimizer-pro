@@ -26,6 +26,7 @@ import RegionalAnalysis from "@/components/RegionalAnalysis";
 import MethodologyAssessment from "@/components/MethodologyAssessment";
 import MethodologyComparison from "@/components/MethodologyComparison";
 import { compute_all, FEEDSTOCK_DB } from "@/lib/biocharModel";
+import { ANALYST_MONTHLY_USD } from "@/lib/pricingCatalog";
 
 // ─── Hardcoded demo project (locale-independent fields only) ────────────────
 
@@ -318,7 +319,7 @@ export default function Demo() {
         <div className="border-2 border-primary bg-primary/5 rounded-xl p-6 text-center">
           <h2 className="text-2xl font-bold mb-2">{t("demo.ctaTitle", { defaultValue: "Like what you see? Build your own in 2 minutes." })}</h2>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-4 leading-relaxed">
-            {t("demo.ctaBody", { defaultValue: "The simulator is free forever. Add LCA, multi-methodology readiness, project tracking, and PDD generation as you grow — starting at $299/mo." })}
+            {t("demo.ctaBody", { defaultValue: `The simulator is free forever. Add LCA, multi-methodology readiness, project tracking, and PDD generation as you grow — starting at $${ANALYST_MONTHLY_USD}/mo.` })}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href="/app">

@@ -7,6 +7,7 @@ import { geocodeAddress, searchAddresses } from "./_core/geocoding";
 import { fetchClimateData } from "./_core/openmeteo";
 import { fetchSoilData } from "./_core/soilgrids";
 import { buildSubmissionPayload } from "./_core/submissionExporter";
+import { resolveProjectFeedstock } from "../client/src/lib/projectFeedstock";
 
 /**
  * Generate the next BOP project ID for the current year.
@@ -189,6 +190,53 @@ export const projectsRouter = router({
       return { success: true as const };
     }),
 
+  /**
+   * Persist the user's "manual confirmation" check states for pre-assessment.
+   *
+   * Shape: { methodologyId → { checkId → boolean | null } }. `null` is used
+   * instead of `undefined` so the JSON round-trip is stable.
+   *
+   * Separate from `update` because (a) the validation is specific to the
+   * check state shape, and (b) these writes happen on every single toggle —
+   * keeping the endpoint narrow makes it obvious this isn't a full project
+   * edit and lets us optimise independently later (e.g. debouncing).
+   */
+  updateManualChecks: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int(),
+        // methodologyId → checkId → true (pass) | false (fail) | null (unset)
+        manualChecks: z.record(
+          z.string().min(1).max(100),
+          z.record(
+            z.string().min(1).max(100),
+            z.boolean().nullable()
+          )
+        ),
+      })
+    )
+    .mutation(({ ctx, input }) => {
+      requireAnalyst(ctx.user.subscriptionTier, ctx.user.subscriptionStatus);
+      const db = requireDb();
+      const existing = db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.id, input.id), eq(projects.userId, ctx.user.id)))
+        .limit(1)
+        .all();
+      if (existing.length === 0) throw new Error("Project not found");
+
+      db.update(projects)
+        .set({
+          manualChecks: JSON.stringify(input.manualChecks),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(projects.id, input.id), eq(projects.userId, ctx.user.id)))
+        .run();
+
+      return { success: true as const };
+    }),
+
   geocode: protectedProcedure
     .input(z.object({ query: z.string().min(1).max(500) }))
     .mutation(async ({ ctx, input }) => {
@@ -244,7 +292,7 @@ export const projectsRouter = router({
   exportSubmission: protectedProcedure
     .input(z.object({
       id: z.number().int(),
-      methodologyId: z.enum(["puro-earth", "isometric", "ebc", "ibi"]),
+      methodologyId: z.enum(["puro-earth", "isometric", "ebc", "verra-vm0044", "gold-standard", "rainbow-standard"]),
     }))
     .query(async ({ ctx, input }) => {
       requireDeveloper(ctx.user.subscriptionTier, ctx.user.subscriptionStatus);
@@ -260,16 +308,11 @@ export const projectsRouter = router({
 
       // Load biochar model + methodology registry dynamically
       const { compute_all, FEEDSTOCK_DB } = await import("../client/src/lib/biocharModel");
-      const { METHODOLOGIES } = await import("../client/src/lib/methodologies");
+      const { calculateScore } = await import("../client/src/lib/biocharScore");
+      const { ACTIVE_METHODOLOGIES, METHODOLOGIES } = await import("../client/src/lib/methodologies");
 
       // Resolve feedstock
-      let feedstock: any = null;
-      if (project.feedstockData) {
-        try { feedstock = JSON.parse(project.feedstockData); } catch {}
-      }
-      if (!feedstock && project.feedstockId && FEEDSTOCK_DB[project.feedstockId]) {
-        feedstock = FEEDSTOCK_DB[project.feedstockId];
-      }
+      const feedstock = resolveProjectFeedstock(project.feedstockId, project.feedstockData, FEEDSTOCK_DB);
       if (!feedstock) {
         throw new Error("Cannot resolve feedstock — export requires a valid feedstock configured on the project.");
       }
@@ -307,8 +350,16 @@ export const projectsRouter = router({
         feedstock: {
           id: project.feedstockId ?? undefined,
           name: feedstock.name,
-          category: feedstock.category,
-          elemental: feedstock.elemental,
+          category: typeof (feedstock as { category?: unknown }).category === "string"
+            ? (feedstock as { category?: string }).category
+            : undefined,
+          elemental: {
+            C: feedstock.C,
+            H: feedstock.H,
+            N: feedstock.N,
+            S: feedstock.S,
+            O: feedstock.O,
+          },
           ash_pct: feedstock.ash,
           moisture_pct: feedstock.moisture,
         },
@@ -358,7 +409,8 @@ export const projectsRouter = router({
       // Load biochar model + methodologies dynamically (shared with client).
       // Used for server-side annual estimates and auto-check summaries.
       const { compute_all, FEEDSTOCK_DB } = await import("../client/src/lib/biocharModel");
-      const { METHODOLOGIES } = await import("../client/src/lib/methodologies");
+      const { calculateScore } = await import("../client/src/lib/biocharScore");
+      const { ACTIVE_METHODOLOGIES, METHODOLOGIES } = await import("../client/src/lib/methodologies");
 
       // Reference CORC price used for annual revenue estimates.
       // Conservative mid-market figure; publicly cited range is $130-$250 (2025).
@@ -447,6 +499,60 @@ export const projectsRouter = router({
         };
       }
 
+      function pickPublicMethodology(opts: {
+        methodologyId: string | null;
+        feedstockId: string | null;
+        feedstockData: string | null;
+        temperature: number | null;
+        residenceTime: number | null;
+        plantCapacityTph: number | null;
+        country: string | null;
+      }) {
+        const explicitMethodology = opts.methodologyId?.trim() ?? null;
+        if (
+          explicitMethodology &&
+          explicitMethodology in METHODOLOGIES
+        ) {
+          return explicitMethodology;
+        }
+
+        let feedstock = null as ReturnType<typeof resolveFeedstock>;
+        try {
+          feedstock = resolveFeedstock(opts.feedstockId, opts.feedstockData, FEEDSTOCK_DB);
+        } catch {
+          feedstock = null;
+        }
+
+        if (!feedstock || opts.temperature === null || opts.residenceTime === null) {
+          return "puro-earth";
+        }
+
+        const temperature = opts.temperature;
+        const residenceTime = opts.residenceTime;
+        const result = compute_all(temperature, residenceTime, feedstock);
+        const recommendation = ACTIVE_METHODOLOGIES
+          .map((id: keyof typeof METHODOLOGIES) => ({
+            id,
+            score: calculateScore(METHODOLOGIES[id], {
+              result,
+              feedstock,
+              temperature,
+              residenceTime,
+              plantCapacityTph: opts.plantCapacityTph,
+              country: opts.country,
+              manualStates: {},
+            }),
+          }))
+          .sort(
+            (
+              a: { id: keyof typeof METHODOLOGIES; score: { value: number } },
+              b: { id: keyof typeof METHODOLOGIES; score: { value: number } },
+            ) => b.score.value - a.score.value,
+          )[0];
+
+        return recommendation?.id ?? "puro-earth";
+      }
+
       // Special case: the public demo project is hardcoded (not in the DB).
       // The /demo page links here so visitors can see the verify flow end-to-end.
       if (bopId === "BOP-2026-DEMO") {
@@ -508,8 +614,18 @@ export const projectsRouter = router({
       // capacity + feedstock + T/time — they're high-level marketing numbers,
       // not proprietary. Surface them in BOTH summary and full modes so the
       // page feels substantial regardless of visibility setting.
+      const publicMethodology = pickPublicMethodology({
+        methodologyId: project.publicMethodology,
+        feedstockId: project.feedstockId,
+        feedstockData: project.feedstockData,
+        temperature: project.temperature,
+        residenceTime: project.residenceTime,
+        plantCapacityTph: project.plantCapacityTph,
+        country: project.country,
+      });
+
       const enriched = enrich({
-        methodologyId: project.publicMethodology ?? "puro-earth",
+        methodologyId: publicMethodology,
         feedstockId: project.feedstockId,
         feedstockData: project.feedstockData,
         temperature: project.temperature,
@@ -526,7 +642,7 @@ export const projectsRouter = router({
         // City-level location string only in full mode. Coordinates NEVER shown.
         location: isFull ? project.location : null,
         status: project.status ?? "draft",
-        methodology: project.publicMethodology ?? "puro-earth",
+        methodology: publicMethodology,
         // Pyrolysis snapshot in full mode (no lab data ever leaked).
         temperature: isFull ? project.temperature : null,
         residenceTime: isFull ? project.residenceTime : null,
@@ -560,15 +676,5 @@ function resolveFeedstock(
   feedstockData: string | null,
   FEEDSTOCK_DB: Record<string, any>,
 ) {
-  if (feedstockData) {
-    try {
-      return JSON.parse(feedstockData);
-    } catch {
-      // fall through
-    }
-  }
-  if (feedstockId && FEEDSTOCK_DB[feedstockId]) {
-    return FEEDSTOCK_DB[feedstockId];
-  }
-  return null;
+  return resolveProjectFeedstock(feedstockId, feedstockData, FEEDSTOCK_DB);
 }

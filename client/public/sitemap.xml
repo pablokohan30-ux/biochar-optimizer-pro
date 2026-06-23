@@ -59,11 +59,10 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  <url>
-    <loc>https://biocharpro.io/company/partners</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
+  <!-- /company/partners intentionally excluded from sitemap.
+       Page exists but is not promoted publicly — used selectively
+       by the team for inbound conversations. -->
+
 
   <!-- API docs landing -->
   <url>

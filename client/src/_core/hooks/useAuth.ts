@@ -14,6 +14,11 @@ export function useAuth() {
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       utils.auth.me.setData(undefined, null);
+      utils.subscription.getMyTier.setData(undefined, {
+        tier: "free",
+        status: "inactive",
+        accessExpiresAt: null,
+      });
       setLocation("/login");
     },
   });
@@ -25,7 +30,13 @@ export function useAuth() {
       // Already logged out
     } finally {
       utils.auth.me.setData(undefined, null);
+      utils.subscription.getMyTier.setData(undefined, {
+        tier: "free",
+        status: "inactive",
+        accessExpiresAt: null,
+      });
       await utils.auth.me.invalidate();
+      await utils.subscription.getMyTier.invalidate();
     }
   }, [logoutMutation, utils]);
 

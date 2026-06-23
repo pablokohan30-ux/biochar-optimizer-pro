@@ -1,3 +1,7 @@
+import {
+  PUBLIC_TIER_BY_ID,
+} from "../client/src/lib/pricingCatalog";
+
 /**
  * Stripe product definitions for Biochar Optimizer Pro subscription tiers.
  *
@@ -27,9 +31,9 @@ export const TIER_PRODUCTS: TierProduct[] = [
   {
     id: "analyst",
     name: "Analyst",
-    monthlyPriceUsd: 299,
-    quarterlyPricePerMonthUsd: 239,
-    quarterlyTotalUsd: 717,
+    monthlyPriceUsd: PUBLIC_TIER_BY_ID.analyst.monthlyPriceUsd,
+    quarterlyPricePerMonthUsd: PUBLIC_TIER_BY_ID.analyst.quarterlyPerMonthUsd,
+    quarterlyTotalUsd: PUBLIC_TIER_BY_ID.analyst.quarterlyTotalUsd,
     description: "For consultants evaluating the technical feasibility of a biochar project.",
     monthlyLookupKey: "biochar_analyst_monthly",
     quarterlyLookupKey: "biochar_analyst_quarterly",
@@ -37,30 +41,30 @@ export const TIER_PRODUCTS: TierProduct[] = [
   {
     id: "developer",
     name: "Developer",
-    monthlyPriceUsd: 499,
-    quarterlyPricePerMonthUsd: 399,
-    quarterlyTotalUsd: 1197,
-    description: "For teams with an active project in development.",
+    monthlyPriceUsd: PUBLIC_TIER_BY_ID.developer.monthlyPriceUsd,
+    quarterlyPricePerMonthUsd: PUBLIC_TIER_BY_ID.developer.quarterlyPerMonthUsd,
+    quarterlyTotalUsd: PUBLIC_TIER_BY_ID.developer.quarterlyTotalUsd,
+    description: "For consultants and project teams screening multiple scenarios, connecting the API, and delivering client-facing outputs with their own branding.",
     monthlyLookupKey: "biochar_developer_monthly",
     quarterlyLookupKey: "biochar_developer_quarterly",
   },
   {
     id: "engineer",
     name: "Engineer",
-    monthlyPriceUsd: 799,
-    quarterlyPricePerMonthUsd: 639,
-    quarterlyTotalUsd: 1917,
-    description: "For projects in the engineering and regulatory permitting phase.",
+    monthlyPriceUsd: PUBLIC_TIER_BY_ID.engineer.monthlyPriceUsd,
+    quarterlyPricePerMonthUsd: PUBLIC_TIER_BY_ID.engineer.quarterlyPerMonthUsd,
+    quarterlyTotalUsd: PUBLIC_TIER_BY_ID.engineer.quarterlyTotalUsd,
+    description: "For teams building a certifiable project package with AI-drafted documents, PDD workstreams, equipment/layout planning, electrical scope, and QA/QC standards.",
     monthlyLookupKey: "biochar_engineer_monthly",
     quarterlyLookupKey: "biochar_engineer_quarterly",
   },
   {
     id: "expert",
     name: "Expert",
-    monthlyPriceUsd: 999,
-    quarterlyPricePerMonthUsd: 799,
-    quarterlyTotalUsd: 2397,
-    description: "For operating plants and investment funds.",
+    monthlyPriceUsd: PUBLIC_TIER_BY_ID.expert.monthlyPriceUsd,
+    quarterlyPricePerMonthUsd: PUBLIC_TIER_BY_ID.expert.quarterlyPerMonthUsd,
+    quarterlyTotalUsd: PUBLIC_TIER_BY_ID.expert.quarterlyTotalUsd,
+    description: "For operators moving from a certifiable dossier to a buyer-ready project with operational evidence, offtake, community, audit, portfolio, and buyer pipeline workflows.",
     monthlyLookupKey: "biochar_expert_monthly",
     quarterlyLookupKey: "biochar_expert_quarterly",
   },

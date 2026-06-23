@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { applyMetaOverride, matchOverride } from "./seoMeta";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -23,8 +24,19 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    const pathname = (url || "/").split("?")[0];
 
     try {
+      if (pathname.startsWith("/api/") || pathname === "/mcp" || pathname.startsWith("/mcp/")) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: `No handler for ${req.method} ${pathname}. See /api/openapi.json for the list of available endpoints.`,
+          },
+        });
+        return;
+      }
+
       const clientTemplate = path.resolve(
         import.meta.dirname,
         "../..",
@@ -39,7 +51,9 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx?v=${nanoid()}"`
       );
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      const override = matchOverride(pathname);
+      const html = applyMetaOverride(page, override, pathname);
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, LayersControl } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Map as MapIcon, Satellite } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // Fix default marker icons for Vite/ESM bundlers
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -40,6 +41,8 @@ export default function ProjectMap({
   className = "",
   defaultLayer = "satellite",
 }: ProjectMapProps) {
+  const { t } = useTranslation("common");
+  const tm = (k: string, fb: string) => t(`projectMap.${k}`, { defaultValue: fb });
   const [activeLayer, setActiveLayer] = useState<"street" | "satellite">(defaultLayer);
 
   // Default to Buenos Aires if no coords (just a reasonable default)
@@ -96,10 +99,10 @@ export default function ProjectMap({
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           }`}
-          title="Satellite view"
+          title={tm("satelliteView", "Satellite view")}
         >
           <Satellite className="w-3 h-3" />
-          <span>Satellite</span>
+          <span>{tm("satellite", "Satellite")}</span>
         </button>
         <button
           type="button"
@@ -109,10 +112,10 @@ export default function ProjectMap({
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           }`}
-          title="Street view"
+          title={tm("streetView", "Street view")}
         >
           <MapIcon className="w-3 h-3" />
-          <span>Map</span>
+          <span>{tm("map", "Map")}</span>
         </button>
       </div>
     </div>

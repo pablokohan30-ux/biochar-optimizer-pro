@@ -3,7 +3,7 @@
  *
  * Serializes a project's data + simulation outputs + auto-check results into
  * a structured JSON blob for methodology submission. The generated file is
- * NOT the official Puro.earth / Isometric / EBC / IBI ingestion schema — those
+ * NOT the official Puro.earth / Isometric / EBC ingestion schema — those
  * certifiers each have their own intake form / Certify platform. It IS a
  * clean, machine-readable record that:
  *   1. Can be attached to the official intake as supporting documentation.
@@ -16,6 +16,7 @@
  */
 
 import type { Project } from "../../drizzle/schema";
+import { BRAND_NAME, BRAND_URL } from "../../client/src/lib/brand";
 
 // Reused constants — mirror what the client uses in Executive Summary and demo.
 export const ANNUAL_OPERATING_HOURS = 8000;
@@ -172,7 +173,7 @@ export interface SubmissionPayload {
   };
 
   // ─── Methodology-specific fields ──────────────────────────────────────
-  // Extra fields that only make sense for certain methodologies (e.g. IBI's
+  // Extra fields that only make sense for certain methodologies (e.g. Isometric's
   // carbon class, Isometric's durability tier). Added at the bottom of the
   // JSON so it doesn't pollute the generic structure.
   methodology_specific?: Record<string, unknown>;
@@ -182,10 +183,10 @@ export interface SubmissionPayload {
   submission_guidance: string;
 }
 
-const GENERATOR_VERSION = "Biochar Optimizer Pro · submission exporter v1.0";
+const GENERATOR_VERSION = `${BRAND_NAME} · submission exporter v1.0`;
 
 const DISCLAIMER =
-  "This JSON file is a pre-submission package generated automatically by Biochar Optimizer Pro (biocharpro.io). " +
+  `This JSON file is a pre-submission package generated automatically by ${BRAND_NAME} (${BRAND_URL}). ` +
   "All auto-verifiable fields have been computed from the project's simulation inputs. Manual checks require independent " +
   "lab testing (heavy metals, PAH, H:Corg, BET surface) and additionality / monitoring documentation. This file IS NOT an " +
   "official ingestion schema for any certifier — it is structured supporting documentation meant to accompany an official " +
@@ -199,8 +200,12 @@ function guidanceFor(methodologyId: string): string {
       return "Submit this file via Isometric Certify as supporting data for your durability class submission. Confirm the durability tier (200-yr vs 1,000-yr / BC-1) matches your internal LCA framework before uploading.";
     case "ebc":
       return "Include this file with your EBC application to Carbon Standards International. Note: EBC requires accredited lab testing for heavy metals, PAH, and H:Corg; the auto_checks here are a pre-audit heuristic, not a replacement for lab certificates.";
-    case "ibi":
-      return "Attach this file to your IBI biochar testing declaration. The auto-computed carbon class (1/2/3) is a preliminary classification — verify with an IBI-recognized analytical laboratory before publishing.";
+    case "gold-standard":
+      return "⚠️ Gold Standard's Sustainable Biochar methodology is in development since Dec 2024 (https://globalgoals.goldstandard.org/in-development/sustainable-biochar/). This file pre-stages the cross-cutting requirements that will apply once GS publishes — retain it with the SDG evidence and VVB engagement documents so you can submit within days of methodology publication.";
+    case "verra-vm0044":
+      return "Attach this file to your Verra VCS pipeline listing under 'Supporting documentation'. Per VM0044 v1.2: pair this with an upstream EBC certificate (heavy metals + PAHs), a completed AFOLU Non-Permanence Risk Tool, the investment analysis (NPV/IRR) demonstrating additionality, and an accredited VVB engagement letter before requesting validation.";
+    case "rainbow-standard":
+      return "Attach this file to your Rainbow Standard (BiCRS) submission as supporting project characterization data. Rainbow requires: ISO 14064-2 compliant quantification, declared permanence horizon (100-yr or 1000-yr tier), ICVCM Core Carbon Principles alignment, annual independent audit commitment, and co-benefits documentation. Rainbow's USP is the <3-month certification timeline — make sure your feedstock sustainability chain of custody + H/Corg < 0.7 evidence are in place before submission to hit that window.";
     default:
       return "Attach this file to the official certifier intake process as supporting documentation. Verify all manual checks with the relevant lab / auditor before submission.";
   }
@@ -218,19 +223,6 @@ function methodologySpecifics(opts: SubmissionExportOptions): Record<string, unk
         h_corg_threshold_bc1: 0.4,
         bet_minimum: 100,
       };
-    case "ibi": {
-      const c = result.C;
-      const ibiClass =
-        c >= 60 ? "Class 1 (≥60% C)" :
-        c >= 30 ? "Class 2 (30-60% C)" :
-        c >= 10 ? "Class 3 (10-30% C)" :
-        "Below Class 3 threshold";
-      return {
-        ibi_carbon_class: ibiClass,
-        carbon_content_pct: c,
-        classification_thresholds: { class_1: 60, class_2: 30, class_3: 10 },
-      };
-    }
     case "ebc":
       return {
         ebc_class_inferred:
@@ -245,6 +237,57 @@ function methodologySpecifics(opts: SubmissionExportOptions): Record<string, unk
         corc_edition: "2025",
         h_corg_threshold: 0.7,
         temperature_minimum_c: 350,
+      };
+    case "gold-standard":
+      return {
+        methodology_status: "in_development_since_2024-12-15",
+        registry: "Gold Standard Impact Registry",
+        activity_requirements_applicable: "GS Doc 205 — Engineered Removals",
+        mandatory_sdg_count: 3,
+        crediting_period_max_years: 45,
+        recertification_cycle_years: 5,
+        reversal_risk_buffer_pct: "2.5–8",
+        note:
+          "No GS-official thresholds for biochar H/C, temperature, or PAH published yet. Auto-checks deliberately left empty — populate once GS publishes the draft methodology for public consultation.",
+      };
+    case "verra-vm0044": {
+      // Compute permanence factor tier from measured pyrolysis T° per VM0044 v1.2.
+      const T = opts.project.temperature ?? 0;
+      let permanenceFactor = 0.56;
+      let permanenceTier = "default floor (unmeasured or <350 °C)";
+      if (T >= 600) { permanenceFactor = 0.89; permanenceTier = "≥600 °C (highest tier)"; }
+      else if (T >= 450) { permanenceFactor = 0.80; permanenceTier = "450–600 °C"; }
+      else if (T >= 350) { permanenceFactor = 0.65; permanenceTier = "350–450 °C"; }
+      return {
+        methodology_version: "v1.2",
+        methodology_active_since: "2025-06-27",
+        icvcm_ccp_approved: true,
+        registry: "Verra VCS Registry",
+        applicability_condition_10b_h_corg_max: 0.7,
+        min_organic_carbon_pct: 50,
+        permanence_factor_applied: permanenceFactor,
+        permanence_factor_tier: permanenceTier,
+        high_permanence_class_threshold_h_corg: 0.4,
+        delegates_quality_to: ["EBC"],
+        excluded_feedstocks: ["roundwood", "timber-grade logs", "mixed MSW", "charcoal for fuel"],
+        additionality_tests_v1_2: ["regulatory surplus", "positive list", "investment analysis (NPV/IRR)"],
+        fees_usd: { registration_review: 3750, verification_review: 5000, issuance_levy_per_vcu: 0.2 },
+      };
+    }
+    case "rainbow-standard":
+      return {
+        methodology: "Rainbow Standard BiCRS",
+        methodology_category: "Biomass Carbon Removal & Storage",
+        icvcm_ccp_approved: true,
+        iso_compliance: "ISO 14064-2",
+        permanence_tier_default: "100-yr (standard)",
+        permanence_tier_premium: "1000-yr (declared + validated)",
+        h_corg_threshold: 0.7,
+        certification_timeline_months_target: 3,
+        annual_audit_required: true,
+        year_round_monitoring_required: true,
+        active_corporate_buyers: ["BNP Paribas", "South Pole", "Ceezer", "Patch"],
+        ideal_for: "Operators of running plants needing a fast first offtake (< 3 months).",
       };
     default:
       return undefined;

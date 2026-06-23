@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import LogoLink from "@/components/LogoLink";
 import { ArrowLeft } from "lucide-react";
+import { BRAND_NAME } from "@/lib/brand";
 
 type LegalLayoutProps = {
   title: string;
@@ -72,7 +73,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
       {/* Footer */}
       <footer className="border-t border-border py-8 mt-12">
         <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Biochar Optimizer Pro</span>
+          <span>© {new Date().getFullYear()} {BRAND_NAME}</span>
           <div className="flex items-center gap-4">
             {LEGAL_PAGES.map(p => (
               <Link key={p.href} href={p.href}>

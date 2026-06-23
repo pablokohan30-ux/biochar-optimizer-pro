@@ -15,7 +15,20 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { projectsRouter } from "./projectsRouter";
 import { statsRouter } from "./statsRouter";
-import { hasAccess as tierHasAccess } from "./stripeProducts";
+import { aiBuilderRouter } from "./aiBuilderRouter";
+import { portfolioRouter } from "./portfolioRouter";
+import { brandingRouter } from "./brandingRouter";
+import { customMethodologyRouter } from "./customMethodologyRouter";
+import { evidenceRouter } from "./evidenceRouter";
+import { offtakeRouter } from "./offtakeRouter";
+import { communityRouter } from "./communityRouter";
+import { buyerReadinessRouter } from "./buyerReadinessRouter";
+import { auditPackageRouter } from "./auditPackageRouter";
+import { buyerMatchRouter } from "./buyerMatchRouter";
+import { launchRouter } from "./launchRouter";
+import { BRAND_NAME } from "../client/src/lib/brand";
+import { isCorporateEmail } from "../shared/corporateEmail";
+import { hasTierAccessForUser, isLocalAdminBypass } from "./_core/access";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-03-31.basil" })
@@ -91,22 +104,21 @@ async function ensureStripeCustomer(
   return customer.id;
 }
 
-// Corporate email validation — block free providers
-const FREE_EMAIL_DOMAINS = [
-  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.com.ar", "hotmail.com",
-  "outlook.com", "live.com", "aol.com", "icloud.com", "me.com", "mail.com",
-  "protonmail.com", "proton.me", "zoho.com", "yandex.com", "gmx.com",
-];
-
-function isCorporateEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
-  return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
-}
-
 export const appRouter = router({
   system: systemRouter,
   projects: projectsRouter,
   stats: statsRouter,
+  aiBuilder: aiBuilderRouter,
+  portfolio: portfolioRouter,
+  branding: brandingRouter,
+  customMethodology: customMethodologyRouter,
+  evidence: evidenceRouter,
+  offtake: offtakeRouter,
+  community: communityRouter,
+  buyerReadiness: buyerReadinessRouter,
+  auditPackage: auditPackageRouter,
+  buyerMatch: buyerMatchRouter,
+  launch: launchRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -199,6 +211,9 @@ export const appRouter = router({
   subscription: router({
     getMyTier: publicProcedure.query(({ ctx }) => {
       if (!ctx.user) return { tier: "free", status: "inactive", accessExpiresAt: null as number | null };
+      if (isLocalAdminBypass(ctx.user)) {
+        return { tier: "expert", status: "active", accessExpiresAt: null as number | null };
+      }
 
       const expiresAt = ctx.user.accessExpiresAt ? new Date(ctx.user.accessExpiresAt).getTime() : null;
       const now = Date.now();
@@ -256,7 +271,7 @@ export const appRouter = router({
           priceId = prices.data[0].id;
         } else {
           const product = await stripe.products.create({
-            name: `Biochar Optimizer Pro — ${tierProduct.name}`,
+            name: `${BRAND_NAME} — ${tierProduct.name}`,
             description: tierProduct.description,
             metadata: { tierId: tierProduct.id },
           });
@@ -322,7 +337,7 @@ export const appRouter = router({
           if (!verification.valid) {
             const reason = verification.reason === "POST_NOT_FOUND"
               ? "We couldn't find that post. Please check the URL and try again."
-              : "The post doesn't seem to mention biochar or our platform. Please include a reference to Biochar Optimizer Pro.";
+              : `The post doesn't seem to mention biochar or our platform. Please include a reference to ${BRAND_NAME}.`;
             throw new Error(reason);
           }
         }
@@ -341,7 +356,7 @@ export const appRouter = router({
           priceId = prices.data[0].id;
         } else {
           const product = await stripe.products.create({
-            name: `Biochar Optimizer Pro — ${pass.name}`,
+            name: `${BRAND_NAME} — ${pass.name}`,
             description: pass.description,
             metadata: { passId: pass.id },
           });
@@ -430,7 +445,7 @@ export const appRouter = router({
         if (!verification.valid) {
           const reason = verification.reason === "POST_NOT_FOUND"
             ? "POST_NOT_FOUND: We couldn't find that post. Please check the URL and try again."
-            : "NO_MENTION: The post doesn't seem to mention biochar or our platform. Please include a reference to Biochar Optimizer Pro.";
+            : `NO_MENTION: The post doesn't seem to mention biochar or our platform. Please include a reference to ${BRAND_NAME}.`;
           throw new Error(reason);
         }
 
@@ -576,135 +591,14 @@ If the biomass is unknown or too ambiguous, return null.`;
       }))
       .mutation(async ({ ctx, input }) => {
         // Tier gate
-        if (!tierHasAccess(ctx.user.subscriptionTier ?? "free", "analyst", ctx.user.subscriptionStatus ?? "inactive")) {
+        if (!hasTierAccessForUser(ctx.user, "analyst")) {
           throw new Error("UPGRADE_REQUIRED: Lab analysis upload requires Analyst plan or higher.");
         }
 
-        // Size guard: base64 is ~1.37x the binary size. Cap at ~15 MB encoded (~11 MB PDF).
-        if (input.pdfBase64.length > 15_000_000) {
-          throw new Error("PDF_TOO_LARGE: Please upload a PDF under 10 MB.");
-        }
-
-        const { extractFromPdf } = await import("./_core/llm");
-
-        const systemInstruction = `You are an expert biomass and biochar characterization analyst.
-
-The user has uploaded a peer-reviewed lab analysis PDF of a biomass and/or biochar sample.
-
-Your task: extract structured data from the document. Return null for any field not present.
-
-Units expected (use these if the document uses compatible units):
-- Proximate analysis: % dry basis (moisture: % as-received)
-- Elemental (CHONS): % by mass, dry basis
-- H:Corg ratio: molar (dimensionless, typical biochar range 0.1–0.5)
-- BET surface area: m²/g
-- Pore volume: cm³/g
-- Pore diameter: nm
-- Pyrolysis temperature: °C
-- Residence time: minutes
-- Heavy metals: µg/g (or ppm, same thing)
-- pH: dimensionless (1–14 scale)
-
-If the document reports values in different units (e.g., MJ/kg, Btu/lb), convert them.
-
-If C% of biochar is provided but H:Corg molar ratio is not, compute it from:
-  H:Corg = (H_mass / 1.008) / (C_mass / 12.011)
-
-Be precise: only extract values that are explicitly stated or clearly calculable. Do not invent data.`;
-
-        const jsonSchema = {
-          type: "object",
-          properties: {
-            biomassName: { type: ["string", "null"], description: "Common or scientific name of the biomass" },
-            biomass: {
-              type: "object",
-              properties: {
-                C: { type: ["number", "null"] },
-                H: { type: ["number", "null"] },
-                N: { type: ["number", "null"] },
-                S: { type: ["number", "null"] },
-                O: { type: ["number", "null"] },
-                ash: { type: ["number", "null"] },
-                moisture: { type: ["number", "null"] },
-                volatileMatter: { type: ["number", "null"] },
-                fixedCarbon: { type: ["number", "null"] },
-              },
-            },
-            pyrolysis: {
-              type: "object",
-              properties: {
-                temperature: { type: ["number", "null"] },
-                residenceTime: { type: ["number", "null"] },
-                atmosphere: { type: ["string", "null"] },
-                heatingRate: { type: ["number", "null"] },
-              },
-            },
-            biochar: {
-              type: "object",
-              properties: {
-                C: { type: ["number", "null"] },
-                H: { type: ["number", "null"] },
-                N: { type: ["number", "null"] },
-                S: { type: ["number", "null"] },
-                O: { type: ["number", "null"] },
-                HCorgMolar: { type: ["number", "null"] },
-                BET: { type: ["number", "null"] },
-                poreVolume: { type: ["number", "null"] },
-                poreDiameter: { type: ["number", "null"] },
-                pH: { type: ["number", "null"] },
-                thermalStability: { type: ["number", "null"] },
-              },
-            },
-            heavyMetals: {
-              type: "object",
-              description: "µg/g (ppm). Include only metals explicitly reported.",
-              properties: {
-                Pb: { type: ["number", "null"] },
-                Cd: { type: ["number", "null"] },
-                Cr: { type: ["number", "null"] },
-                Cu: { type: ["number", "null"] },
-                Ni: { type: ["number", "null"] },
-                Zn: { type: ["number", "null"] },
-                Hg: { type: ["number", "null"] },
-                As: { type: ["number", "null"] },
-              },
-            },
-            source: { type: ["string", "null"], description: "Document source (e.g. CONICET ST7446, citation if present)" },
-            notes: { type: ["string", "null"], description: "Brief notes on variability, method, or caveats" },
-          },
-        };
-
-        let responseText: string;
-        try {
-          responseText = await extractFromPdf({
-            pdfBase64: input.pdfBase64,
-            systemInstruction,
-            userPrompt: "Extract the biomass and biochar characterization data from this lab analysis document.",
-            jsonSchema,
-          });
-        } catch (err: any) {
-          const msg = err?.message || String(err);
-          console.error("[extractLabAnalysis] LLM call failed:", msg);
-          // Surface known Gemini error types with actionable messages
-          if (/429|quota|rate limit|rate_limit|Too Many Requests/i.test(msg)) {
-            throw new Error("AI_QUOTA_EXCEEDED: Our AI extraction service is temporarily over capacity. Please try again in a few minutes, or fill in the form manually.");
-          }
-          if (/invalid api key|api key not valid|unauthor/i.test(msg)) {
-            throw new Error("AI_UNAVAILABLE: AI extraction is not configured. Please fill in the form manually for now.");
-          }
-          if (/timeout|ETIMEDOUT|ECONNRESET/i.test(msg)) {
-            throw new Error("AI_TIMEOUT: The extraction took too long. Try a smaller PDF or fill in the form manually.");
-          }
-          throw new Error(`AI_UNAVAILABLE: Extraction service error. ${msg.slice(0, 200)}`);
-        }
-
-        let parsed: any;
-        try {
-          parsed = JSON.parse(responseText);
-        } catch (e) {
-          console.error("[extractLabAnalysis] JSON parse failed:", responseText.slice(0, 500));
-          throw new Error("EXTRACTION_FAILED: Could not parse the document. Please try a clearer PDF or fill the form manually.");
-        }
+        // Delegate to the shared extraction helper so the REST API and this
+        // tRPC procedure produce identical results from the same PDF.
+        const { runLabAnalysisExtraction } = await import("./_core/labAnalysisExtraction");
+        const parsed = await runLabAnalysisExtraction(input.pdfBase64);
 
         // Persist for platform learning
         const sqlite = getRawDb();
@@ -721,7 +615,7 @@ Be precise: only extract values that are explicitly stated or clearly calculable
             JSON.stringify(parsed.biomass ?? {}),
             JSON.stringify(parsed.biochar ?? {}),
             JSON.stringify(parsed.heavyMetals ?? {}),
-            responseText,
+            JSON.stringify(parsed),
             input.allowPublicUse ? 1 : 0,
             Date.now(),
           );
@@ -766,7 +660,7 @@ Be precise: only extract values that are explicitly stated or clearly calculable
     create: protectedProcedure
       .input(z.object({ name: z.string().min(1).max(100).default("Default") }))
       .mutation(({ ctx, input }) => {
-        if (!tierHasAccess(ctx.user.subscriptionTier ?? "free", "developer", ctx.user.subscriptionStatus ?? "inactive")) {
+        if (!hasTierAccessForUser(ctx.user, "developer")) {
           throw new Error("UPGRADE_REQUIRED: API keys require Developer tier or higher.");
         }
         const sqlite = getRawDb();

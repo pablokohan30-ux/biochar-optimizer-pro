@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,7 +16,6 @@ import { useTier } from "@/hooks/useTier";
 import { compute_all, FEEDSTOCK_DB, type Feedstock, type BiocharResult } from "@/lib/biocharModel";
 import { getFeedstockName } from "@/lib/feedstockI18n";
 import UpgradeModal from "@/components/UpgradeModal";
-import SiteFooter from "@/components/SiteFooter";
 import PageLoader from "@/components/PageLoader";
 import AppLayout from "@/components/AppLayout";
 
@@ -137,10 +136,13 @@ export default function BatchComparison() {
     URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    if (!authLoading && !user) setLocation("/login");
+  }, [authLoading, user, setLocation]);
+
   if (authLoading || tierLoading) return <PageLoader />;
 
   if (!user) {
-    setLocation("/login");
     return null;
   }
 
@@ -212,9 +214,13 @@ export default function BatchComparison() {
                 className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs"
               >
                 <option value="" disabled>{t("addFeedstock")}</option>
-                {feedstockEntries.filter(([id]) => !selectedIds.includes(id)).map(([id, fs]) => (
-                  <option key={id} value={id}>{getFeedstockName(id, fs.name, tFs)}</option>
-                ))}
+                {feedstockEntries
+                  .filter(([id]) => !selectedIds.includes(id))
+                  .map(([id, fs]) => ({ id, fs, name: getFeedstockName(id, fs.name, tFs) }))
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+                  .map(({ id, name }) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
               </select>
             </div>
           </div>
@@ -325,9 +331,6 @@ export default function BatchComparison() {
             </div>
           </div>
         )}
-      </div>
-      <div className="mt-8">
-        <SiteFooter />
       </div>
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} featureName={t("title")} requiredTier="developer" />
     </AppLayout>

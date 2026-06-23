@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Activity, Flame } from "lucide-react";
+import { BRAND_WORDMARK } from "@/lib/brand";
 
 type LogoLinkProps = {
   variant?: "default" | "compact";
@@ -28,13 +29,13 @@ export default function LogoLink({
           <Icon className={isCompact ? "w-4 h-4" : "w-6 h-6"} />
         </div>
         <div>
-          <h1
+          <div
             className={`font-bold tracking-wider text-primary ${
               isCompact ? "text-sm" : "text-lg"
             } group-hover:opacity-80 transition-opacity`}
           >
-            BIOCHAR OPTIMIZER PRO
-          </h1>
+            {BRAND_WORDMARK}
+          </div>
           {showSubtitle && !isCompact && (
             <p className="text-xs text-muted-foreground uppercase tracking-widest">
               {subtitle}

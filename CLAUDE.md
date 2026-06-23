@@ -16,9 +16,10 @@ Working notes for Claude Code to reference across sessions.
   - Analyst ($299/mo) — + LCA, projects, Puro.earth pre-assessment, lab PDF upload
   - Developer ($499/mo) — + Batch comparison, REST API
   - Engineer ($799/mo) — + PDD Builder (11 workstreams), equipment/layout/electrical templates
-  - Expert ($999/mo) — not built yet
+  - Expert ($999/mo) — + **AI Project Builder** (flagship, Apr 23 2026): input biomass + capacity + country → AI generates 15-doc package. Grounded in 9 real pyrolyzers + 20 countries' grid EFs + 13 countries' regulatory authorities. ~3 min, ~$0.021 LLM cost. Export as PDF + Open-in-PDD-Builder handoff.
 - **Billing cycles:** monthly (full price) or quarterly (20% off, billed every 3 months)
-- **Test user:** `test@biocharpro.io` / `biochar2026` (Engineer tier, active)
+- **Test user:** `test@biocharpro.io` / `biochar2026` (Expert tier, admin role, active)
+- **Admin dashboard:** `/admin/ai-stats` — requires user role='admin'. Live tokens/cost stats for the AI Builder.
 
 ## Language & communication preferences
 
@@ -102,7 +103,8 @@ Both are integrations of external SaaS products into our codebase, not Claude pl
 
 ## Key feature flows
 
-- **Lab analysis PDF upload:** Home.tsx → `trpc.biomass.extractLabAnalysis` → Gemini extracts structured JSON → pre-fills custom feedstock form → optionally saves to `lab_analyses` table for platform learning (opt-in)
+- **Lab analysis PDF upload:** Home.tsx → `trpc.biomass.extractLabAnalysis` → Gemini extracts structured JSON → pre-fills custom feedstock form → optionally saves to `lab_analyses` table for platform learning (opt-in). Also usable as biomass input in the AI Project Builder (Expert tier).
+- **AI Project Builder:** `/ai-builder` (Expert tier). Input biomass + capacity + country → backend (`aiBuilderRouter.create`) queues 15-doc generation via `server/_core/aiProjectBuilder.ts`. Each doc has a prompt template with a grounding block (grid EFs, regulatory authorities, pyrolyzer catalog, CAPEX benchmarks). Parallel generation (concurrency 5), progressive UI update via polling. `aiGeneratedProjects` DB table tracks state + token usage. `/ai-builder/:id/print` renders a print-friendly PDF bundle. `/ai-builder/:id` → "Open in PDD Builder" creates a regular Project + writes flattened answers to `localStorage["pdd_<projectId>"]` so the existing PDD Builder picks them up.
 - **PDD Builder:** `/pdd/:projectId`, Engineer tier only, 11 workstreams × N questions, localStorage-persisted, `client/src/lib/pddTemplate.ts`
 - **Batch Comparison:** `/batch`, Developer+ tier, compares up to 48 feedstocks at once at same T/time, CSV export
 - **REST API:** `/api` dashboard for key management, `server/apiRouter.ts` for `/api/v1/simulate`, `/batch`, `/feedstocks`

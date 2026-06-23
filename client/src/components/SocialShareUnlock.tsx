@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { X, Linkedin, Link2, CheckCircle, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { BRAND_NAME } from "@/lib/brand";
 
 const SITE_URL = "https://biocharpro.io";
 
@@ -49,7 +50,7 @@ export default function SocialShareUnlock({ open, onClose, onUnlocked }: SocialS
 
   // Use the same bilingual share template as the Carbon Forum pass
   const shareText = tp("shareTemplate");
-  const linkedInShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(SITE_URL)}&title=${encodeURIComponent("Biochar Optimizer Pro")}&summary=${encodeURIComponent(shareText)}`;
+  const linkedInShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(SITE_URL)}&title=${encodeURIComponent(BRAND_NAME)}&summary=${encodeURIComponent(shareText)}`;
   const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(SITE_URL)}`;
 
   const utils = trpc.useUtils();

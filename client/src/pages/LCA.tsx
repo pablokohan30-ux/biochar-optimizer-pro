@@ -3,8 +3,8 @@ import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Lock, Flame, Sparkles, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import GuideLink from "@/components/GuideLink";
 import LCAModule from "@/components/LCAModule";
-import SiteFooter from "@/components/SiteFooter";
 import { useTier } from "@/hooks/useTier";
 import { Button } from "@/components/ui/button";
 import type { LCAInputs } from "@/lib/lcaModel";
@@ -65,16 +65,19 @@ export default function LCAPage() {
       fullBleed
     >
       <div className="max-w-[1600px] mx-auto px-4 py-4 min-h-[calc(100vh-120px)]">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 mb-2 text-muted-foreground -ml-2"
-          onClick={() => {
-            setLocation("/app");
-          }}
-        >
-          <ArrowLeft className="w-3 h-3" /> {t("back")}
-        </Button>
+        <div className="flex items-center justify-between mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-muted-foreground -ml-2"
+            onClick={() => {
+              setLocation("/app");
+            }}
+          >
+            <ArrowLeft className="w-3 h-3" /> {t("back")}
+          </Button>
+          <GuideLink anchor="resultados-lca" label="Cómo leer el LCA" />
+        </div>
 
         {canAccess ? (
           <>
@@ -132,7 +135,6 @@ export default function LCAPage() {
           </div>
         )}
       </div>
-      <SiteFooter />
     </AppLayout>
   );
 }

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { captureSentryEvent } from "./_core/sentry";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-03-31.basil" });
 
@@ -70,7 +71,31 @@ stripeWebhookRouter.post("/api/stripe/webhook", (req: Request, res: Response) =>
             subscriptionStatus: "active",
             accessExpiresAt: null, // clear any leftover pass expiry
           }).where(eq(users.id, userId)).run();
-          console.log(`[Stripe Webhook] Activated ${tierId} for user ${userId}`);
+
+          // High-value log when someone upgrades to Expert ($999/mo or $2397/q).
+          // These are rare and worth alerting on. Also surfaces in Sentry's
+          // "info"-level breadcrumb feed if Sentry is configured.
+          if (tierId === "expert") {
+            const customerId = session.customer as string | null;
+            const amountTotal = session.amount_total; // in cents
+            const currency = session.currency;
+            const billingCycle = session.metadata?.billing_cycle ?? "unknown";
+            const userEmail = session.customer_details?.email ?? "unknown";
+            // Prominent, searchable log line — greppable in Fly logs.
+            console.log(`💎 [EXPERT SIGNUP] user=${userId} email=${userEmail} customer=${customerId} amount=${amountTotal} ${currency?.toUpperCase()} cycle=${billingCycle} ts=${new Date().toISOString()}`);
+            // Emit a Sentry info event so the signup shows up on the dashboard
+            // alongside errors — gives a "someone just bought Expert" signal.
+            captureSentryEvent("expert_signup", {
+              userId,
+              userEmail,
+              customerId,
+              amountTotal,
+              currency,
+              billingCycle,
+            });
+          } else {
+            console.log(`[Stripe Webhook] Activated ${tierId} for user ${userId}`);
+          }
         }
         break;
       }

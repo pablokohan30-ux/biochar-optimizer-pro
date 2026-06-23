@@ -35,7 +35,7 @@ export default function SiteFooter() {
   };
 
   return (
-    <footer className="border-t border-border py-10 mt-12">
+    <footer className="border-t border-border py-8">
       <div className="max-w-7xl mx-auto px-4 flex flex-col gap-6">
         {/* Row 1: verify search (prominent, certifier-facing) */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
@@ -55,7 +55,7 @@ export default function SiteFooter() {
               onChange={(e) => setBopQuery(e.target.value)}
               placeholder={t("footer.verifyPlaceholder", { defaultValue: "BOP-2026-0042" })}
               className="flex-1 min-w-0 px-3 py-1.5 text-xs font-mono bg-background border border-border rounded-md focus:border-primary focus:outline-none"
-              aria-label={t("footer.verifyAriaLabel", { defaultValue: "Ingresá un BOP ID" })}
+              aria-label={t("footer.verifyAriaLabel", { defaultValue: "Ingresa un BOP ID" })}
             />
             <button
               type="submit"
@@ -67,7 +67,7 @@ export default function SiteFooter() {
           </form>
           <p className="text-[10px] text-muted-foreground sm:max-w-[220px] leading-snug">
             {t("footer.verifyHint", {
-              defaultValue: "¿Recibiste un PDF con un código BOP? Pegá el ID acá para confirmarlo.",
+              defaultValue: "¿Recibiste un PDF con un código BOP? Pega el ID aquí para confirmarlo.",
             })}
           </p>
         </div>
@@ -81,8 +81,8 @@ export default function SiteFooter() {
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <Link href="/app" className="hover:text-foreground transition-colors">{t("nav.simulator")}</Link>
             <Link href="/pricing" className="hover:text-foreground transition-colors">{t("nav.pricing")}</Link>
+            <Link href="/guide" className="hover:text-foreground transition-colors">{t("footer.guide", { defaultValue: "Guía" })}</Link>
             <Link href="/company/about" className="hover:text-foreground transition-colors">{t("footer.about", { defaultValue: "About" })}</Link>
-            <Link href="/company/partners" className="hover:text-foreground transition-colors">{t("footer.partners", { defaultValue: "Partners" })}</Link>
             <Link href="/pricing#contact" className="hover:text-foreground transition-colors">{t("footer.contact")}</Link>
             <span className="text-border">·</span>
             <Link href="/legal/terms" className="hover:text-foreground transition-colors">{t("footer.terms")}</Link>

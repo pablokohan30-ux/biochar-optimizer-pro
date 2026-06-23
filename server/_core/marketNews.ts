@@ -1,5 +1,10 @@
 /**
- * Market news feed — fetches biochartoday.com RSS and parses into structured items.
+ * Market news feed — fetches biochartoday.com posts via WordPress REST API.
+ *
+ * Why WP REST instead of RSS: their RSS feed doesn't include featured images
+ * (no <media:thumbnail>, no <enclosure>, no <content:encoded>). The WP API
+ * with `_embed` returns the featured image URL natively, which lets the
+ * client render rich preview cards instead of text-only links.
  *
  * Cached in-memory for 1 hour to avoid hammering their server + keep our
  * response times fast.
@@ -13,7 +18,8 @@ export interface NewsItem {
   link: string;
   pubDate: string; // ISO string
   summary: string; // short, HTML-stripped
-  category?: string; // e.g. "Industry", "Science"
+  category?: string;
+  imageUrl?: string;
 }
 
 interface CachedFeed {
@@ -24,74 +30,85 @@ interface CachedFeed {
 let _cache: CachedFeed | null = null;
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
-const FEED_URL = "https://biochartoday.com/feed";
+const WP_API_URL = "https://biochartoday.com/wp-json/wp/v2/posts";
 
-/**
- * Minimal RSS 2.0 parser — we don't need a full XML parser for this,
- * regex is fine for a simple known-format feed.
- */
-function parseRss(xml: string): NewsItem[] {
-  const items: NewsItem[] = [];
-  // Capture each <item>…</item> block
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match: RegExpExecArray | null;
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const block = match[1];
-    const title = extractTag(block, "title");
-    const link = extractTag(block, "link");
-    const pubDateRaw = extractTag(block, "pubDate");
-    const descriptionRaw = extractTag(block, "description");
-    const categoryRaw = extractTag(block, "category");
-
-    if (!title || !link) continue;
-
-    // Parse pubDate to ISO
-    let pubDate = pubDateRaw;
-    try {
-      pubDate = new Date(pubDateRaw).toISOString();
-    } catch {}
-
-    // Strip HTML from description
-    const summary = descriptionRaw
-      .replace(/<[^>]+>/g, "")
-      .replace(/&[a-z]+;/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 280);
-
-    items.push({
-      title: decodeEntities(title),
-      link: decodeEntities(link),
-      pubDate,
-      summary: decodeEntities(summary),
-      category: categoryRaw ? decodeEntities(categoryRaw) : undefined,
-    });
-  }
-  return items;
+interface WpPost {
+  link: string;
+  date_gmt?: string;
+  date?: string;
+  title?: { rendered?: string };
+  excerpt?: { rendered?: string };
+  categories?: number[];
+  _embedded?: {
+    "wp:featuredmedia"?: Array<{ source_url?: string; media_details?: { sizes?: Record<string, { source_url?: string; width?: number }> } }>;
+    "wp:term"?: Array<Array<{ name?: string; taxonomy?: string }>>;
+  };
 }
 
-function extractTag(block: string, tag: string): string {
-  // Match <tag>…</tag> or <tag><![CDATA[…]]></tag>
-  const cdata = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i");
-  const cdataMatch = block.match(cdata);
-  if (cdataMatch) return cdataMatch[1].trim();
-  const plain = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
-  const plainMatch = block.match(plain);
-  return plainMatch ? plainMatch[1].trim() : "";
-}
-
-function decodeEntities(s: string): string {
-  return s
+/** Strip HTML, decode entities, trim to N chars. */
+function cleanText(html: string, maxLen = 280): string {
+  return html
+    .replace(/<[^>]+>/g, "")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
+    .replace(/&apos;/g, "'")
+    .replace(/&hellip;/g, "…")
+    .replace(/&[a-z0-9#]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLen);
+}
+
+/** Pick the most reasonable image size — prefer `medium_large` (~768px wide). */
+function pickImageUrl(post: WpPost): string | undefined {
+  const media = post._embedded?.["wp:featuredmedia"]?.[0];
+  if (!media) return undefined;
+  const sizes = media.media_details?.sizes ?? {};
+  // Prefer mid-size to keep payloads light + render fast.
+  return (
+    sizes.medium_large?.source_url ??
+    sizes.medium?.source_url ??
+    sizes.large?.source_url ??
+    sizes.full?.source_url ??
+    media.source_url
+  );
+}
+
+/** Pick the first non-generic category (skip "News", "Biochar"). */
+function pickCategory(post: WpPost): string | undefined {
+  const terms = post._embedded?.["wp:term"]?.[0];
+  if (!terms) return undefined;
+  const skip = new Set(["news", "biochar"]);
+  for (const term of terms) {
+    if (term.name && !skip.has(term.name.toLowerCase())) return term.name;
+  }
+  return terms[0]?.name;
+}
+
+function mapPostToItem(post: WpPost): NewsItem | null {
+  const title = post.title?.rendered ? cleanText(post.title.rendered, 200) : "";
+  const link = post.link;
+  if (!title || !link) return null;
+
+  const pubDateRaw = post.date_gmt ?? post.date;
+  let pubDate = pubDateRaw ?? "";
+  try { if (pubDateRaw) pubDate = new Date(pubDateRaw).toISOString(); } catch {}
+
+  return {
+    title,
+    link,
+    pubDate,
+    summary: post.excerpt?.rendered ? cleanText(post.excerpt.rendered, 240) : "",
+    category: pickCategory(post),
+    imageUrl: pickImageUrl(post),
+  };
 }
 
 /**
- * Fetch the latest items from biochartoday.com. Cached 1h.
+ * Fetch the latest items from biochartoday.com via WP REST. Cached 1h.
  * Returns up to `limit` items, sorted by pubDate desc.
  */
 export async function fetchBiocharToday(limit = 10): Promise<NewsItem[]> {
@@ -103,21 +120,23 @@ export async function fetchBiocharToday(limit = 10): Promise<NewsItem[]> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(FEED_URL, {
+    // Ask for embedded media + terms so we get featured images and category names.
+    const url = `${WP_API_URL}?_embed&per_page=${Math.max(limit, 10)}&orderby=date&order=desc`;
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent": "BiocharOptimizerPro/1.0 (market pulse aggregator)",
-        Accept: "application/rss+xml, application/xml, text/xml",
+        Accept: "application/json",
       },
     });
     clearTimeout(timeout);
 
-    if (!res.ok) throw new Error(`Feed returned ${res.status}`);
-    const xml = await res.text();
-    const items = parseRss(xml);
-
-    // Sort by pubDate desc
-    items.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+    if (!res.ok) throw new Error(`WP API returned ${res.status}`);
+    const posts = (await res.json()) as WpPost[];
+    const items = posts
+      .map(mapPostToItem)
+      .filter((i): i is NewsItem => i !== null)
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
     _cache = { fetchedAt: Date.now(), items };
     return items.slice(0, limit);

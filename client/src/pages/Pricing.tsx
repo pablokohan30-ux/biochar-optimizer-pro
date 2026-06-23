@@ -3,11 +3,14 @@ import { CheckCircle, X, ArrowLeft, Send, AlertCircle, Sparkles, FileSpreadsheet
 import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
-import CarbonForumPassButton from "@/components/CarbonForumPassButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId, type BillingCycle } from "@/components/SubscribeButton";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PUBLIC_TIER_BY_ID } from "@/lib/pricingCatalog";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { isCorporateEmail } from "@shared/corporateEmail";
 
 type FeatureRow = {
   label: string;
@@ -18,20 +21,7 @@ type FeatureRow = {
   expert: boolean | string;
 };
 
-const PERSONAL_EMAIL_DOMAINS = [
-  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "yahoo.es", "yahoo.fr",
-  "hotmail.com", "hotmail.co.uk", "hotmail.es", "hotmail.fr", "outlook.com",
-  "live.com", "msn.com", "icloud.com", "me.com", "mac.com",
-  "aol.com", "protonmail.com", "proton.me", "tutanota.com", "tutamail.com",
-  "mail.com", "gmx.com", "gmx.net", "yandex.com", "yandex.ru",
-  "zoho.com", "inbox.com", "fastmail.com", "hey.com",
-];
-
-function isCorporateEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain) return false;
-  return !PERSONAL_EMAIL_DOMAINS.includes(domain);
-}
+const SALES_EMAIL = "legal@biocharpro.io";
 
 const FEATURES: FeatureRow[] = [
   // Free
@@ -52,48 +42,87 @@ const FEATURES: FeatureRow[] = [
   // Developer
   { label: "pricing:features.batchProcessing",         free: false, analyst: false, developer: true,  engineer: true,  expert: true },
   { label: "pricing:features.apiAccess",               free: false, analyst: false, developer: true,  engineer: true,  expert: true },
+  { label: "pricing:features.whiteLabel",              free: false, analyst: false, developer: true,  engineer: true,  expert: true },
   // Engineer
+  { label: "pricing:features.aiProjectBuilder",        free: false, analyst: false, developer: false, engineer: true,  expert: true },
+  { label: "pricing:features.aiProjectPackageExport",  free: false, analyst: false, developer: false, engineer: true,  expert: true },
   { label: "pricing:features.pddBuilder",              free: false, analyst: false, developer: false, engineer: true,  expert: true },
   { label: "pricing:features.equipmentLayout",         free: false, analyst: false, developer: false, engineer: true,  expert: true },
   { label: "pricing:features.electricalPackage",       free: false, analyst: false, developer: false, engineer: true,  expert: true },
   { label: "pricing:features.qualityControl",          free: false, analyst: false, developer: false, engineer: true,  expert: true },
   // Expert
-  { label: "pricing:features.whiteLabel",              free: false, analyst: false, developer: false, engineer: false, expert: true },
   { label: "pricing:features.portfolioDashboard",      free: false, analyst: false, developer: false, engineer: false, expert: true },
   { label: "pricing:features.customLca",               free: false, analyst: false, developer: false, engineer: false, expert: true },
   { label: "pricing:features.accountManager",          free: false, analyst: false, developer: false, engineer: false, expert: true },
+  // Operational pipeline (Stage 3 + 4) — Microsoft/Frontier DD demands operational evidence, not just paperwork
+  { label: "pricing:features.operationalEvidence",     free: false, analyst: false, developer: false, engineer: false, expert: true },
+  { label: "pricing:features.offtakeTracking",         free: false, analyst: false, developer: false, engineer: false, expert: true },
+  { label: "pricing:features.communityImpact",         free: false, analyst: false, developer: false, engineer: false, expert: true },
+  { label: "pricing:features.buyerReadiness",          free: false, analyst: false, developer: false, engineer: false, expert: true },
+  { label: "pricing:features.buyerMatch",              free: false, analyst: false, developer: false, engineer: false, expert: true },
+  { label: "pricing:features.auditPackage",            free: false, analyst: false, developer: false, engineer: false, expert: true },
 ];
 
 const TIERS = [
   {
     id: "free", nameKey: "pricing:tiers.explorer.name",
-    monthlyPrice: 0, quarterlyPerMonth: 0, quarterlyTotal: 0, savings: 0,
+    monthlyPrice: PUBLIC_TIER_BY_ID.free.monthlyPriceUsd,
+    quarterlyPerMonth: PUBLIC_TIER_BY_ID.free.quarterlyPerMonthUsd,
+    quarterlyTotal: PUBLIC_TIER_BY_ID.free.quarterlyTotalUsd,
+    savings: PUBLIC_TIER_BY_ID.free.savingsUsd,
+    status: PUBLIC_TIER_BY_ID.free.status,
     color: "text-foreground", bg: "bg-secondary/30", borderColor: "border-border",
     descKey: "pricing:tiers.explorer.description",
+    bestForKey: "pricing:tiers.explorer.bestFor",
+    outcomeKey: "pricing:tiers.explorer.outcome",
   },
   {
     id: "analyst", nameKey: "pricing:tiers.analyst.name",
-    monthlyPrice: 299, quarterlyPerMonth: 239, quarterlyTotal: 717, savings: (299 - 239) * 3,
+    monthlyPrice: PUBLIC_TIER_BY_ID.analyst.monthlyPriceUsd,
+    quarterlyPerMonth: PUBLIC_TIER_BY_ID.analyst.quarterlyPerMonthUsd,
+    quarterlyTotal: PUBLIC_TIER_BY_ID.analyst.quarterlyTotalUsd,
+    savings: PUBLIC_TIER_BY_ID.analyst.savingsUsd,
+    status: PUBLIC_TIER_BY_ID.analyst.status,
     color: "text-green-600 dark:text-green-400", bg: "bg-green-500/5", borderColor: "border-green-500/40", popular: true,
     descKey: "pricing:tiers.analyst.description",
+    bestForKey: "pricing:tiers.analyst.bestFor",
+    outcomeKey: "pricing:tiers.analyst.outcome",
   },
   {
     id: "developer", nameKey: "pricing:tiers.developer.name",
-    monthlyPrice: 499, quarterlyPerMonth: 399, quarterlyTotal: 1197, savings: (499 - 399) * 3,
+    monthlyPrice: PUBLIC_TIER_BY_ID.developer.monthlyPriceUsd,
+    quarterlyPerMonth: PUBLIC_TIER_BY_ID.developer.quarterlyPerMonthUsd,
+    quarterlyTotal: PUBLIC_TIER_BY_ID.developer.quarterlyTotalUsd,
+    savings: PUBLIC_TIER_BY_ID.developer.savingsUsd,
+    status: PUBLIC_TIER_BY_ID.developer.status,
     color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/5", borderColor: "border-blue-500/40",
     descKey: "pricing:tiers.developer.description",
+    bestForKey: "pricing:tiers.developer.bestFor",
+    outcomeKey: "pricing:tiers.developer.outcome",
   },
   {
     id: "engineer", nameKey: "pricing:tiers.engineer.name",
-    monthlyPrice: 799, quarterlyPerMonth: 639, quarterlyTotal: 1917, savings: (799 - 639) * 3,
-    color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/5", borderColor: "border-purple-500/40", comingSoon: true,
+    monthlyPrice: PUBLIC_TIER_BY_ID.engineer.monthlyPriceUsd,
+    quarterlyPerMonth: PUBLIC_TIER_BY_ID.engineer.quarterlyPerMonthUsd,
+    quarterlyTotal: PUBLIC_TIER_BY_ID.engineer.quarterlyTotalUsd,
+    savings: PUBLIC_TIER_BY_ID.engineer.savingsUsd,
+    status: PUBLIC_TIER_BY_ID.engineer.status,
+    color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/5", borderColor: "border-purple-500/40", comingSoon: PUBLIC_TIER_BY_ID.engineer.status === "waitlist",
     descKey: "pricing:tiers.engineer.description",
+    bestForKey: "pricing:tiers.engineer.bestFor",
+    outcomeKey: "pricing:tiers.engineer.outcome",
   },
   {
     id: "expert", nameKey: "pricing:tiers.expert.name",
-    monthlyPrice: 999, quarterlyPerMonth: 799, quarterlyTotal: 2397, savings: (999 - 799) * 3,
-    color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/5", borderColor: "border-amber-500/40", comingSoon: true,
+    monthlyPrice: PUBLIC_TIER_BY_ID.expert.monthlyPriceUsd,
+    quarterlyPerMonth: PUBLIC_TIER_BY_ID.expert.quarterlyPerMonthUsd,
+    quarterlyTotal: PUBLIC_TIER_BY_ID.expert.quarterlyTotalUsd,
+    savings: PUBLIC_TIER_BY_ID.expert.savingsUsd,
+    status: PUBLIC_TIER_BY_ID.expert.status,
+    color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/5", borderColor: "border-amber-500/40",
     descKey: "pricing:tiers.expert.description",
+    bestForKey: "pricing:tiers.expert.bestFor",
+    outcomeKey: "pricing:tiers.expert.outcome",
   },
 ];
 
@@ -107,8 +136,17 @@ function EnterpriseContact() {
   const { t } = useTranslation("pricing");
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
-  const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const submitInquiry = trpc.launch.submitInquiry.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setForm({ name: "", email: "", company: "", message: "" });
+      setEmailError("");
+    },
+    onError: (error) => {
+      toast.error(error.message || t("enterprise.submitError"));
+    },
+  });
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -122,14 +160,21 @@ function EnterpriseContact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isCorporateEmail(form.email)) {
+    const trimmedEmail = form.email.trim();
+    if (!isCorporateEmail(trimmedEmail)) {
       setEmailError(t("enterprise.corporateOnly"));
       return;
     }
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      await submitInquiry.mutateAsync({
+        name: form.name.trim(),
+        email: trimmedEmail,
+        company: form.company.trim(),
+        message: form.message.trim(),
+      });
+    } catch {
+      // Toast handled in mutation onError.
+    }
   };
 
   return (
@@ -141,8 +186,8 @@ function EnterpriseContact() {
             {t("enterprise.subtitle")}
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            {t("enterprise.orEmail", { defaultValue: "Or email us directly at" })}{" "}
-            <a href="mailto:contacto@3verde.com" className="text-primary hover:underline">contacto@3verde.com</a>
+            {t("enterprise.orEmail", { defaultValue: "O escríbenos directamente a" })}{" "}
+            <a href={`mailto:${SALES_EMAIL}`} className="text-primary hover:underline">{SALES_EMAIL}</a>
           </p>
         </div>
         {submitted ? (
@@ -210,8 +255,8 @@ function EnterpriseContact() {
               />
             </div>
             <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit" disabled={loading || !!emailError} className="gap-2">
-                {loading ? t("enterprise.sending") : (<><Send className="w-4 h-4" /> {t("enterprise.send")}</>)}
+              <Button type="submit" disabled={submitInquiry.isPending || !!emailError} className="gap-2">
+                {submitInquiry.isPending ? t("enterprise.sending") : (<><Send className="w-4 h-4" /> {t("enterprise.send")}</>)}
               </Button>
             </div>
           </form>
@@ -284,53 +329,18 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Carbon Forum special promo */}
-        <div className="relative mb-6 overflow-hidden rounded-xl border-2 border-green-500/40 bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-transparent p-4 md:p-5">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <div className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {t("pricing:carbonForumPromo.badge")}
-                </div>
-                <div className="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  {t("pricing:carbonForumPromo.limitedTime")}
-                </div>
-              </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-1">
-                {t("pricing:carbonForumPromo.title")}{" "}
-                <span className="text-foreground">$100</span>
-                <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
-                  {t("pricing:carbonForumPromo.orShareToSave")}
-                </span>
-                <span className="text-xs text-muted-foreground font-normal ml-2">{t("pricing:carbonForumPromo.access30days")}</span>
-              </h2>
-              <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.simulator")}</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.optimizer")}</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.pdf")}</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.projects")}</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.lca")}</li>
-                <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("pricing:carbonForumPromo.features.aiSearch")}</li>
-              </ul>
-            </div>
-            <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
-              <CarbonForumPassButton />
-              <p className="text-xs text-center md:text-right text-muted-foreground max-w-[220px] leading-snug">
-                {t("pricing:carbonForumPromo.shareHint")}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 max-w-5xl mx-auto">
           {TIERS.map((tier) => {
             const isComingSoon = !!(tier as any).comingSoon;
             const localizedName = t(tier.nameKey);
             const localizedDesc = t(tier.descKey);
+            const localizedBestFor = t((tier as any).bestForKey);
+            const localizedOutcome = t((tier as any).outcomeKey);
             const isQuarterly = billingCycle === "quarterly";
             const isPaid = tier.monthlyPrice > 0;
+            const tierStatus = (tier as any).status as "available" | "rollout" | "waitlist";
+            const showStatusBadge = tierStatus !== "available";
 
             return (
             <div key={tier.id} className={`${tier.bg} border ${tier.borderColor} rounded-xl p-5 relative ${(tier as any).popular ? "ring-2 ring-green-500/30" : ""}`}>
@@ -341,6 +351,15 @@ export default function Pricing() {
               )}
               <div className="text-center">
                 <div className={`font-bold text-base mb-1 ${tier.color}`}>{localizedName}</div>
+                {showStatusBadge && (
+                  <div className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] mb-2 ${
+                    tierStatus === "waitlist"
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      : "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+                  }`}>
+                    {t(`pricing:status.${tierStatus}`)}
+                  </div>
+                )}
                 <div className="text-3xl font-bold mb-0.5">
                   {!isPaid ? t("pricing:tiers.analyst.free") : `$${tier.monthlyPrice}`}
                 </div>
@@ -368,6 +387,20 @@ export default function Pricing() {
               <p className="text-[12px] text-muted-foreground leading-relaxed mt-3 mb-3 text-left">
                 {localizedDesc}
               </p>
+              <div className="space-y-2 mb-3 text-left">
+                <div className="rounded-lg border border-border/70 bg-background/70 px-3 py-2">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    {t("pricing:bestForLabel")}
+                  </div>
+                  <div className="text-xs text-foreground mt-0.5">{localizedBestFor}</div>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background/70 px-3 py-2">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    {t("pricing:outcomeLabel")}
+                  </div>
+                  <div className="text-xs text-foreground mt-0.5">{localizedOutcome}</div>
+                </div>
+              </div>
               {!isPaid ? (
                 <Link href="/app">
                   <Button size="sm" variant="outline" className="w-full text-xs">
@@ -384,7 +417,7 @@ export default function Pricing() {
                     setTimeout(() => setComingSoonAlert(null), 3000);
                   }}
                 >
-                  {t("pricing:tiers.analyst.subscribe")}
+                  {t("pricing:status.waitlistCta")}
                 </Button>
               ) : (
                 <SubscribeButton
@@ -408,7 +441,7 @@ export default function Pricing() {
             <Clock className="w-5 h-5 text-amber-500" />
             <div>
               <p className="text-sm font-semibold">{comingSoonAlert} — {t("pricing:comingSoon")}</p>
-              <p className="text-xs text-muted-foreground">{t("pricing:comingSoonDetail", { defaultValue: "We're building this tier. Contact us for early access." })}</p>
+              <p className="text-xs text-muted-foreground">{t("pricing:comingSoonDetail", { defaultValue: "Estamos construyendo este plan. Escríbenos si quieres acceso anticipado." })}</p>
             </div>
           </div>
         )}

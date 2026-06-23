@@ -10,8 +10,8 @@
  * 1.5 t/h, 650°C, 30 min, BALANCED goal). No mockups, no Lorem ipsum —
  * every tile shows the actual model output for that reference plant.
  *
- * Inspired by how Cula shows their supply-chain journey, but grounded in
- * OUR strength: pre-certification modeling.
+ * Inspired by how Cula shows their supply-chain journey with explicit
+ * "data inputs" per step — transparency about what the model uses.
  */
 
 import { useMemo } from "react";
@@ -19,7 +19,7 @@ import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   Leaf, Truck, Flame, Beaker, TrendingUp, Award,
-  ArrowRight, ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compute_all, FEEDSTOCK_DB } from "@/lib/biocharModel";
@@ -36,6 +36,25 @@ const REF = {
   transportKm: 80,
   country: "Colombia",
 };
+
+interface DataInput {
+  label: string;
+  value: string;
+}
+
+interface Step {
+  icon: any;
+  color: string;
+  bg: string;
+  border: string;
+  labelKey: string;
+  labelFallback: string;
+  value: string;
+  unit: string;
+  subKey: string;
+  subFallback: string;
+  inputs: DataInput[];
+}
 
 export default function ProjectJourney() {
   const { t, i18n } = useTranslation("landing");
@@ -54,7 +73,6 @@ export default function ProjectJourney() {
   const annualCO2 = annualBiochar * result.credits.net;
   const netCO2PerTFeedstock = result.credits.net * (result.yield_ / 100);
 
-  // Puro.earth score (auto checks only — no manual states in a public landing)
   const puroScore = useMemo(
     () =>
       calculateScore(METHODOLOGIES["puro-earth"], {
@@ -75,7 +93,8 @@ export default function ProjectJourney() {
       maximumFractionDigits: decimals,
     });
 
-  const steps = [
+  const steps: Step[] = [
+    // ─── 1. Biomass ──────────────────────────────────────────────────────
     {
       icon: Leaf,
       color: "text-green-500",
@@ -87,7 +106,16 @@ export default function ProjectJourney() {
       unit: "t / año",
       subKey: "journey.step1.sub",
       subFallback: "Cáscara de café · beneficios locales",
+      inputs: [
+        { label: t("journey.inputs.feedstockType", { defaultValue: "Biomasa" }), value: feedstock.name },
+        { label: t("journey.inputs.elementalC",    { defaultValue: "Carbono" }),   value: `${fmt(feedstock.C, 1)}%` },
+        { label: t("journey.inputs.elementalH",    { defaultValue: "Hidrógeno" }), value: `${fmt(feedstock.H, 2)}%` },
+        { label: t("journey.inputs.capacity",      { defaultValue: "Capacidad" }), value: `${REF.plantCapacityTph} t/h` },
+        { label: t("journey.inputs.hoursYear",     { defaultValue: "Operación" }), value: `${REF.annualHours.toLocaleString()} h/año` },
+      ],
     },
+
+    // ─── 2. Transport ────────────────────────────────────────────────────
     {
       icon: Truck,
       color: "text-amber-500",
@@ -99,7 +127,16 @@ export default function ProjectJourney() {
       unit: "km radius",
       subKey: "journey.step2.sub",
       subFallback: "Logística regional · bajo footprint",
+      inputs: [
+        { label: t("journey.inputs.sourceRadius", { defaultValue: "Radio de recolección" }), value: `≤ ${REF.transportKm} km` },
+        { label: t("journey.inputs.truckType",    { defaultValue: "Camión" }),                value: "Clase 8 · diésel" },
+        { label: t("journey.inputs.payload",      { defaultValue: "Carga útil" }),            value: "18 t" },
+        { label: t("journey.inputs.roundTrips",   { defaultValue: "Viajes/año (est.)" }),     value: `≈ ${fmt(annualFeedstock / 18, 0)}` },
+        { label: t("journey.inputs.emissionFactor", { defaultValue: "Factor emisión" }),      value: "0.08 kg CO₂e/t·km" },
+      ],
     },
+
+    // ─── 3. Pyrolysis ────────────────────────────────────────────────────
     {
       icon: Flame,
       color: "text-orange-500",
@@ -111,10 +148,19 @@ export default function ProjectJourney() {
       unit: `${REF.residenceTime} min · ${REF.plantCapacityTph} t/h`,
       subKey: "journey.step3.sub",
       subFallback: "Reactor continuo · régimen medio",
+      inputs: [
+        { label: t("journey.inputs.temperature",    { defaultValue: "Temperatura" }),       value: `${REF.temperature} °C` },
+        { label: t("journey.inputs.residenceTime",  { defaultValue: "Tiempo residencia" }), value: `${REF.residenceTime} min` },
+        { label: t("journey.inputs.reactorType",    { defaultValue: "Reactor" }),            value: "Tornillo continuo" },
+        { label: t("journey.inputs.atmosphere",     { defaultValue: "Atmósfera" }),          value: "Anóxica / bajo O₂" },
+        { label: t("journey.inputs.modelCalibration", { defaultValue: "Modelo" }),           value: "CINDECA/CONICET" },
+      ],
     },
+
+    // ─── 4. Biochar ──────────────────────────────────────────────────────
     {
       icon: Beaker,
-      color: "text-slate-400",
+      color: "text-muted-foreground/70",
       bg: "bg-slate-500/10",
       border: "border-slate-500/30",
       labelKey: "journey.step4.label",
@@ -123,7 +169,16 @@ export default function ProjectJourney() {
       unit: "t / año",
       subKey: "journey.step4.sub",
       subFallback: `C ${fmt(result.C)}% · H:Corg ${fmt(result.H_Corg, 3)}`,
+      inputs: [
+        { label: t("journey.inputs.yield",      { defaultValue: "Rendimiento de biochar" }),   value: `${fmt(result.yield_, 1)}%` },
+        { label: t("journey.inputs.carbonPct",  { defaultValue: "Carbono fijo" }),    value: `${fmt(result.C, 1)}%` },
+        { label: t("journey.inputs.hCorg",      { defaultValue: "H:Corg molar" }),    value: fmt(result.H_Corg, 3) },
+        { label: t("journey.inputs.bet",        { defaultValue: "BET superficie" }),   value: `${fmt(result.BET, 0)} m²/g` },
+        { label: t("journey.inputs.ph",         { defaultValue: "pH" }),               value: fmt(result.pH, 1) },
+      ],
     },
+
+    // ─── 5. CO₂ removal ──────────────────────────────────────────────────
     {
       icon: TrendingUp,
       color: "text-primary",
@@ -134,8 +189,17 @@ export default function ProjectJourney() {
       value: fmt(annualCO2, 0),
       unit: "t CO₂e / año",
       subKey: "journey.step5.sub",
-      subFallback: `Net ${fmt(netCO2PerTFeedstock, 2)} t CO₂e / t feedstock`,
+      subFallback: `Neto ${fmt(netCO2PerTFeedstock, 2)} t CO₂e / t biomasa`,
+      inputs: [
+        { label: t("journey.inputs.durabilityClass", { defaultValue: "Clase durabilidad" }), value: result.credits.class },
+        { label: t("journey.inputs.stabilityFactor", { defaultValue: "Factor de estabilidad" }),  value: fmt(result.credits.sf, 2) },
+        { label: t("journey.inputs.gross",           { defaultValue: "CO₂e bruto/t biochar" }), value: `${fmt(result.credits.gross, 2)} t` },
+        { label: t("journey.inputs.netPerFeedstock", { defaultValue: "CO₂e neto/t feedstock" }), value: `${fmt(netCO2PerTFeedstock, 2)} t` },
+        { label: t("journey.inputs.corcPrice",       { defaultValue: "Precio ref. CORC" }),   value: "USD 150/tCO₂e" },
+      ],
     },
+
+    // ─── 6. Score ────────────────────────────────────────────────────────
     {
       icon: Award,
       color: "text-purple-500",
@@ -146,7 +210,14 @@ export default function ProjectJourney() {
       value: `${puroScore.value}`,
       unit: "/100",
       subKey: "journey.step6.sub",
-      subFallback: `${puroScore.passed} / ${puroScore.results.length} checks · submission-ready`,
+      subFallback: `${puroScore.passed} / ${puroScore.results.length} chequeos · listo para enviar`,
+      inputs: [
+        { label: t("journey.inputs.methodology",    { defaultValue: "Metodología" }),       value: "Puro.earth Ed. 2025" },
+        { label: t("journey.inputs.autoChecks",     { defaultValue: "Chequeos automáticos" }),       value: `${puroScore.passed} / ${puroScore.results.length}` },
+        { label: t("journey.inputs.minTemp",        { defaultValue: "T ≥ 350°C" }),         value: REF.temperature >= 350 ? "✓" : "✗" },
+        { label: t("journey.inputs.hCorgCheck",     { defaultValue: "H:Corg < 0.7" }),       value: result.H_Corg < 0.7 ? "✓" : "✗" },
+        { label: t("journey.inputs.netPositive",    { defaultValue: "CO₂e neto > 0" }),      value: result.credits.net > 0 ? "✓" : "✗" },
+      ],
     },
   ];
 
@@ -156,7 +227,7 @@ export default function ProjectJourney() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-            {t("journey.badge", { defaultValue: "The carbon journey · biomass → CORC" })}
+            {t("journey.badge", { defaultValue: "El recorrido del carbono · biomasa → CORC" })}
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
             {t("journey.title", { defaultValue: "Un proyecto real, de punta a punta" })}
@@ -169,52 +240,65 @@ export default function ProjectJourney() {
           </p>
         </div>
 
-        {/* Steps grid — horizontal on desktop, vertical on mobile */}
-        <div className="relative">
-          {/* Desktop connector line */}
-          <div className="hidden lg:block absolute top-[52px] left-[6%] right-[6%] h-0.5 bg-gradient-to-r from-green-500/30 via-orange-500/30 via-slate-400/30 to-purple-500/30 pointer-events-none" />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 lg:gap-3 relative z-10">
-            {steps.map((step, idx) => {
-              const Icon = step.icon;
-              return (
-                <div key={idx} className="relative">
-                  {/* Mobile down-arrow connector */}
-                  {idx < steps.length - 1 && (
-                    <div className="lg:hidden absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
-                      <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
-                    </div>
-                  )}
-                  <div className="bg-card border border-border rounded-xl p-4 h-full flex flex-col items-center text-center hover:border-primary/40 transition-colors">
-                    {/* Step number + icon */}
-                    <div className="relative mb-3">
-                      <div className={`w-14 h-14 rounded-2xl ${step.bg} border-2 ${step.border} flex items-center justify-center`}>
-                        <Icon className={`w-6 h-6 ${step.color}`} />
-                      </div>
-                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
-                        {idx + 1}
-                      </div>
-                    </div>
-                    {/* Label */}
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                      {t(step.labelKey, { defaultValue: step.labelFallback })}
-                    </div>
-                    {/* Value */}
-                    <div className={`text-2xl font-mono font-bold ${step.color} leading-none mb-0.5`}>
-                      {step.value}
-                    </div>
-                    <div className="text-[10px] font-mono text-muted-foreground mb-2">
-                      {step.unit}
-                    </div>
-                    {/* Sub description */}
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-auto">
-                      {t(step.subKey, { defaultValue: step.subFallback })}
-                    </div>
+        {/* Steps — responsive grid with data density per step */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {steps.map((step, idx) => {
+            const Icon = step.icon;
+            return (
+              <div
+                key={idx}
+                className="bg-card border border-border rounded-xl p-4 flex flex-col hover:border-primary/40 transition-colors"
+              >
+                {/* Icon + step number */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-lg ${step.bg} border ${step.border} flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${step.color}`} />
+                  </div>
+                  <div className="text-[10px] font-bold font-mono text-muted-foreground">
+                    0{idx + 1}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Label */}
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  {t(step.labelKey, { defaultValue: step.labelFallback })}
+                </div>
+
+                {/* Value */}
+                <div className={`text-xl font-mono font-bold ${step.color} leading-none mb-0.5`}>
+                  {step.value}
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground mb-3">
+                  {step.unit}
+                </div>
+
+                {/* Sub description */}
+                <div className="text-[11px] text-muted-foreground leading-snug mb-3 pb-3 border-b border-border">
+                  {t(step.subKey, { defaultValue: step.subFallback })}
+                </div>
+
+                {/* Data inputs — the Cula-inspired transparency layer */}
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+                    {t("journey.dataInputs", { defaultValue: "Datos de entrada" })}
+                  </div>
+                  <div className="space-y-0.5">
+                    {step.inputs.map((input, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start justify-between gap-2 text-[10px] leading-tight"
+                      >
+                        <span className="text-muted-foreground truncate">{input.label}</span>
+                        <span className="font-mono font-semibold text-right flex-shrink-0 max-w-[50%] truncate">
+                          {input.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Footer */}

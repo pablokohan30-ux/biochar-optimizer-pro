@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
+import { captureSentryError } from "@/lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -23,6 +24,16 @@ class ErrorBoundary extends Component<Props, State> {
       return { hasError: false, error: null };
     }
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Sentry captures the same subset of errors we render the fallback for.
+    // Browser-extension DOM noise is filtered upstream in getDerivedStateFromError,
+    // so by this point it's already gone.
+    captureSentryError(error, {
+      source: "ErrorBoundary",
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   render() {

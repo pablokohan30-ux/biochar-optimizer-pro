@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Mobile safety: prevent horizontal scroll from absolute-positioned background
+   blobs / gradients that exceed viewport width on small screens. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -4,7 +4,7 @@
  * "Tu proyecto contra todas las certificaciones a la vez."
  *
  * Shows the BiocharPro Score for the same project against every active
- * methodology (Puro.earth, Isometric, EBC, IBI…), sorted best-fit first.
+ * methodology (Puro.earth, Isometric, EBC, Verra VM0044…), sorted best-fit first.
  * Calls out the top recommendation with reasoning.
  *
  * Manual check states are SHARED with `MethodologyAssessment` via the same
@@ -309,7 +309,7 @@ function ComparisonLockedCard({ t }: { t: (k: string, opts?: any) => string }) {
           {t("comparison.lockedTitle", { defaultValue: "Compare your project against every certification at once" })}
         </h4>
         <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3 leading-relaxed">
-          {t("comparison.lockedBody", { defaultValue: "See your BiocharPro Score against Puro.earth, Isometric, EBC, IBI and more — side by side. Get an automated recommendation on the best fit for your project. Available on the Engineer plan." })}
+          {t("comparison.lockedBody", { defaultValue: "See your BiocharPro Score against Puro.earth, Isometric, Verra VM0044, EBC and more — side by side. Get an automated recommendation on the best fit for your project. Available on the Engineer plan." })}
         </p>
         <a href="/pricing">
           <button className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-md inline-flex items-center gap-1.5">

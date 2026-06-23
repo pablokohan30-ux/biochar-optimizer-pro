@@ -76,8 +76,11 @@ export const PDD_TEMPLATE: PddSection[] = [
     questions: [
       q("qualities", "facilityLocation"),
       q("qualities", "landUse"),
+      q("qualities", "gridConnection"),
       q("qualities", "permittingStatus"),
+      q("qualities", "eiaAssessment"),
       q("qualities", "commercial"),
+      q("qualities", "riskRegister"),
     ],
   },
 
@@ -103,6 +106,7 @@ export const PDD_TEMPLATE: PddSection[] = [
       q("feedstock", "kpis"),
       q("feedstock", "tonnageRequired"),
       q("feedstock", "certifications"),
+      q("feedstock", "counterfactualUse"),
     ],
   },
 
@@ -128,6 +132,8 @@ export const PDD_TEMPLATE: PddSection[] = [
       q("financial", "capex"),
       q("financial", "opex"),
       q("financial", "financing"),
+      q("financial", "additionality"),
+      q("financial", "unsubsidizedCost"),
     ],
   },
 
@@ -140,6 +146,8 @@ export const PDD_TEMPLATE: PddSection[] = [
       q("technology", "pyrolysisSpecs"),
       q("technology", "operationalHistory"),
       q("technology", "energyRequirements"),
+      q("technology", "massEnergyBalance"),
+      q("technology", "seasonalVariations"),
     ],
   },
 
@@ -152,6 +160,9 @@ export const PDD_TEMPLATE: PddSection[] = [
       q("lca", "systemBoundary"),
       q("lca", "mmrvPlan"),
       q("lca", "certificationPartner"),
+      q("lca", "sensitivityAnalysis"),
+      q("lca", "independentReview"),
+      q("lca", "emissionFactors"),
     ],
   },
 
@@ -161,7 +172,13 @@ export const PDD_TEMPLATE: PddSection[] = [
     titleKey: "sections.community.title",
     questions: [
       q("community", "environmentalImpact"),
+      q("community", "airEmissions"),
+      q("community", "waterUsage"),
+      q("community", "hazardousWaste"),
+      q("community", "noiseModeling"),
+      q("community", "sensitiveSites"),
       q("community", "communityEngagement"),
+      q("community", "stakeholderMapping"),
       q("community", "harmsBenefits"),
     ],
   },

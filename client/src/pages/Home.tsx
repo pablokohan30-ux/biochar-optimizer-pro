@@ -13,13 +13,16 @@ import { FEEDSTOCK_DB, compute_all, find_optimum, Feedstock, safeAnchorH, search
 import { getFeedstockName } from "@/lib/feedstockI18n";
 import { trpc } from "@/lib/trpc";
 import { useTier } from "@/hooks/useTier";
+import { trackEvent } from "@/lib/analytics";
+import GuideLink from "@/components/GuideLink";
 import UpgradeModal from "@/components/UpgradeModal";
 import SocialShareUnlock from "@/components/SocialShareUnlock";
 import PassActivatedBanner from "@/components/PassActivatedBanner";
 import SubscribedBanner from "@/components/SubscribedBanner";
 import WelcomeBanner from "@/components/WelcomeBanner";
 import PageLoader from "@/components/PageLoader";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 
 // UI Components (inline for simplicity, using Tailwind)
 const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -118,8 +121,15 @@ export default function Home() {
   const [, navigate] = useLocation();
   const createProjectMutation = trpc.projects.create.useMutation({
     onSuccess: (result) => {
+      trackEvent("project_created", {
+        project_id: result.id,
+        bop_id: result.bopId,
+      });
       setShowSaveProject(false);
       navigate(`/projects/${result.id}`);
+    },
+    onError: (err) => {
+      trackEvent("project_creation_failed", { error: err.message });
     },
   });
 
@@ -231,6 +241,12 @@ export default function Home() {
     const opt = find_optimum(currentFs, goal);
     setT(opt.T);
     setT_res(opt.t);
+    trackEvent("optimum_found", {
+      feedstock: currentFs.name,
+      goal,
+      optimum_temperature: opt.T,
+      optimum_residence_time: opt.t,
+    });
   };
 
   // Run LCA on current biochar — pre-fills LCA form with simulator output
@@ -238,9 +254,15 @@ export default function Home() {
   // transport distances, energy inputs etc. remain user-entered.
   const handleRunLCA = () => {
     if (!hasAccess("analyst")) {
+      trackEvent("lca_blocked_upgrade", { required_tier: "analyst" });
       openUpgrade(tr("runLCAFeature"), "analyst");
       return;
     }
+    trackEvent("lca_started", {
+      feedstock: currentFs.name,
+      temperature: T,
+      residence_time: t,
+    });
     const prefill = {
       projectName: `${currentFs.name} @ ${T}°C`,
       biomassType: currentFs.name,
@@ -279,6 +301,10 @@ export default function Home() {
       setLabError(tr("labUpload.errTooLarge", { defaultValue: "PDF is too large (max 10 MB)." }));
       return;
     }
+    trackEvent("lab_pdf_upload_started", {
+      file_size_kb: Math.round(file.size / 1024),
+      opted_in_public_use: allowPublicUse,
+    });
     setExtractingLab(true);
     try {
       // Read as base64
@@ -331,8 +357,15 @@ export default function Home() {
         count: extractedFields,
         defaultValue: `Extracted ${extractedFields} fields. Review and save.`,
       }));
+      trackEvent("lab_pdf_upload_success", {
+        extracted_fields: extractedFields,
+        biomass_name: result?.biomassName,
+      });
     } catch (err: any) {
       const msg = err?.message || String(err);
+      trackEvent("lab_pdf_upload_failed", {
+        error_code: (msg || "").split(":")[0] || "UNKNOWN",
+      });
       if (msg.startsWith("UPGRADE_REQUIRED")) {
         setLabError(tr("labUpload.errUpgrade", { defaultValue: "Lab upload requires Analyst plan or higher." }));
       } else if (msg.startsWith("PDF_TOO_LARGE")) {
@@ -411,11 +444,11 @@ export default function Home() {
   const radarData = useMemo(() => {
     const data = [
       { subject: 'C%', A: Math.min(1, result.C / 95), fullMark: 1 },
-      { subject: 'Stability', A: Math.max(0, 1 - result.H_Corg / 0.7), fullMark: 1 },
+      { subject: tr("stability"), A: Math.max(0, 1 - result.H_Corg / 0.7), fullMark: 1 },
       { subject: 'CO₂e', A: Math.min(1, result.credits.net / 3.5), fullMark: 1 },
       { subject: 'BET', A: Math.min(1, result.BET / 500), fullMark: 1 },
       { subject: 'pH', A: Math.max(0, 1 - Math.abs(result.pH - 8.5) / 4), fullMark: 1 },
-      { subject: 'Yield', A: Math.min(1, result.yield_ / 35), fullMark: 1 },
+      { subject: tr("yield"), A: Math.min(1, result.yield_ / 35), fullMark: 1 },
     ];
     
     if (savedScenario) {
@@ -479,6 +512,8 @@ export default function Home() {
   // Page-specific actions for the AppLayout top bar
   const pageActions = (
     <>
+      {/* Contextual guide link — opens the simulator section of /guide in a new tab */}
+      <GuideLink anchor="como-simular" label="Cómo usar el simulador" className="hidden md:inline-flex" />
       <button
         onClick={() => {
           if (isFree) {
@@ -491,7 +526,7 @@ export default function Home() {
           setProjectDescription("");
           setShowSaveProject(true);
         }}
-        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors"
+        className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2.5 sm:px-3 py-1.5 rounded text-xs transition-colors shrink-0"
         title={tr("saveAsProject")}
       >
         {isFree && <Lock className="w-3 h-3" />}
@@ -499,7 +534,7 @@ export default function Home() {
       </button>
       <button
         onClick={handleRunLCA}
-        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors"
+        className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2.5 sm:px-3 py-1.5 rounded text-xs transition-colors shrink-0"
         title={hasAccess("analyst") ? tr("runLCAHint") : tr("analystRequired")}
       >
         {!hasAccess("analyst") && <Lock className="w-3 h-3" />}
@@ -511,7 +546,7 @@ export default function Home() {
           handleExportPDF();
         }}
         disabled={isExporting}
-        className="hidden sm:flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded text-xs transition-colors disabled:opacity-50"
+        className="flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2.5 sm:px-3 py-1.5 rounded text-xs transition-colors disabled:opacity-50 shrink-0"
         title={hasAccess("analyst") ? tr("exportPDF") : tr("previewReport")}
       >
         {hasAccess("analyst") ? <Download className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -642,8 +677,10 @@ export default function Home() {
                   <optgroup label={isFree ? tr("freeDatabase") : tr("database")}>
                     {Object.entries(FEEDSTOCK_DB)
                       .filter(([k]) => !isFree || isFreeFeedstock(k))
-                      .map(([k, v]) => (
-                        <option key={k} value={k}>{getFeedstockName(k, v.name, tFs)}</option>
+                      .map(([k, v]) => ({ k, v, name: getFeedstockName(k, v.name, tFs) }))
+                      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+                      .map(({ k, name }) => (
+                        <option key={k} value={k}>{name}</option>
                       ))}
                   </optgroup>
                   {isFree && (
@@ -811,7 +848,7 @@ export default function Home() {
                     />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
                     <Line yAxisId="left" type="monotone" dataKey="C" name="C%" stroke="var(--color-primary)" strokeWidth={2} dot={false} isAnimationActive={false} />
-                    <Line yAxisId="left" type="monotone" dataKey="yield" name="Yield %" stroke="var(--color-cyan-500)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="yield" name={tr("yieldPercent")} stroke="var(--color-cyan-500)" strokeWidth={2} dot={false} isAnimationActive={false} />
                     <Line yAxisId="right" type="monotone" dataKey="CO2e" name="CO₂e" stroke="var(--color-purple-500)" strokeWidth={2} dot={false} isAnimationActive={false} />
 
                     {/* Vertical line + dot markers at current temperature */}
@@ -870,9 +907,9 @@ export default function Home() {
                     <PolarGrid stroke="var(--color-border)" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
-                    <Radar name="Current" dataKey="A" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.3} isAnimationActive={false} />
+                    <Radar name={tr("currentScenario")} dataKey="A" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.3} isAnimationActive={false} />
                     {savedScenario && (
-                      <Radar name="Saved" dataKey="B" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.3} isAnimationActive={false} />
+                      <Radar name={tr("savedScenario")} dataKey="B" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.3} isAnimationActive={false} />
                     )}
                     {savedScenario && <Legend wrapperStyle={{ fontSize: '10px' }} />}
                   </RadarChart>
@@ -1095,14 +1132,14 @@ export default function Home() {
           <div className="hidden print:block mt-6 pt-4 border-t border-gray-300 text-[9px] text-gray-500">
             <div className="flex justify-between items-center">
               <span>
-                Generated with <strong>Biochar Optimizer Pro</strong> · biocharpro.io
+                {tr("reportGeneratedWith")} <strong>{BRAND_NAME}</strong> · {BRAND_URL}
               </span>
               <span className="font-mono">
                 {new Date().toLocaleDateString()} · {currentFs.name}
               </span>
             </div>
             <div className="mt-1 text-[8px] text-gray-400">
-              This report was produced by an empirical pyrolysis model calibrated against peer-reviewed literature. Simulation parameters: T={T}°C, residence time={t} min. Model predictions are subject to ±5–8% uncertainty for feedstocks within the calibration range.
+              {tr("reportModelDisclaimer", { temperature: T, residenceTime: t })}
             </div>
           </div>
 
@@ -1292,7 +1329,7 @@ export default function Home() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
                 <h2 className="font-bold text-foreground">{tr("reportPreview")}</h2>
-                <p className="text-xs text-muted-foreground">Biochar Optimizer Pro — {currentFsName}</p>
+                <p className="text-xs text-muted-foreground">{BRAND_NAME} — {currentFsName}</p>
               </div>
               <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
@@ -1303,22 +1340,22 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               {/* Conditions */}
               <div className="text-sm text-muted-foreground">
-                Pyrolysis conditions: <span className="text-foreground font-mono">{T}°C</span> / <span className="text-foreground font-mono">{t} min</span>
+                {tr("reportConditions")}: <span className="text-foreground font-mono">{T}°C</span> / <span className="text-foreground font-mono">{t} min</span>
               </div>
 
               {/* KPI Preview Grid */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-primary">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Carbon</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">{tr("totalCarbon")}</div>
                   <div className="text-xl font-mono font-bold text-primary">{result.C.toFixed(1)}%</div>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-primary">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">H:Corg Ratio</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">{tr("hCorgRatio")}</div>
                   <div className="text-xl font-mono font-bold">{result.H_Corg.toFixed(3)}</div>
                   <Badge variant={hCorgVariant}>{result.H_Corg < 0.4 ? "BC-1" : (result.H_Corg < 0.7 ? "BC-2" : "FAIL")}</Badge>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-3 border-l-2 border-l-cyan-500">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Yield</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">{tr("yield")}</div>
                   <div className="text-xl font-mono font-bold text-cyan-500">{result.yield_.toFixed(1)}%</div>
                 </div>
               </div>
@@ -1326,19 +1363,19 @@ export default function Home() {
               {/* Blurred premium KPIs */}
               <div className="grid grid-cols-3 gap-3 relative">
                 <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Net CO₂e</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">{tr("netCO2e")}</div>
                   <div className="text-xl font-mono font-bold">3.04</div>
-                  <div className="text-[10px] text-muted-foreground">t/t biochar</div>
+                  <div className="text-[10px] text-muted-foreground">{tr("ttBiochar")}</div>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">BET Surface</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">{tr("betSurface")}</div>
                   <div className="text-xl font-mono font-bold">419</div>
-                  <div className="text-[10px] text-muted-foreground">m²/g</div>
+                  <div className="text-[10px] text-muted-foreground">{tr("m2g")}</div>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-3 blur-[5px] select-none">
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">pH</div>
                   <div className="text-xl font-mono font-bold">8.7</div>
-                  <div className="text-[10px] text-muted-foreground">alkaline</div>
+                  <div className="text-[10px] text-muted-foreground">{tr("alkaline")}</div>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="bg-card/90 border border-border rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shadow-lg">
@@ -1352,17 +1389,17 @@ export default function Home() {
                 <table className="w-full text-sm text-left blur-[4px] select-none">
                   <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                     <tr>
-                      <th className="px-3 py-2">Parameter</th>
-                      <th className="px-3 py-2">Value</th>
-                      <th className="px-3 py-2">Threshold</th>
-                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">{tr("parameter")}</th>
+                      <th className="px-3 py-2">{tr("previewValue")}</th>
+                      <th className="px-3 py-2">{tr("previewThreshold")}</th>
+                      <th className="px-3 py-2">{tr("status")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    <tr><td className="px-3 py-2">Temperature</td><td className="px-3 py-2">650°C</td><td className="px-3 py-2">400-850°C</td><td className="px-3 py-2">Pass</td></tr>
-                    <tr><td className="px-3 py-2">Total Carbon</td><td className="px-3 py-2">87.4%</td><td className="px-3 py-2">&gt;50%</td><td className="px-3 py-2">Pass</td></tr>
+                    <tr><td className="px-3 py-2">{tr("previewTemperature")}</td><td className="px-3 py-2">650°C</td><td className="px-3 py-2">400-850°C</td><td className="px-3 py-2">{tr("previewPass")}</td></tr>
+                    <tr><td className="px-3 py-2">{tr("totalCarbon")}</td><td className="px-3 py-2">87.4%</td><td className="px-3 py-2">&gt;50%</td><td className="px-3 py-2">{tr("previewPass")}</td></tr>
                     <tr><td className="px-3 py-2">H:Corg</td><td className="px-3 py-2">0.200</td><td className="px-3 py-2">&lt;0.7</td><td className="px-3 py-2">BC-1</td></tr>
-                    <tr><td className="px-3 py-2">CO₂e net</td><td className="px-3 py-2">3.04 t</td><td className="px-3 py-2">LCA</td><td className="px-3 py-2">Info</td></tr>
+                    <tr><td className="px-3 py-2">{tr("netCO2e")}</td><td className="px-3 py-2">3.04 t</td><td className="px-3 py-2">LCA</td><td className="px-3 py-2">{tr("previewInfo")}</td></tr>
                   </tbody>
                 </table>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -1402,18 +1439,6 @@ export default function Home() {
           creditsQuery.refetch();
         }}
       />
-
-      {/* Mini footer */}
-      <footer className="border-t border-border py-4 mt-6">
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <Link href="/pricing">{tr("footer.pricing", { defaultValue: "Precios" })}</Link>
-          <Link href="/pricing#contact">{tr("footer.contact", { defaultValue: "Contacto" })}</Link>
-          <span className="text-border">·</span>
-          <Link href="/legal/terms">{tr("footer.terms", { defaultValue: "Términos" })}</Link>
-          <Link href="/legal/privacy">{tr("footer.privacy", { defaultValue: "Privacidad" })}</Link>
-          <Link href="/legal/security">{tr("footer.security", { defaultValue: "Seguridad" })}</Link>
-        </div>
-      </footer>
     </AppLayout>
   );
 }

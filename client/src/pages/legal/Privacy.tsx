@@ -1,4 +1,5 @@
 import LegalLayout from "./LegalLayout";
+import { LEGAL_BRAND_LABEL } from "@/lib/brand";
 
 export default function Privacy() {
   return (
@@ -6,7 +7,7 @@ export default function Privacy() {
       <section>
         <h2>1. Our Commitment</h2>
         <p>
-          At Biochar Optimizer Pro, your data privacy is core to our service. This Privacy Policy
+          At {LEGAL_BRAND_LABEL}, your data privacy is core to our service. This Privacy Policy
           explains what we collect, how we use it, and your rights regarding your personal and project
           data. We comply with the Mexican Federal Law on Protection of Personal Data Held by Private
           Parties (LFPDPPP) and align with EU General Data Protection Regulation (GDPR) principles.

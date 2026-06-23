@@ -1,4 +1,5 @@
 import LegalLayout from "./LegalLayout";
+import { LEGAL_BRAND_LABEL } from "@/lib/brand";
 
 export default function Terms() {
   return (
@@ -6,7 +7,7 @@ export default function Terms() {
       <section>
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing or using Biochar Optimizer Pro (the "Service"), operated by Kottate S.A.P.I. de C.V.,
+          By accessing or using {LEGAL_BRAND_LABEL} (the "Service"), operated by Kottate S.A.P.I. de C.V.,
           a company registered in Mexico ("we," "us," or "our"), you agree to be bound by these
           Terms of Service ("Terms"). If you do not agree, do not use the Service.
         </p>
@@ -15,7 +16,7 @@ export default function Terms() {
       <section>
         <h2>2. Description of Service</h2>
         <p>
-          Biochar Optimizer Pro is a software-as-a-service platform that provides pyrolysis simulation,
+          {LEGAL_BRAND_LABEL} is a software-as-a-service platform that provides pyrolysis simulation,
           biochar property prediction, project management, life cycle assessment (LCA), and pre-assessment
           tools aligned with carbon certification standards including Puro.earth, EBC, and Isometric.
         </p>

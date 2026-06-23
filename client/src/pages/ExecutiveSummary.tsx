@@ -29,16 +29,21 @@ import {
   compute_all, FEEDSTOCK_DB, type Feedstock,
 } from "@/lib/biocharModel";
 import { getFeedstockName } from "@/lib/feedstockI18n";
+import { resolveProjectFeedstock } from "@/lib/projectFeedstock";
 import {
-  ACTIVE_METHODOLOGIES, METHODOLOGIES, type MethodologyId,
+  ACTIVE_METHODOLOGIES,
+  getMethodologyTagline,
+  METHODOLOGIES,
+  type MethodologyId,
 } from "@/lib/methodologies";
 import { calculateScore } from "@/lib/biocharScore";
+import { BRAND_NAME, BRAND_URL, DEFAULT_EXPORT_COMPANY } from "@/lib/brand";
 import PageLoader from "@/components/PageLoader";
 
 type QualityGoal = "MAX_CARBON" | "AGRONOMY" | "BALANCED";
 
 export default function ExecutiveSummary() {
-  const { t } = useTranslation(["projectDetail", "feedstocks", "methodologies"]);
+  const { t, i18n } = useTranslation(["projectDetail", "feedstocks", "methodologies"]);
   const { t: tFs } = useTranslation("feedstocks");
   const params = useParams<{ id: string }>();
   const projectId = Number(params.id);
@@ -51,15 +56,18 @@ export default function ExecutiveSummary() {
   );
   const project = projectQuery.data;
 
+  // White-label branding (Expert tier). Fallback to BiocharPro
+  // defaults when the user hasn't configured any branding.
+  const brandingQuery = trpc.branding.get.useQuery(undefined, { enabled: !!user });
+  const branding = brandingQuery.data;
+  const brandCompany = branding?.companyName ?? DEFAULT_EXPORT_COMPANY;
+  const brandLogo = branding?.logoDataUrl ?? null;
+  const brandPrimary = branding?.primaryColor ?? null;
+  const brandFooter = branding?.footerText ?? null;
+
   const feedstock: Feedstock = useMemo(() => {
     if (!project) return FEEDSTOCK_DB["pine_sawdust"];
-    if (project.feedstockData) {
-      try { return JSON.parse(project.feedstockData) as Feedstock; } catch {}
-    }
-    if (project.feedstockId && FEEDSTOCK_DB[project.feedstockId]) {
-      return FEEDSTOCK_DB[project.feedstockId];
-    }
-    return FEEDSTOCK_DB["pine_sawdust"];
+    return resolveProjectFeedstock(project.feedstockId, project.feedstockData, FEEDSTOCK_DB) ?? FEEDSTOCK_DB["pine_sawdust"];
   }, [project]);
 
   const T = project?.temperature ?? 650;
@@ -135,8 +143,20 @@ export default function ExecutiveSummary() {
     ? `https://biocharpro.io/verify/${project.bopId}`
     : null;
 
-  const fmtNumber = (n: number, decimals = 1) =>
-    n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  const locale = i18n.resolvedLanguage?.toLowerCase().startsWith("es")
+    ? "es-AR"
+    : (i18n.resolvedLanguage || "en-US");
+  const fmtNumber = (n: number | null | undefined, decimals = 1) => {
+    if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+    return n.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  };
+
+  const qualityGoalLabel =
+    goal === "MAX_CARBON"
+      ? t("summary.goalMaxCarbon", { defaultValue: "Max carbon" })
+      : goal === "AGRONOMY"
+        ? t("summary.goalAgronomy", { defaultValue: "Agronomy" })
+        : t("summary.goalBalanced", { defaultValue: "Balanced" });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -168,19 +188,39 @@ export default function ExecutiveSummary() {
         {/* ─── PAGE 1 ─────────────────────────────────────────────────────── */}
         <div className="print:break-after-page">
           {/* Brand bar */}
-          <div className="flex items-start justify-between border-b-2 border-primary pb-4 mb-6 print:border-black">
-            <div>
-              <div className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] print:text-black">
-                {t("summary.brandPrefix", { defaultValue: "Biochar Optimizer Pro" })}
+          <div
+            className="flex items-start justify-between border-b-2 pb-4 mb-6 print:border-black"
+            style={{ borderColor: brandPrimary ?? undefined }}
+          >
+            <div className="flex items-start gap-3">
+              {brandLogo && (
+                <img
+                  src={brandLogo}
+                  alt={brandCompany}
+                  className="h-10 max-w-[120px] object-contain shrink-0 mt-0.5"
+                />
+              )}
+              <div>
+                <div
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] print:text-black"
+                  style={{ color: brandPrimary ?? undefined }}
+                >
+                  {brandCompany}
+                </div>
+                <h1 className="text-3xl font-bold mt-1 leading-tight">
+                  {t("summary.title", { defaultValue: "Project Executive Summary" })}
+                </h1>
               </div>
-              <h1 className="text-3xl font-bold mt-1 leading-tight">
-                {t("summary.title", { defaultValue: "Project Executive Summary" })}
-              </h1>
             </div>
             <div className="text-right text-xs text-muted-foreground print:text-black">
-              <div className="font-mono font-bold text-base text-primary print:text-black">{project.bopId ?? "—"}</div>
+              <div
+                className="font-mono font-bold text-base print:text-black"
+                style={{ color: brandPrimary ?? undefined }}
+              >
+                {project.bopId ?? "—"}
+              </div>
               <div className="text-[10px] mt-0.5">
-                {t("summary.generatedOn", { defaultValue: "Generated" })}: {new Date().toLocaleDateString()}
+                {t("summary.generatedOn", { defaultValue: "Generated" })}: {new Date().toLocaleDateString(locale)}
               </div>
             </div>
           </div>
@@ -221,12 +261,12 @@ export default function ExecutiveSummary() {
                   </div>
                   <div className="text-2xl font-bold">{recommended.methodology.shortName}</div>
                   <p className="text-xs text-muted-foreground print:text-black mt-1 max-w-md">
-                    {recommended.methodology.tagline}
+                    {getMethodologyTagline(recommended.methodology.id, i18n.language)}
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground print:text-black mb-1">
-                    BiocharPro Score
+                    {t("summary.scoreLabel", { defaultValue: "BiocharPro Score" })}
                   </div>
                   <div className="text-5xl font-mono font-bold leading-none">{recommended.score.value}</div>
                   <div className="text-xs text-muted-foreground print:text-black">/ 100</div>
@@ -272,7 +312,13 @@ export default function ExecutiveSummary() {
 
           {/* Footer page 1 */}
           <div className="mt-auto pt-4 border-t border-border text-[9px] text-muted-foreground print:border-black print:text-black flex justify-between">
-            <span>biocharpro.io · {project.bopId ?? "—"}</span>
+            <span>
+              {brandFooter?.trim()
+                ? `${brandFooter} · ${project.bopId ?? "—"}`
+                : brandCompany !== DEFAULT_EXPORT_COMPANY
+                  ? `${brandCompany} · ${project.bopId ?? "—"}`
+                  : `${BRAND_URL} · ${project.bopId ?? "—"}`}
+            </span>
             <span>{t("summary.page", { defaultValue: "Page 1 of 2" })}</span>
           </div>
         </div>
@@ -287,7 +333,7 @@ export default function ExecutiveSummary() {
             <div className="grid grid-cols-3 gap-4">
               <ProcessRow icon={Flame} label={t("summary.process.temperature", { defaultValue: "Pyrolysis T" })} value={`${T} °C`} />
               <ProcessRow icon={Clock}  label={t("summary.process.residenceTime", { defaultValue: "Residence time" })} value={`${resTime} min`} />
-              <ProcessRow icon={Target} label={t("summary.process.qualityGoal", { defaultValue: "Quality goal" })} value={goal} />
+              <ProcessRow icon={Target} label={t("summary.process.qualityGoal", { defaultValue: "Quality goal" })} value={qualityGoalLabel} />
             </div>
           </section>
 
@@ -359,7 +405,7 @@ export default function ExecutiveSummary() {
                   </div>
                   <div className="font-mono text-sm font-semibold break-all">{verifyUrl}</div>
                   <p className="text-xs text-muted-foreground print:text-black mt-1.5 leading-relaxed">
-                    {t("summary.verifyHint", { defaultValue: "Anyone with this link can confirm the project is registered on Biochar Optimizer Pro. The owner controls what's shown — lab data and exact coordinates are never exposed." })}
+                    {t("summary.verifyHint", { defaultValue: `Anyone with this link can confirm the project is registered on ${BRAND_NAME}. The owner controls what's shown — lab data and exact coordinates are never exposed.` })}
                   </p>
                 </div>
               </div>
@@ -376,7 +422,13 @@ export default function ExecutiveSummary() {
 
           {/* Footer page 2 */}
           <div className="mt-8 pt-4 border-t border-border text-[9px] text-muted-foreground print:border-black print:text-black flex justify-between">
-            <span>{t("summary.brandedFooter", { defaultValue: "Generated with Biochar Optimizer Pro · biocharpro.io" })}</span>
+            <span>
+              {brandFooter?.trim()
+                ? brandFooter
+                : brandCompany !== DEFAULT_EXPORT_COMPANY
+                  ? t("summary.generatedWith", { defaultValue: "Generated with {{company}}", company: brandCompany })
+                  : t("summary.brandedFooter", { defaultValue: `Generated with ${BRAND_NAME} · ${BRAND_URL}` })}
+            </span>
             <span>{t("summary.page2", { defaultValue: "Page 2 of 2" })}</span>
           </div>
         </div>

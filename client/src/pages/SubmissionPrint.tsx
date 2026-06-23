@@ -24,9 +24,10 @@ import {
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
+import { BRAND_NAME, BRAND_URL, DEFAULT_EXPORT_COMPANY } from "@/lib/brand";
 import PageLoader from "@/components/PageLoader";
 
-type MethodologyId = "puro-earth" | "isometric" | "ebc" | "ibi";
+type MethodologyId = "puro-earth" | "isometric" | "ebc" | "verra-vm0044" | "gold-standard" | "rainbow-standard";
 
 export default function SubmissionPrint() {
   const { t, i18n } = useTranslation(["projectDetail", "common", "methodologies"]);
@@ -45,7 +46,20 @@ export default function SubmissionPrint() {
     }
   );
 
+  // White-label branding (Expert tier). Fetched whenever a user is logged
+  // in; returns nulls when the user hasn't configured any branding, in
+  // which case we fall back to the default BiocharPro look.
+  const brandingQuery = trpc.branding.get.useQuery(undefined, { enabled: !!user });
+  const branding = brandingQuery.data;
+  const brandCompany = branding?.companyName ?? DEFAULT_EXPORT_COMPANY;
+  const brandLogo = branding?.logoDataUrl ?? null;
+  const brandPrimary = branding?.primaryColor ?? null;
+  const brandFooter = branding?.footerText ?? null;
+
   const payload = query.data;
+  const locale = i18n.resolvedLanguage?.toLowerCase().startsWith("es")
+    ? "es-AR"
+    : (i18n.resolvedLanguage || "en-US");
 
   const contentRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
@@ -76,9 +90,9 @@ export default function SubmissionPrint() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground">{query.error?.message ?? "Submission not available."}</p>
+          <p className="text-muted-foreground">{query.error?.message ?? t("export.unavailable", { defaultValue: "Submission not available." })}</p>
           <Link href={`/projects/${projectId}`}>
-            <button className="text-xs text-primary hover:underline">← Back to project</button>
+            <button className="text-xs text-primary hover:underline">← {t("export.backToProject", { defaultValue: "Back to project" })}</button>
           </Link>
         </div>
       </div>
@@ -87,7 +101,7 @@ export default function SubmissionPrint() {
 
   const fmtNumber = (n: number | null | undefined, decimals = 1): string => {
     if (n === null || n === undefined) return "—";
-    return n.toLocaleString(i18n.language === "es" ? "es-AR" : "en-US", {
+    return n.toLocaleString(locale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
@@ -95,13 +109,22 @@ export default function SubmissionPrint() {
 
   const fmtDate = (iso: string): string => {
     try {
-      return new Date(iso).toLocaleDateString(i18n.language === "es" ? "es-AR" : "en-US", {
+      return new Date(iso).toLocaleDateString(locale, {
         year: "numeric", month: "long", day: "numeric",
       });
     } catch {
       return iso;
     }
   };
+
+  const projectStatusLabel = t(`info.status${payload.project.status.charAt(0).toUpperCase()}${payload.project.status.slice(1)}`, {
+    defaultValue: payload.project.status.toUpperCase(),
+  });
+  const qualityGoalLabel = payload.pyrolysis.quality_goal
+    ? t(`summary.goal${payload.pyrolysis.quality_goal === "MAX_CARBON" ? "MaxCarbon" : payload.pyrolysis.quality_goal === "AGRONOMY" ? "Agronomy" : "Balanced"}`, {
+        defaultValue: payload.pyrolysis.quality_goal,
+      })
+    : "—";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -136,20 +159,40 @@ export default function SubmissionPrint() {
         {/* ─── PAGE 1 — Cover + identity + feedstock + pyrolysis ───────── */}
         <div className="print:break-after-page">
           {/* Brand bar */}
-          <div className="flex items-start justify-between border-b-2 border-primary pb-4 mb-6 print:border-black">
-            <div>
-              <div className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] print:text-black">
-                Biochar Optimizer Pro
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold mt-1 leading-tight">
-                {t("export.coverTitle", { defaultValue: "Submission Package" })}
-              </h1>
-              <div className="text-sm text-muted-foreground print:text-black mt-1">
-                {payload.methodology.name}
+          <div
+            className="flex items-start justify-between border-b-2 pb-4 mb-6 print:border-black"
+            style={{ borderColor: brandPrimary ?? undefined }}
+          >
+            <div className="flex items-start gap-3">
+              {brandLogo && (
+                <img
+                  src={brandLogo}
+                  alt={brandCompany}
+                  className="h-10 max-w-[120px] object-contain shrink-0 mt-0.5"
+                />
+              )}
+              <div>
+                <div
+                  className="text-[10px] font-bold uppercase tracking-[0.2em] print:text-black"
+                  style={{ color: brandPrimary ?? undefined }}
+                >
+                  {brandCompany}
+                </div>
+                <h1 className="text-2xl md:text-3xl font-bold mt-1 leading-tight">
+                  {t("export.coverTitle", { defaultValue: "Submission Package" })}
+                </h1>
+                <div className="text-sm text-muted-foreground print:text-black mt-1">
+                  {payload.methodology.name}
+                </div>
               </div>
             </div>
             <div className="text-right text-xs text-muted-foreground print:text-black">
-              <div className="font-mono font-bold text-base text-primary print:text-black">{payload.bop_id ?? "—"}</div>
+              <div
+                className="font-mono font-bold text-base print:text-black"
+                style={{ color: brandPrimary ?? undefined }}
+              >
+                {payload.bop_id ?? "—"}
+              </div>
               <div className="text-[10px] mt-0.5">{fmtDate(payload.generated_at)}</div>
             </div>
           </div>
@@ -165,7 +208,7 @@ export default function SubmissionPrint() {
             <KVGrid rows={[
               [t("export.location", { defaultValue: "Location" }), payload.project.location ?? payload.project.country ?? "—"],
               [t("export.country", { defaultValue: "Country" }), payload.project.country ?? "—"],
-              [t("export.status", { defaultValue: "Status" }), payload.project.status.toUpperCase()],
+              [t("export.status", { defaultValue: "Status" }), projectStatusLabel],
               [t("export.createdAt", { defaultValue: "Created" }), fmtDate(payload.project.created_at)],
               [t("export.updatedAt", { defaultValue: "Last updated" }), fmtDate(payload.project.updated_at)],
             ]} />
@@ -221,11 +264,11 @@ export default function SubmissionPrint() {
               [t("export.annualHours", { defaultValue: "Annual operating hours" }), `${payload.pyrolysis.annual_operating_hours} h`],
               [t("export.temperature", { defaultValue: "Temperature" }), payload.pyrolysis.temperature_c ? `${payload.pyrolysis.temperature_c} °C` : "—"],
               [t("export.residenceTime", { defaultValue: "Residence time" }), payload.pyrolysis.residence_time_min ? `${payload.pyrolysis.residence_time_min} min` : "—"],
-              [t("export.qualityGoal", { defaultValue: "Quality goal" }), payload.pyrolysis.quality_goal ?? "—"],
+              [t("export.qualityGoal", { defaultValue: "Quality goal" }), qualityGoalLabel],
             ]} />
           </Section>
 
-          <PageFooter page={1} total={2} bopId={payload.bop_id} />
+          <PageFooter page={1} total={2} bopId={payload.bop_id} footerText={brandFooter} companyName={brandCompany} />
         </div>
 
         {/* ─── PAGE 2 — Characteristics + compliance + disclaimer ──────── */}
@@ -351,7 +394,7 @@ export default function SubmissionPrint() {
                   </div>
                   <div className="font-mono text-sm font-semibold break-all mt-0.5">{payload.verification_url}</div>
                   <p className="text-[10px] text-muted-foreground print:text-black mt-1.5 leading-relaxed">
-                    {t("export.verifyHint", { defaultValue: "Scan or visit this URL to confirm the project is registered on Biochar Optimizer Pro." })}
+                    {t("export.verifyHint", { defaultValue: `Scan or visit this URL to confirm the project is registered on ${BRAND_NAME}.` })}
                   </p>
                 </div>
               </div>
@@ -371,7 +414,7 @@ export default function SubmissionPrint() {
             {payload.disclaimer}
           </div>
 
-          <PageFooter page={2} total={2} bopId={payload.bop_id} />
+          <PageFooter page={2} total={2} bopId={payload.bop_id} footerText={brandFooter} companyName={brandCompany} />
         </div>
       </div>
     </div>
@@ -404,11 +447,19 @@ function KVGrid({ rows }: { rows: Array<[string, string]> }) {
   );
 }
 
-function PageFooter({ page, total, bopId }: { page: number; total: number; bopId: string | null }) {
+function PageFooter({ page, total, bopId, footerText, companyName }: { page: number; total: number; bopId: string | null; footerText?: string | null; companyName?: string | null }) {
+  const { t } = useTranslation("projectDetail");
+  // White-label: if the user has a custom footer text, use it verbatim. If only
+  // a company name is set, use "{company} · {bopId}". Otherwise default to BOP.
+  const left = footerText?.trim()
+    ? `${footerText} · ${bopId ?? "—"}`
+    : companyName && companyName !== DEFAULT_EXPORT_COMPANY
+      ? `${companyName} · ${bopId ?? "—"}`
+      : `${BRAND_URL} · ${bopId ?? "—"}`;
   return (
     <div className="mt-6 pt-3 border-t border-border print:border-black text-[9px] text-muted-foreground print:text-black flex justify-between">
-      <span>biocharpro.io · {bopId ?? "—"}</span>
-      <span>Page {page} of {total}</span>
+      <span>{left}</span>
+      <span>{t("export.pageOf", { defaultValue: "Page {{page}} of {{total}}", page, total })}</span>
     </div>
   );
 }

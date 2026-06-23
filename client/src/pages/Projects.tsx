@@ -1,10 +1,10 @@
+import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { FolderOpen, MapPin, Plus, Thermometer, Leaf, Loader2, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
-import SiteFooter from "@/components/SiteFooter";
 import PageLoader from "@/components/PageLoader";
 import AppLayout from "@/components/AppLayout";
 
@@ -35,12 +35,15 @@ export default function Projects() {
   };
 
   // Auth guard
+  useEffect(() => {
+    if (!authLoading && !user) setLocation("/login");
+  }, [authLoading, user, setLocation]);
+
   if (authLoading || tierLoading) {
     return <PageLoader />;
   }
 
   if (!user) {
-    setLocation("/login");
     return null;
   }
 
@@ -63,7 +66,6 @@ export default function Projects() {
             </Link>
           </div>
         </div>
-        <SiteFooter />
       </div>
     );
   }
@@ -155,9 +157,6 @@ export default function Projects() {
             ))}
           </div>
         )}
-      <div className="mt-8">
-        <SiteFooter />
-      </div>
     </AppLayout>
   );
 }

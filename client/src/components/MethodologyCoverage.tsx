@@ -1,181 +1,155 @@
 /**
- * Methodology Coverage — landing page section.
+ * Methodology Coverage TEASER — landing page section.
  *
- * Shows every methodology we cover (active + coming-soon) with:
- *   - Market price range (USD per tCO₂e)
- *   - Durability claim
- *   - Check count (auto + manual)
- *   - Coverage status (active / coming-soon)
+ * Compact preview of the 6 methodologies we cover. Full content lives at
+ * /product/methodologies.
  *
- * Why this matters: developers comparing where to submit their project care
- * about PRICE and DURABILITY first, not about check counts. Surfacing this
- * info on the landing is how prospects self-qualify before talking to us.
- *
- * Design inspiration: Supercritical's "Removal methods" grid — each row a
- * methodology card with permanence + price — but adapted to OUR strength
- * (pre-certification readiness, not downstream procurement).
+ * Visual: matches the Journey/AI-Builder sections — gradient ambient blobs,
+ * centered badge + bold title, color-graded methodology cards with hover
+ * glow. Each methodology is a portal to its dedicated detail page.
  */
 
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
-  Award, ArrowRight, Clock, DollarSign, Layers,
-  CheckCircle2, Sparkles,
+  ArrowRight, CheckCircle2, Clock, Award, DollarSign, Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   METHODOLOGIES,
-  ACTIVE_METHODOLOGIES,
+  getMethodologyDurability,
+  getMethodologyLaunchStage,
   type MethodologyId,
 } from "@/lib/methodologies";
 
-// Order matters: credit-issuing first (higher business value), quality later.
 const DISPLAY_ORDER: MethodologyId[] = [
   "puro-earth",
   "isometric",
   "verra-vm0044",
+  "rainbow-standard",
   "gold-standard",
   "ebc",
-  "ibi",
 ];
 
+// Per-methodology accent gradients — used on the card border-glow + icon bg.
+// Map onto the same color families METHODOLOGIES already uses.
+const METHODOLOGY_GRADIENT: Record<MethodologyId, string> = {
+  "puro-earth":       "from-green-500/20 to-emerald-600/10",
+  "isometric":        "from-blue-500/20 to-indigo-600/10",
+  "verra-vm0044":     "from-purple-500/20 to-violet-600/10",
+  "ebc":              "from-emerald-500/20 to-teal-600/10",
+  "gold-standard":    "from-amber-500/20 to-orange-600/10",
+  "rainbow-standard": "from-pink-500/20 to-fuchsia-600/10",
+};
+
+const METHODOLOGY_RING: Record<MethodologyId, string> = {
+  "puro-earth":       "hover:border-green-500/40 hover:shadow-green-500/10",
+  "isometric":        "hover:border-blue-500/40 hover:shadow-blue-500/10",
+  "verra-vm0044":     "hover:border-purple-500/40 hover:shadow-purple-500/10",
+  "ebc":              "hover:border-emerald-500/40 hover:shadow-emerald-500/10",
+  "gold-standard":    "hover:border-amber-500/40 hover:shadow-amber-500/10",
+  "rainbow-standard": "hover:border-pink-500/40 hover:shadow-pink-500/10",
+};
+
 export default function MethodologyCoverage() {
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
 
   return (
-    <section className="py-20 border-t border-border">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12">
+    <section className="py-16 md:py-20 border-t border-border bg-gradient-to-b from-background via-emerald-500/[0.03] to-background relative overflow-hidden">
+      {/* Ambient blobs */}
+      <div className="absolute top-1/4 -left-20 w-72 h-72 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto px-4 relative">
+        {/* Centered header — matches Journey/AI Builder */}
+        <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-            <Sparkles className="w-3 h-3" />
+            <Award className="w-3 h-3" />
             {t("coverage.badge", { defaultValue: "Methodology coverage" })}
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 leading-[1.1]">
             {t("coverage.title", { defaultValue: "La puerta de cada certificador, en un lugar" })}
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {t("coverage.subtitle", {
-              defaultValue:
-                "Tu proyecto se evalúa en vivo contra cada metodología. Precio de mercado, clase de durabilidad y check-list completo — para que sepas cuál te conviene antes de invertir 6 meses de preparación.",
-            })}
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+            {t("coverage.teaserSubtitle", { defaultValue: "Tu proyecto se evalúa en vivo contra cada metodología — precios, durabilidad, checks." })}
           </p>
         </div>
 
-        {/* Cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* 6 methodologies in 3×2 grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {DISPLAY_ORDER.map((id) => {
             const m = METHODOLOGIES[id];
-            const isActive = ACTIVE_METHODOLOGIES.includes(id);
-            const autoCount = m.checks.filter((c) => c.type === "auto").length;
-            const manualCount = m.checks.filter((c) => c.type === "manual").length;
-
+            const isActive = getMethodologyLaunchStage(id) === "active";
+            const gradient = METHODOLOGY_GRADIENT[id];
+            const ring = METHODOLOGY_RING[id];
+            const durability = getMethodologyDurability(id, i18n.language);
             return (
-              <div
+              <Link
                 key={id}
-                className={`relative bg-card border ${
-                  isActive ? "border-border hover:border-primary/40" : "border-dashed border-border/60"
-                } rounded-xl p-5 transition-colors flex flex-col`}
+                href="/product/methodologies"
+                className={`relative bg-card border border-border rounded-xl p-5 transition-all hover:shadow-xl group overflow-hidden ${ring}`}
               >
-                {/* Status pill */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0 flex-1">
-                    <div className={`text-lg font-bold ${m.color} leading-tight`}>
-                      {m.shortName}
-                    </div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">
-                      {m.credits
-                        ? t("coverage.typeCredit", { defaultValue: "Credit-issuing" })
-                        : t("coverage.typeQuality", { defaultValue: "Quality cert" })}
-                    </div>
-                  </div>
-                  {isActive ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-                      <CheckCircle2 className="w-2.5 h-2.5" />
-                      {t("coverage.statusActive", { defaultValue: "Active" })}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-                      <Clock className="w-2.5 h-2.5" />
-                      {t("coverage.statusComingSoon", { defaultValue: "Coming soon" })}
-                    </span>
-                  )}
-                </div>
+                {/* Color wash on hover */}
+                <div
+                  className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br ${gradient} pointer-events-none`}
+                />
 
-                {/* Tagline */}
-                <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                  {m.tagline}
-                </p>
-
-                {/* Price */}
-                <div className="border-t border-border pt-3 mb-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <DollarSign className="w-3 h-3 text-muted-foreground" />
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("coverage.marketPrice", { defaultValue: "Market price" })}
-                    </div>
-                  </div>
-                  <div className="text-sm font-mono font-bold">
-                    {m.priceRange ?? t("coverage.notApplicable", { defaultValue: "N/A" })}
-                  </div>
-                  {m.priceNote && (
-                    <div className="text-[10px] text-muted-foreground leading-snug mt-0.5">
-                      {m.priceNote}
-                    </div>
-                  )}
-                </div>
-
-                {/* Durability */}
-                <div className="border-t border-border pt-3 mb-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Award className="w-3 h-3 text-muted-foreground" />
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("coverage.durability", { defaultValue: "Durability" })}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold">{m.durability ?? "—"}</div>
-                  {m.durabilityNote && (
-                    <div className="text-[10px] text-muted-foreground leading-snug mt-0.5">
-                      {m.durabilityNote}
-                    </div>
-                  )}
-                </div>
-
-                {/* Checks */}
-                {isActive && (
-                  <div className="border-t border-border pt-3 mt-auto">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Layers className="w-3 h-3 text-muted-foreground" />
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        {t("coverage.coverage", { defaultValue: "Coverage" })}
+                <div className="relative">
+                  {/* Top row: name + status */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      <div className={`font-bold text-lg leading-tight ${m.color}`}>
+                        {m.shortName}
+                      </div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                        {m.credits
+                          ? t("coverage.typeCredit", { defaultValue: "Credit-issuing" })
+                          : t("coverage.typeQuality", { defaultValue: "Quality cert" })}
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-mono font-bold text-foreground">{autoCount}</span>{" "}
-                      {t("coverage.autoChecks", { defaultValue: "auto checks" })}
-                      {" · "}
-                      <span className="font-mono font-bold text-foreground">{manualCount}</span>{" "}
-                      {t("coverage.manualChecks", { defaultValue: "manual" })}
-                    </div>
+                    {isActive ? (
+                      <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                        {t("coverage.statusActive", { defaultValue: "Active" })}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                        <Clock className="w-2.5 h-2.5" />
+                        {t("coverage.statusPreparation", { defaultValue: "In preparation" })}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Stat strip: price + durability */}
+                  <div className="space-y-1.5 mt-4 pt-3 border-t border-border/60">
+                    {m.priceRange && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-foreground/80 font-medium">{m.priceRange}</span>
+                      </div>
+                    )}
+                    {durability && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Shield className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">{durability}</span>
+                      </div>
+                    )}
+                    {!m.priceRange && !m.durability && m.tagline && (
+                      <div className="text-xs text-muted-foreground leading-snug">{m.tagline}</div>
+                    )}
+                  </div>
+                </div>
+              </Link>
             );
           })}
         </div>
 
-        {/* Footer CTA */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <p className="text-xs text-muted-foreground text-center sm:text-left max-w-lg">
-            {t("coverage.footerText", {
-              defaultValue:
-                "Precios de referencia a 2025, observados en mercados secundarios. Rangos varían por comprador, volumen y durabilidad.",
-            })}
-          </p>
-          <Link href="/demo">
-            <Button size="sm" variant="outline" className="gap-1.5 flex-shrink-0">
-              {t("coverage.cta", { defaultValue: "Ver tu score contra cada una" })}
-              <ArrowRight className="w-3.5 h-3.5" />
+        {/* Centered CTA */}
+        <div className="text-center">
+          <Link href="/product/methodologies">
+            <Button size="lg" variant="outline" className="gap-2 text-sm">
+              {t("coverage.viewAll", { defaultValue: "Ver todas en detalle" })}
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </div>

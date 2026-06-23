@@ -31,6 +31,8 @@ import type { BiocharResult, Feedstock } from "@/lib/biocharModel";
 import {
   ACTIVE_METHODOLOGIES,
   getMethodology,
+  getMethodologyName,
+  getMethodologyTagline,
   METHODOLOGIES,
   type MethodologyId,
 } from "@/lib/methodologies";
@@ -49,8 +51,17 @@ interface MethodologyAssessmentProps {
   residenceTime: number;
   plantCapacityTph: number | null;
   country: string | null;
-  /** localStorage key namespace for persisting manual check toggles. */
+  /** localStorage key namespace for persisting manual check toggles
+   *  (legacy — only used as fallback when `manualStates` prop isn't provided). */
   projectKey?: string;
+  /**
+   * Optional controlled state for manual check toggles. When provided
+   * together with `onManualStatesChange`, the component becomes fully
+   * controlled and stops touching localStorage — persistence moves to
+   * whoever owns the state (e.g. ProjectDetail syncs it via tRPC).
+   */
+  manualStates?: ManualState;
+  onManualStatesChange?: (next: ManualState) => void;
   /** Initial methodology (defaults to "puro-earth"). */
   defaultMethodology?: MethodologyId;
   /** Called when the user changes the target methodology. */
@@ -59,7 +70,7 @@ interface MethodologyAssessmentProps {
   forceUnlocked?: boolean;
 }
 
-type ManualState = Record<string, Record<string, boolean | undefined>>; // methodology → check → state
+export type ManualState = Record<string, Record<string, boolean | null | undefined>>; // methodology → check → state
 
 export default function MethodologyAssessment({
   result,
@@ -69,18 +80,27 @@ export default function MethodologyAssessment({
   plantCapacityTph,
   country,
   projectKey = "default",
+  manualStates: manualStatesProp,
+  onManualStatesChange,
   defaultMethodology = "puro-earth",
   onMethodologyChange,
   forceUnlocked = false,
 }: MethodologyAssessmentProps) {
-  const { t } = useTranslation("projectDetail");
+  const { t, i18n } = useTranslation("projectDetail");
   const { hasAccess } = useTier();
   const [expanded, setExpanded] = useState(true);
   const [methodologyId, setMethodologyId] = useState<MethodologyId>(defaultMethodology);
 
-  // Persist manual check states per (project, methodology) in localStorage
+  // Two modes:
+  // - Controlled: parent passes manualStates + onManualStatesChange → we
+  //   skip localStorage entirely and let parent persist to backend.
+  // - Uncontrolled: fall back to the legacy localStorage-only behaviour so
+  //   anonymous/demo pages keep working without any backend.
+  const isControlled = manualStatesProp !== undefined && onManualStatesChange !== undefined;
+
   const storageKey = `assessment_${projectKey}`;
-  const [manualStates, setManualStates] = useState<ManualState>(() => {
+  const [localManualStates, setLocalManualStates] = useState<ManualState>(() => {
+    if (isControlled) return {};
     if (typeof window === "undefined") return {};
     try {
       const raw = localStorage.getItem(storageKey);
@@ -91,12 +111,24 @@ export default function MethodologyAssessment({
   });
 
   useEffect(() => {
+    if (isControlled) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify(manualStates));
+      localStorage.setItem(storageKey, JSON.stringify(localManualStates));
     } catch {}
-  }, [manualStates, storageKey]);
+  }, [localManualStates, storageKey, isControlled]);
+
+  const manualStates = isControlled ? (manualStatesProp as ManualState) : localManualStates;
+  const setManualStates = (updater: (prev: ManualState) => ManualState) => {
+    if (isControlled) {
+      onManualStatesChange!(updater(manualStatesProp as ManualState));
+    } else {
+      setLocalManualStates(updater);
+    }
+  };
 
   const methodology = getMethodology(methodologyId);
+  const methodologyTagline = getMethodologyTagline(methodologyId, i18n.language);
+  const methodologyName = getMethodologyName(methodologyId, i18n.language);
   const currentManual = manualStates[methodologyId] ?? {};
 
   const score: BiocharProScore = useMemo(() => {
@@ -113,6 +145,12 @@ export default function MethodologyAssessment({
         results: [],
       };
     }
+    // Normalise null → undefined for the score calculator, which only
+    // understands boolean | undefined.
+    const manualStatesForScore: Record<string, boolean | undefined> = {};
+    for (const [k, v] of Object.entries(currentManual)) {
+      manualStatesForScore[k] = v === null ? undefined : v;
+    }
     return calculateScore(methodology, {
       result,
       feedstock,
@@ -120,7 +158,7 @@ export default function MethodologyAssessment({
       residenceTime,
       plantCapacityTph,
       country,
-      manualStates: currentManual,
+      manualStates: manualStatesForScore,
     });
   }, [methodology, result, feedstock, temperature, residenceTime, plantCapacityTph, country, currentManual]);
 
@@ -179,7 +217,7 @@ export default function MethodologyAssessment({
                   ? `${m.accent} ${m.color}`
                   : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
               } ${locked ? "opacity-60" : ""}`}
-              title={locked ? t("score.tierLocked", { defaultValue: "Requires upgrade" }) : m.tagline}
+              title={locked ? t("score.tierLocked", { defaultValue: "Requires upgrade" }) : getMethodologyTagline(id, i18n.language)}
             >
               {locked && <Lock className="w-3 h-3" />}
               <span>{m.shortName}</span>
@@ -195,7 +233,7 @@ export default function MethodologyAssessment({
               <span
                 key={id}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-secondary/50 text-muted-foreground/60 border border-border cursor-not-allowed"
-                title={m.tagline}
+                title={getMethodologyTagline(id, i18n.language)}
               >
                 <Clock className="w-3 h-3" />
                 {m.shortName}
@@ -208,8 +246,8 @@ export default function MethodologyAssessment({
       {isPlaceholder && (
         <div className="bg-card border border-border rounded-xl p-6 text-center">
           <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-          <h4 className="font-semibold text-sm mb-1">{methodology.name}</h4>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">{methodology.tagline}</p>
+          <h4 className="font-semibold text-sm mb-1">{methodologyName}</h4>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">{methodologyTagline}</p>
         </div>
       )}
 

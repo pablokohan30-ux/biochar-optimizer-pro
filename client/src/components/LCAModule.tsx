@@ -11,6 +11,7 @@ import {
   type FacilityType,
   type ApplicationType,
 } from "@/lib/lcaModel";
+import { BRAND_NAME } from "@/lib/brand";
 
 // ============================================================================
 // Helpers
@@ -212,7 +213,7 @@ function exportLCAToCSV(inputs: LCAInputs, result: LCAResult): void {
   const lines: string[] = [];
   const push = (s = "") => lines.push(s);
 
-  push("Biochar Optimizer Pro — LCA Export");
+  push(`${BRAND_NAME} — LCA Export`);
   push(`Methodology,Puro.earth Biochar Ed. 2025 V1`);
   push(`Exported,${new Date().toISOString().slice(0, 19).replace("T", " ")}`);
   push();

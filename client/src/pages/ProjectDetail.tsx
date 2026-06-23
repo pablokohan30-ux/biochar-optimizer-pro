@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles, FileCheck, Printer, Download, ChevronDown, Copy, Check } from "lucide-react";
+import { ArrowLeft, MapPin, Save, Trash2, Thermometer, Clock, Leaf, AlertCircle, Target, Sparkles, FileCheck, Printer, Download, ChevronDown, Copy, Check, ClipboardCheck, Truck, Users, Zap, Trophy } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -9,11 +9,14 @@ import { compute_all, find_optimum, FEEDSTOCK_DB, Feedstock } from "@/lib/biocha
 import { getFeedstockName } from "@/lib/feedstockI18n";
 import ProjectMap from "@/components/ProjectMap";
 import RegionalAnalysis from "@/components/RegionalAnalysis";
-import MethodologyAssessment from "@/components/MethodologyAssessment";
+import MethodologyAssessment, { type ManualState } from "@/components/MethodologyAssessment";
 import MethodologyComparison from "@/components/MethodologyComparison";
-import SiteFooter from "@/components/SiteFooter";
+import SubmissionGuideButton from "@/components/SubmissionGuide";
+import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
 import AppLayout from "@/components/AppLayout";
+import { resolveProjectFeedstock } from "@/lib/projectFeedstock";
+import { parseAiHandoffDescription } from "@/lib/aiHandoff";
 
 type QualityGoal = "MAX_CARBON" | "AGRONOMY" | "BALANCED";
 
@@ -32,6 +35,16 @@ export default function ProjectDetail() {
     { enabled: !!user && hasAccess("analyst") && !Number.isNaN(projectId) }
   );
 
+  // Evidence summary — only relevant for Expert tier (module is Expert-gated).
+  // Used to show a "Soil application plan: ✓ Loaded / ⚠ Pending" marker
+  // in the Project Info panel when the operator has logged at least one plan.
+  const evidenceSummaryQuery = trpc.evidence.summary.useQuery(
+    { projectId },
+    { enabled: !!user && hasAccess("expert") && !Number.isNaN(projectId) },
+  );
+  const soilPlanCount = (evidenceSummaryQuery.data?.byType?.soil_application_plan?.total ?? 0);
+  const hasSoilPlan = soilPlanCount > 0;
+
   const updateMutation = trpc.projects.update.useMutation({
     onSuccess: () => {
       utils.projects.get.invalidate({ id: projectId });
@@ -49,6 +62,15 @@ export default function ProjectDetail() {
     },
   });
 
+  const updateManualChecksMutation = trpc.projects.updateManualChecks.useMutation({
+    // Silent success — no toast, no invalidation (our local state is already
+    // authoritative). Only invalidate on error to force a refresh from
+    // server so the UI recovers.
+    onError: () => utils.projects.get.invalidate({ id: projectId }),
+  });
+  const pendingSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydratedForIdRef = useRef<number | null>(null);
+
   const [exportLoading, setExportLoading] = useState(false);
 
   const [T, setT] = useState(650);
@@ -59,6 +81,11 @@ export default function ProjectDetail() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [bopIdCopied, setBopIdCopied] = useState(false);
 
+  // Manual pre-assessment check state (methodology → check → boolean | null).
+  // `manualStates` renders the UI optimistically; `updateManualChecksMutation`
+  // above persists (debounced) so toggles feel instant but sync across devices.
+  const [manualStates, setManualStates] = useState<ManualState>({});
+
   const project = projectQuery.data;
 
   useEffect(() => {
@@ -68,6 +95,50 @@ export default function ProjectDetail() {
       setGoal((project.qualityGoal as QualityGoal) ?? "BALANCED");
     }
   }, [project]);
+
+  // Rehydrate manualStates once the project query resolves. Runs only when
+  // the project ID changes — we don't want to clobber in-flight edits.
+  useEffect(() => {
+    if (!project) return;
+    if (hydratedForIdRef.current === project.id) return;
+    hydratedForIdRef.current = project.id;
+    try {
+      const parsed = project.manualChecks ? JSON.parse(project.manualChecks) : {};
+      setManualStates(parsed && typeof parsed === "object" ? parsed : {});
+    } catch {
+      setManualStates({});
+    }
+  }, [project]);
+
+  // Flush any pending save on unmount so we don't drop a quick last click.
+  useEffect(() => {
+    return () => {
+      if (pendingSaveRef.current) clearTimeout(pendingSaveRef.current);
+    };
+  }, []);
+
+  const handleManualStatesChange = (next: ManualState) => {
+    // Optimistic UI — render from local state immediately.
+    setManualStates(next);
+    // Debounce backend save: if the user keeps clicking, only the last
+    // state gets persisted after 600ms of quiet.
+    if (pendingSaveRef.current) clearTimeout(pendingSaveRef.current);
+    pendingSaveRef.current = setTimeout(() => {
+      // Normalise undefined → drop so JSON encoding stays clean.
+      const normalised: Record<string, Record<string, boolean | null>> = {};
+      for (const [methodologyId, checks] of Object.entries(next)) {
+        const checksNorm: Record<string, boolean | null> = {};
+        for (const [checkId, value] of Object.entries(checks ?? {})) {
+          if (value === undefined) continue;
+          checksNorm[checkId] = value;
+        }
+        if (Object.keys(checksNorm).length > 0) {
+          normalised[methodologyId] = checksNorm;
+        }
+      }
+      updateManualChecksMutation.mutate({ id: projectId, manualChecks: normalised });
+    }, 600);
+  };
 
   // Track unsaved changes so the Save button has real intent
   const hasUnsavedChanges = useMemo(() => {
@@ -81,32 +152,29 @@ export default function ProjectDetail() {
 
   const feedstock: Feedstock = useMemo(() => {
     if (!project) return FEEDSTOCK_DB["pine_sawdust"];
-    // Try feedstockData (JSON) first
-    if (project.feedstockData) {
-      try {
-        return JSON.parse(project.feedstockData) as Feedstock;
-      } catch {}
-    }
-    // Try feedstockId against the DB
-    if (project.feedstockId && FEEDSTOCK_DB[project.feedstockId]) {
-      return FEEDSTOCK_DB[project.feedstockId];
-    }
-    return FEEDSTOCK_DB["pine_sawdust"];
+    return resolveProjectFeedstock(project.feedstockId, project.feedstockData, FEEDSTOCK_DB) ?? FEEDSTOCK_DB["pine_sawdust"];
   }, [project]);
 
   const result = useMemo(() => compute_all(T, resTime, feedstock), [T, resTime, feedstock]);
+  const aiHandoff = useMemo(() => parseAiHandoffDescription(project?.description), [project?.description]);
+
+  useEffect(() => {
+    if (!authLoading && !user) setLocation("/login");
+  }, [authLoading, user, setLocation]);
+
+  useEffect(() => {
+    if (!authLoading && !tierLoading && user && !hasAccess("analyst")) setLocation("/projects");
+  }, [authLoading, tierLoading, user, hasAccess, setLocation]);
 
   if (authLoading || tierLoading) {
     return <PageLoader />;
   }
 
   if (!user) {
-    setLocation("/login");
     return null;
   }
 
   if (!hasAccess("analyst")) {
-    setLocation("/projects");
     return null;
   }
 
@@ -152,7 +220,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleExportJson = async (methodologyId: "puro-earth" | "isometric" | "ebc" | "ibi") => {
+  const handleExportJson = async (methodologyId: "puro-earth" | "isometric" | "ebc" | "verra-vm0044" | "gold-standard" | "rainbow-standard") => {
     setExportMenuOpen(false);
     setExportLoading(true);
     try {
@@ -176,7 +244,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleExportPdf = (methodologyId: "puro-earth" | "isometric" | "ebc" | "ibi") => {
+  const handleExportPdf = (methodologyId: "puro-earth" | "isometric" | "ebc" | "verra-vm0044" | "gold-standard" | "rainbow-standard") => {
     setExportMenuOpen(false);
     // Open printable page in a new tab with ?autoprint=1 so the browser print
     // dialog fires automatically. User can save as PDF from there.
@@ -196,6 +264,8 @@ export default function ProjectDetail() {
       // Ignore — older browsers
     }
   };
+
+  const stage4NeedsEvidence = hasAccess("expert") && !hasSoilPlan && (project.status ?? "draft") === "draft";
 
   const pageTitle = (
     <span className="flex items-center gap-2 min-w-0">
@@ -291,10 +361,11 @@ export default function ProjectDetail() {
                   {t("export.menuHeader", { defaultValue: "Submission package · pick certifier & format" })}
                 </div>
                 {[
-                  { id: "puro-earth" as const, name: "Puro.earth", desc: t("export.descPuro",      { defaultValue: "CORC methodology · credit-issuing" }) },
-                  { id: "isometric" as const,  name: "Isometric",  desc: t("export.descIsometric", { defaultValue: "200/1000-yr durability protocol" }) },
-                  { id: "ebc" as const,        name: "EBC",        desc: t("export.descEbc",       { defaultValue: "European Biochar Certificate · quality" }) },
-                  { id: "ibi" as const,        name: "IBI",        desc: t("export.descIbi",       { defaultValue: "International Biochar Initiative · quality" }) },
+                  { id: "puro-earth"    as const, name: "Puro.earth",    desc: t("export.descPuro",         { defaultValue: "CORC methodology · credit-issuing" }) },
+                  { id: "isometric"     as const, name: "Isometric",     desc: t("export.descIsometric",    { defaultValue: "200/1000-yr durability protocol" }) },
+                  { id: "verra-vm0044"  as const, name: "Verra VM0044",  desc: t("export.descVerra",        { defaultValue: "VCS methodology v1.2 · CCP-approved" }) },
+                  { id: "ebc"           as const, name: "EBC",           desc: t("export.descEbc",          { defaultValue: "European Biochar Certificate · quality" }) },
+                  { id: "gold-standard" as const, name: "Gold Standard", desc: t("export.descGoldStandard", { defaultValue: "Methodology in development · SDG pre-staging" }) },
                 ].map((opt) => (
                   <div key={opt.id} className="border-b border-border last:border-b-0">
                     <div className="px-3 pt-2.5 pb-1">
@@ -359,7 +430,7 @@ export default function ProjectDetail() {
           <div className="bg-card border border-border rounded-xl p-5 space-y-4">
             <h3 className="text-sm font-bold text-primary uppercase tracking-wider">{t("info.title")}</h3>
             <div className="space-y-3 text-sm">
-              {project.description && (
+              {project.description && !aiHandoff.isAiHandoff && (
                 <div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.description")}</div>
                   <p className="text-foreground">{project.description}</p>
@@ -381,6 +452,29 @@ export default function ProjectDetail() {
                 <div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("info.country")}</div>
                   <p className="text-foreground">{project.country}</p>
+                </div>
+              )}
+
+              {/* Soil application plan status marker — only for Expert users */}
+              {hasAccess("expert") && (
+                <div className="pt-3 border-t border-border">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    {t("info.soilPlanLabel", { defaultValue: "Soil application plan" })}
+                  </div>
+                  <Link href={`/projects/${project.id}/evidence`}>
+                    <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors hover:opacity-90"
+                      style={hasSoilPlan
+                        ? { background: "rgb(34 197 94 / 0.1)", borderColor: "rgb(34 197 94 / 0.3)", color: "rgb(22 163 74)" }
+                        : { background: "rgb(245 158 11 / 0.1)", borderColor: "rgb(245 158 11 / 0.3)", color: "rgb(217 119 6)" }}>
+                      <span className="flex items-center gap-1.5">
+                        {hasSoilPlan ? <Check className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                        {hasSoilPlan
+                          ? t("info.soilPlanLoaded", { defaultValue: "Loaded ({{count}})", count: soilPlanCount })
+                          : t("info.soilPlanPending", { defaultValue: "Pending — add a plan" })}
+                      </span>
+                      <span className="text-[10px] opacity-70">→</span>
+                    </button>
+                  </Link>
                 </div>
               )}
 
@@ -448,6 +542,175 @@ export default function ProjectDetail() {
           </div>
         </div>
 
+        {aiHandoff.isAiHandoff && (
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700 mb-1">
+              {t("handoff.eyebrow", { defaultValue: "Origen del proyecto" })}
+            </div>
+            <h2 className="text-base font-semibold text-foreground">
+              {t("handoff.title", { defaultValue: "Este proyecto nació como borrador del Constructor IA" })}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              {t("handoff.body", { defaultValue: "El paquete generado con IA fue la primera pasada. Aquí ya estás viendo el proyecto estándar: el espacio donde ajustas el PDD, cargas evidencia real y llevas el proyecto hacia operación, auditoría y salida comercial." })}
+            </p>
+            <GuideLink anchor="como-ai-builder" label="Cómo seguir desde el Constructor IA al proyecto real" className="mt-3 inline-flex" />
+            <div className="flex flex-wrap gap-2 mt-3">
+              {aiHandoff.aiProjectId && (
+                <Link href={`/ai-builder/${aiHandoff.aiProjectId}`}>
+                  <button className="px-3 py-2 rounded-lg bg-white border border-indigo-200 text-sm font-medium text-indigo-700 hover:bg-indigo-100/60">
+                    {t("handoff.viewAiPackage", { defaultValue: "Ver paquete original generado con IA" })}
+                  </button>
+                </Link>
+              )}
+              {hasAccess("engineer") && (
+                <Link href={`/pdd/${project.id}`}>
+                  <button className="px-3 py-2 rounded-lg bg-card border border-border text-sm font-medium text-foreground hover:bg-background">
+                    {t("handoff.continuePdd", { defaultValue: "Seguir en el constructor de PDD" })}
+                  </button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className={`grid gap-4 ${hasAccess("expert") ? "xl:grid-cols-3" : ""}`}>
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-600/20">
+                <FileCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("workflow.dossierEyebrow", { defaultValue: "Paso 1" })}
+                </div>
+                <h3 className="text-base font-semibold">
+                  {t("workflow.dossierTitle", { defaultValue: "Ordena el dossier" })}
+                </h3>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t("workflow.dossierBody", { defaultValue: "Aquí conviene cerrar primero qué quieres mostrar: resumen ejecutivo, PDD y paquete exportable. Lo demás gana sentido cuando el dossier base ya está sólido." })}
+            </p>
+            <div className="rounded-lg border border-border/80 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              {t("workflow.dossierStatus", {
+                defaultValue: "Estado actual: {{status}}. Si este proyecto viene desde el Constructor IA, revisa y limpia campos pendientes antes de compartirlo.",
+                status: project.status ?? "draft",
+              })}
+            </div>
+            <div className="space-y-2">
+              <Link href={`/projects/${project.id}/summary`}>
+                <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-blue-600/20 bg-blue-600/10 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-600/20">
+                  <span>{t("summary.openButton", { defaultValue: "Resumen" })}</span>
+                  <Printer className="w-4 h-4" />
+                </button>
+              </Link>
+              {hasAccess("engineer") && (
+                <Link href={`/pdd/${project.id}`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-purple-600/20 bg-purple-600/10 px-3 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-600/20">
+                    <span>{t("workflow.openPdd", { defaultValue: "Abrir el constructor de PDD" })}</span>
+                    <FileCheck className="w-4 h-4" />
+                  </button>
+                </Link>
+              )}
+              <div className="flex">
+                <SubmissionGuideButton projectName={project.name} projectId={project.id} />
+              </div>
+            </div>
+          </div>
+
+          {hasAccess("expert") && (
+            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-600/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-600/20">
+                  <ClipboardCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    {t("workflow.operationsEyebrow", { defaultValue: "Paso 2" })}
+                  </div>
+                  <h3 className="text-base font-semibold">
+                    {t("workflow.operationsTitle", { defaultValue: "Carga evidencia operativa" })}
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {t("workflow.operationsBody", { defaultValue: "Cuando empieces a operar, registra lotes, envíos y trazabilidad. Esa capa es la que después alimenta auditoría, preparación comercial y priorización de buyers." })}
+              </p>
+              <div className="rounded-lg border border-border/80 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                {hasSoilPlan
+                  ? t("workflow.operationsReady", { defaultValue: "Ya tienes al menos una pieza de evidencia cargada. Buen momento para completar operación real." })
+                  : t("workflow.operationsEmpty", { defaultValue: "Todavía no hay evidencia cargada. Este proyecto sigue viéndose más como dossier que como planta operando." })}
+              </div>
+              <div className="space-y-2">
+                <Link href={`/projects/${project.id}/evidence`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-amber-600/20 bg-amber-600/10 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-600/20">
+                    <span>{t("workflow.evidence", { defaultValue: "Evidencia operativa" })}</span>
+                    <ClipboardCheck className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link href={`/projects/${project.id}/offtake`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-teal-600/20 bg-teal-600/10 px-3 py-2 text-sm font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-600/20">
+                    <span>{t("workflow.offtake", { defaultValue: "Trazabilidad de envíos" })}</span>
+                    <Truck className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link href={`/projects/${project.id}/community`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-pink-600/20 bg-pink-600/10 px-3 py-2 text-sm font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-600/20">
+                    <span>{t("workflow.community", { defaultValue: "Impacto comunitario" })}</span>
+                    <Users className="w-4 h-4" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {hasAccess("expert") && (
+            <div className={`bg-card border rounded-xl p-5 space-y-4 ${stage4NeedsEvidence ? "border-dashed border-border/80 opacity-80" : "border-border"}`}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-600/20">
+                  <Trophy className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    {t("workflow.marketEyebrow", { defaultValue: "Paso 3" })}
+                  </div>
+                  <h3 className="text-base font-semibold">
+                    {t("workflow.marketTitle", { defaultValue: "Activa salida comercial" })}
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {t("workflow.marketBody", { defaultValue: "Preparación para buyers, Priorización de buyers y Paquete de auditoría son potentes, pero rinden mejor cuando ya tienes algo de operación y trazabilidad cargada." })}
+              </p>
+              <div className="rounded-lg border border-border/80 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                {stage4NeedsEvidence
+                  ? t("workflow.marketWarning", { defaultValue: "Todavía es temprano para vender esto como listo para buyers. Primero conviene cargar evidencia y trazabilidad de envíos." })
+                  : t("workflow.marketReady", { defaultValue: "Ya puedes empezar a contrastar el proyecto contra buyers y armar un paquete de auditoría." })}
+              </div>
+              <div className="space-y-2">
+                <Link href={`/projects/${project.id}/buyer-readiness`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-indigo-600/20 bg-indigo-600/10 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20">
+                    <span>{t("workflow.buyerReadiness", { defaultValue: "Preparación para buyers" })}</span>
+                    <Zap className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link href={`/projects/${project.id}/buyer-match`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-amber-600/20 bg-amber-600/10 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-600/20">
+                    <span>{t("workflow.buyerMatch", { defaultValue: "Priorización de buyers" })}</span>
+                    <Trophy className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link href={`/projects/${project.id}/audit-package`}>
+                  <button className="w-full flex items-center justify-between gap-2 rounded-lg border border-fuchsia-600/20 bg-fuchsia-600/10 px-3 py-2 text-sm font-medium text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-600/20">
+                    <span>{t("workflow.auditPackage", { defaultValue: "Paquete de auditoría" })}</span>
+                    <FileCheck className="w-4 h-4" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Regional Analysis — climate + soil */}
         <RegionalAnalysis latitude={project.latitude} longitude={project.longitude} />
 
@@ -461,7 +724,7 @@ export default function ProjectDetail() {
           <div className="mb-5">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Target className="w-3 h-3" /> {t("params.goal")}
-              <span className="text-muted-foreground/70 normal-case font-normal ml-1">— {t("params.goalDescription", { defaultValue: "Qué querés priorizar:" })}</span>
+              <span className="text-muted-foreground/70 normal-case font-normal ml-1">— {t("params.goalDescription", { defaultValue: "Qué quieres priorizar:" })}</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               {([
@@ -595,7 +858,12 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        {/* BiocharPro Score — multi-methodology assessment */}
+        {/* BiocharPro Score — multi-methodology assessment.
+            `manualStates` is controlled from ProjectDetail and synced to the
+            backend so check toggles follow the user across devices. */}
+        <div className="flex items-center justify-end mb-2">
+          <GuideLink anchor="resultados-score" label="Cómo leer el BiocharPro Score" />
+        </div>
         <MethodologyAssessment
           result={result}
           feedstock={feedstock}
@@ -604,6 +872,8 @@ export default function ProjectDetail() {
           plantCapacityTph={project.plantCapacityTph}
           country={project.country}
           projectKey={`project-${project.id}`}
+          manualStates={manualStates}
+          onManualStatesChange={handleManualStatesChange}
         />
 
         {/* Cross-methodology comparison — killer feature for Engineer+ */}
@@ -616,9 +886,6 @@ export default function ProjectDetail() {
           country={project.country}
           projectKey={`project-${project.id}`}
         />
-      </div>
-      <div className="mt-8">
-        <SiteFooter />
       </div>
     </AppLayout>
   );

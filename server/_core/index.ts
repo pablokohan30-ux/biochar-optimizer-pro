@@ -1,4 +1,10 @@
 import "dotenv/config";
+// Sentry MUST be imported and initialised before any other module that may
+// throw — its global handlers need to be the first to register on the Node
+// process. Safe no-op without SENTRY_DSN.
+import { initServerSentry, sentryExpressErrorHandler } from "./sentry";
+initServerSentry();
+
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -25,7 +31,11 @@ function serveStatic(app: express.Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // `index: false` so express.static does NOT auto-serve /index.html for `/`.
+  // We want `/` to fall through to the SPA fallback below, which applies
+  // per-route SEO meta overrides + injects site-wide JSON-LD. Without this,
+  // the landing page would skip JSON-LD injection entirely.
+  app.use(express.static(distPath, { index: false }));
 
   // Load index.html once at startup. When an SPA route has a SEO override
   // configured (see seoMeta.ts) we substitute title + description + OG tags
@@ -40,18 +50,60 @@ function serveStatic(app: express.Express) {
 
   // SPA fallback — any unmatched path returns index.html (optionally with
   // per-route meta tag overrides for social previews).
+  //
+  // API paths are excluded from the SPA fallback and return a structured 404
+  // instead. Otherwise a misspelled endpoint (e.g. GET /api/v1/simulate, which
+  // is POST-only) would return the SPA HTML with status 200 and confuse
+  // downstream integrators. Shape matches the rest of the REST API errors.
   app.use("*", (req, res) => {
     // Strip query string; seoMeta matches on the pathname only.
     const pathname = (req.originalUrl || "/").split("?")[0];
-    const override = matchOverride(pathname);
 
-    if (override && indexHtmlCache) {
+    if (pathname.startsWith("/api/") || pathname === "/mcp" || pathname.startsWith("/mcp/")) {
+      res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: `No handler for ${req.method} ${pathname}. See /api/openapi.json for the list of available endpoints.`,
+        },
+      });
+      return;
+    }
+
+    // Always pass through applyMetaOverride — it handles the null-override
+    // case by injecting the site-wide Organization + SoftwareApplication
+    // JSON-LD blocks, which Google uses for rich-results surfacing even on
+    // pages without per-route meta customisation (e.g. "/", "/app", "/batch").
+    const override = matchOverride(pathname);
+    if (indexHtmlCache) {
       const html = applyMetaOverride(indexHtmlCache, override, pathname);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(html);
       return;
     }
     res.sendFile(indexPath);
+  });
+}
+
+const sensitiveFileRequestPattern =
+  /^\/(?!\.well-known(?:\/|$))(?:(?:.*\/)?\.[^/]+(?:\/.*)?|(?:.*\/)?(?:env|config|secrets?)(?:\.[^/]*)?)$/i;
+
+function blockSensitiveFileRequests(app: express.Express) {
+  app.use((req, res, next) => {
+    const pathname = (req.originalUrl || "/").split("?")[0];
+    // Vite serves optimized dev dependencies from /@fs/.../node_modules/.vite
+    // and pnpm stores packages under node_modules/.pnpm. Those dot directories
+    // are local dev implementation details, not public dotfile probes.
+    if (process.env.NODE_ENV === "development" && pathname.startsWith("/@fs/")) {
+      next();
+      return;
+    }
+
+    if (!sensitiveFileRequestPattern.test(pathname)) {
+      next();
+      return;
+    }
+
+    res.status(404).type("text/plain").send("Not found");
   });
 }
 
@@ -77,6 +129,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  blockSensitiveFileRequests(app);
 
   // Stripe webhook MUST use raw body BEFORE express.json()
   if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET) {
@@ -123,6 +177,11 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Sentry error middleware — mount AFTER routes so it sees the errors those
+  // routes throw, but BEFORE any final response-renderer. For 5xx, it calls
+  // Sentry.captureException; for 4xx it's a pass-through. No-op without DSN.
+  app.use(sentryExpressErrorHandler);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);

@@ -98,37 +98,101 @@ export default function MarketPulse({ limit = 5, compact = false }: MarketPulseP
         </div>
       )}
 
-      {/* News items */}
-      <div className={compact ? "space-y-1.5" : "space-y-2"}>
-        {items.map((item) => (
-          <a
-            key={item.link}
-            href={item.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block bg-card border border-border rounded-lg p-3 hover:border-primary/40 hover:shadow-sm transition-all group"
-          >
-            <div className={`font-medium leading-snug group-hover:text-primary transition-colors ${compact ? "text-xs" : "text-sm"}`}>
-              {item.title}
-            </div>
-            {!compact && item.summary && (
-              <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                {item.summary}
-              </div>
-            )}
-            <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-              <Clock className="w-2.5 h-2.5" />
-              <span>{fmt(item.pubDate)}</span>
-              {item.category && (
-                <>
-                  <span className="text-border">·</span>
-                  <span className="font-medium">{item.category}</span>
-                </>
+      {/* News items.
+          - Compact variant: small horizontal cards (sidebar use), thumbnail left
+          - Full variant: 2-column grid on md+ with prominent thumbnail on top */}
+      {compact ? (
+        <div className="space-y-1.5">
+          {items.map((item) => (
+            <a
+              key={item.link}
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-2.5 bg-card border border-border rounded-lg p-2 hover:border-primary/40 hover:shadow-sm transition-all group"
+            >
+              {item.imageUrl && (
+                <img
+                  src={item.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  className="w-12 h-12 rounded object-cover flex-shrink-0 bg-muted"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
               )}
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                  {item.title}
+                </div>
+                <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Clock className="w-2.5 h-2.5" />
+                  <span>{fmt(item.pubDate)}</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((item) => (
+            <a
+              key={item.link}
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group flex flex-col"
+            >
+              {/* Thumbnail */}
+              <div className="aspect-[16/9] bg-muted relative overflow-hidden">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      img.style.display = "none";
+                      img.parentElement?.classList.add("bg-gradient-to-br", "from-primary/20", "to-primary/5");
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Newspaper className="w-8 h-8 text-primary/30" />
+                  </div>
+                )}
+                {item.category && (
+                  <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wider bg-background/90 backdrop-blur text-foreground px-1.5 py-0.5 rounded border border-border">
+                    {item.category}
+                  </span>
+                )}
+              </div>
+
+              {/* Body */}
+              <div className="p-4 flex flex-col flex-1">
+                <h4 className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-3 mb-2">
+                  {item.title}
+                </h4>
+                {item.summary && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3 mb-3">
+                    {item.summary}
+                  </p>
+                )}
+                <div className="mt-auto pt-2 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" />
+                    {fmt(item.pubDate)}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    {t("readMore", { defaultValue: "Read" })}
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

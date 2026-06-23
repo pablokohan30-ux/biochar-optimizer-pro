@@ -1,7 +1,7 @@
 {
-  "name": "Biochar Optimizer Pro",
-  "short_name": "Biochar Pro",
-  "description": "Digital infrastructure for biochar carbon projects — simulate, score, export submission packages.",
+  "name": "BiocharPro",
+  "short_name": "BiocharPro",
+  "description": "Simula pirólisis, compara metodologías y exporta paquetes listos para certificación.",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }

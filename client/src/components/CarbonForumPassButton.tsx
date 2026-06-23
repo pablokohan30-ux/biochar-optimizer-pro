@@ -5,6 +5,7 @@ import { Sparkles, X, AlertCircle, Loader2, CheckCircle, Linkedin, Link2 } from 
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { BRAND_NAME } from "@/lib/brand";
 
 /**
  * Carbon Forum Colombia 2026 pass flow.
@@ -83,7 +84,7 @@ export default function CarbonForumPassButton({ className, label }: CarbonForumP
   // uses OG metadata from the target page, so we only pass `url`. X accepts
   // both text and url, so we send the full post.
   const shareText = t("shareTemplate");
-  const linkedInShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(SITE_URL)}&title=${encodeURIComponent("Biochar Optimizer Pro")}&summary=${encodeURIComponent(shareText)}`;
+  const linkedInShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(SITE_URL)}&title=${encodeURIComponent(BRAND_NAME)}&summary=${encodeURIComponent(shareText)}`;
   const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(SITE_URL)}`;
 
   const handleClick = () => {

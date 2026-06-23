@@ -15,10 +15,12 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
 import UpgradeModal from "@/components/UpgradeModal";
-import SiteFooter from "@/components/SiteFooter";
 import AppLayout from "@/components/AppLayout";
+import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
 import { PDD_TEMPLATE, type PddQuestion } from "@/lib/pddTemplate";
+import { trpc } from "@/lib/trpc";
+import { parseAiHandoffDescription, pddHandoffStorageKey } from "@/lib/aiHandoff";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,6 +38,14 @@ function countFilled(questions: PddQuestion[], responses: Record<string, string>
 
 /** Total questions across the entire template */
 const TOTAL_QUESTIONS = PDD_TEMPLATE.reduce((sum, s) => sum + s.questions.length, 0);
+
+function sanitizeFilenamePart(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "") || "project";
+}
 
 // ---------------------------------------------------------------------------
 // Toast (lightweight inline, no external dependency needed)
@@ -62,6 +72,7 @@ export default function PddBuilder() {
   const { t } = useTranslation("pdd");
   const params = useParams<{ projectId: string }>();
   const projectId = params.projectId ?? "";
+  const projectIdNumber = Number(projectId);
   const [, navigate] = useLocation();
 
   // Auth & tier
@@ -75,6 +86,12 @@ export default function PddBuilder() {
 
   // Question responses
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [handoffMeta, setHandoffMeta] = useState<{
+    sourceAiProjectId?: number;
+    sourceAiProjectName?: string | null;
+    reusedExistingProject?: boolean;
+    linkedProjectCount?: number;
+  } | null>(null);
 
   // Expanded hints (per question id)
   const [expandedHints, setExpandedHints] = useState<Record<string, boolean>>({});
@@ -84,6 +101,10 @@ export default function PddBuilder() {
 
   // Save status indicator
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const projectQuery = trpc.projects.get.useQuery(
+    { id: projectIdNumber },
+    { enabled: isAuthenticated && Number.isFinite(projectIdNumber) && hasAccess("engineer") },
+  );
 
   // ── Load from localStorage on mount ────────────────────────────────────
   useEffect(() => {
@@ -98,6 +119,20 @@ export default function PddBuilder() {
       }
     } catch {
       // corrupted data — start fresh
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    try {
+      const raw = localStorage.getItem(pddHandoffStorageKey(projectId));
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        setHandoffMeta(parsed);
+      }
+    } catch {
+      // Ignore malformed handoff metadata
     }
   }, [projectId]);
 
@@ -137,11 +172,6 @@ export default function PddBuilder() {
     }
   }, [projectId, responses, toast, t]);
 
-  // ── Export placeholder ─────────────────────────────────────────────────
-  const handleExport = useCallback(() => {
-    toast.show(t("exportComingSoon", { defaultValue: "Export coming soon" }));
-  }, [toast, t]);
-
   // ── Completion stats ───────────────────────────────────────────────────
   const sectionStats = useMemo(() => {
     const map: Record<string, { filled: number; total: number }> = {};
@@ -160,8 +190,58 @@ export default function PddBuilder() {
   );
   const overallPct = TOTAL_QUESTIONS > 0 ? Math.round((overallFilled / TOTAL_QUESTIONS) * 100) : 0;
 
+  // ── Export PDD draft as Markdown ───────────────────────────────────────
+  const handleExport = useCallback(() => {
+    const projectName = projectQuery.data?.name?.trim() || `project-${projectId}`;
+    const lines: string[] = [
+      `# ${t("subtitle", { defaultValue: "Project Design Document for Biochar Carbon Removal" })}`,
+      "",
+      `- ${t("title", { defaultValue: "PDD Builder" })}: ${projectName}`,
+      `- ${t("progress", { defaultValue: "Progress" })}: ${overallPct}%`,
+      `- ${t("complete", { defaultValue: "Complete" })}: ${overallFilled}/${TOTAL_QUESTIONS}`,
+    ];
+
+    if (projectQuery.data?.country) {
+      lines.push(`- ${t("country", { defaultValue: "Country" })}: ${projectQuery.data.country}`);
+    }
+
+    if (projectQuery.data?.location) {
+      lines.push(`- ${t("location", { defaultValue: "Location" })}: ${projectQuery.data.location}`);
+    }
+
+    lines.push(
+      `- ${t("lastSaved", { defaultValue: "Saved" })}: ${new Date().toLocaleString()}`,
+      "",
+    );
+
+    for (const section of PDD_TEMPLATE) {
+      lines.push(`## ${t(section.titleKey)}`, "");
+
+      for (const question of section.questions) {
+        const answer = (responses[question.id] ?? "").trim();
+        lines.push(`### ${t(question.labelKey)}`, "");
+        lines.push(answer || t("unansweredPlaceholder", { defaultValue: "_Pending input_" }), "");
+      }
+    }
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${sanitizeFilenamePart(projectName)}__pdd-draft.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.show(t("exportSuccess", { defaultValue: "PDD draft downloaded as Markdown" }));
+  }, [overallFilled, overallPct, projectId, projectQuery.data, responses, t, toast]);
+
   // ── Current section data ───────────────────────────────────────────────
   const currentSection = PDD_TEMPLATE.find((s) => s.id === activeSection) ?? PDD_TEMPLATE[0];
+  const aiHandoff = parseAiHandoffDescription(projectQuery.data?.description);
+  const sourceAiProjectId = handoffMeta?.sourceAiProjectId ?? aiHandoff.aiProjectId;
+  const sourceAiProjectName = handoffMeta?.sourceAiProjectName ?? null;
+  const showAiHandoffBanner = aiHandoff.isAiHandoff || !!handoffMeta;
+  const reusedExistingDraft = !!handoffMeta?.reusedExistingProject;
+  const linkedProjectCount = handoffMeta?.linkedProjectCount ?? 0;
 
   // ── Toggle hint ────────────────────────────────────────────────────────
   const toggleHint = useCallback((qId: string) => {
@@ -245,6 +325,50 @@ export default function PddBuilder() {
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-card border border-border shadow-lg rounded-lg px-4 py-2 text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           {toast.message}
+        </div>
+      )}
+
+      {showAiHandoffBanner && (
+        <div className="container mx-auto px-4 pt-6">
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-4">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700 mb-1">
+              {reusedExistingDraft
+                ? t("aiHandoffEyebrowReused", { defaultValue: "Borrador retomado desde AI Builder" })
+                : t("aiHandoffEyebrow", { defaultValue: "Handoff desde AI Builder" })}
+            </div>
+            <h2 className="text-sm font-semibold text-foreground">
+              {reusedExistingDraft
+                ? t("aiHandoffTitleReused", { defaultValue: "Volviste al mismo proyecto editable, no se creó uno nuevo" })
+                : t("aiHandoffTitle", { defaultValue: "Aquí ya estás editando el proyecto estándar, no un paquete aparte" })}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              {reusedExistingDraft
+                ? t("aiHandoffBodyReused", { defaultValue: "Abrimos tu borrador editable existente y respetamos las respuestas guardadas en este navegador. El paquete AI sigue siendo referencia; este PDD es el espacio donde continúas el mismo proyecto." })
+                : t("aiHandoffBody", { defaultValue: "El AI Builder te dio un borrador rápido. En esta pantalla completas y corriges ese contenido en el PDD editable. Después seguirás trabajando este mismo proyecto en /projects para operación, evidencia y go-to-market." })}
+            </p>
+            <GuideLink anchor="como-ai-builder" label="Cómo completar este handoff sin perder el hilo" className="mt-3 inline-flex" />
+            {reusedExistingDraft && linkedProjectCount > 1 && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t("aiHandoffMultipleLinked", { defaultValue: "Encontramos más de un borrador vinculado a este paquete AI y abrimos el más reciente para mantener un único camino de trabajo." })}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {sourceAiProjectId && (
+                <Link href={`/ai-builder/${sourceAiProjectId}`}>
+                  <button className="px-3 py-2 rounded-lg bg-white border border-indigo-200 text-sm font-medium text-indigo-700 hover:bg-indigo-100/60">
+                    {sourceAiProjectName
+                      ? t("aiHandoffBackToAiNamed", { defaultValue: "Ver paquete AI: {{name}}", name: sourceAiProjectName })
+                      : t("aiHandoffBackToAi", { defaultValue: "Ver paquete AI original" })}
+                  </button>
+                </Link>
+              )}
+              <Link href={`/projects/${projectId}`}>
+                <button className="px-3 py-2 rounded-lg bg-card border border-border text-sm font-medium text-foreground hover:bg-background">
+                  {t("aiHandoffToProject", { defaultValue: "Abrir proyecto operativo" })}
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 
@@ -392,7 +516,7 @@ export default function PddBuilder() {
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 {sectionStats[currentSection.id].filled} / {sectionStats[currentSection.id].total}{" "}
-                {t("questionsAnswered", { defaultValue: "answered" })}
+                {t("questionsAnswered", { defaultValue: "respondidas" })}
               </p>
             </div>
 
@@ -402,6 +526,9 @@ export default function PddBuilder() {
                 const value = responses[question.id] ?? "";
                 const hintOpen = expandedHints[question.id] ?? false;
                 const isFilled = value.trim().length > 0;
+                const guidanceLabel = hintOpen
+                  ? t("hideHint", { defaultValue: "Ocultar guía" })
+                  : t("showHint", { defaultValue: "Mostrar guía" });
 
                 return (
                   <div key={question.id} className="px-6 py-5">
@@ -423,8 +550,8 @@ export default function PddBuilder() {
                         type="button"
                         onClick={() => toggleHint(question.id)}
                         className="text-muted-foreground hover:text-primary transition-colors shrink-0 p-0.5"
-                        aria-label={t("toggleGuidance", { defaultValue: "Toggle guidance" })}
-                        title={t("toggleGuidance", { defaultValue: "Toggle guidance" })}
+                        aria-label={guidanceLabel}
+                        title={guidanceLabel}
                       >
                         <HelpCircle className="w-4 h-4" />
                       </button>
@@ -445,8 +572,8 @@ export default function PddBuilder() {
                       rows={4}
                       value={value}
                       onChange={(e) => updateResponse(question.id, e.target.value)}
-                      placeholder={t("placeholder", {
-                        defaultValue: "Type your response here...",
+                      placeholder={t("responsePlaceholder", {
+                        defaultValue: "Escribe tu respuesta aquí...",
                       })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50 resize-y"
                     />
@@ -467,7 +594,7 @@ export default function PddBuilder() {
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  {t("prevSection", { defaultValue: "Previous" })}
+                  {t("previous", { defaultValue: "Anterior" })}
                 </button>
               ) : (
                 <div />
@@ -481,7 +608,7 @@ export default function PddBuilder() {
                   }}
                   className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
-                  {t("nextSection", { defaultValue: "Next" })}
+                  {t("next", { defaultValue: "Siguiente" })}
                   <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
@@ -497,9 +624,6 @@ export default function PddBuilder() {
           </div>
         </main>
       </div>
-
-      <SiteFooter />
-
       {/* ── Upgrade Modal (tier gate) ──────────────────────────────────────── */}
       <UpgradeModal
         isOpen={showUpgrade}

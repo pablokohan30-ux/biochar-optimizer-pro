@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BiocharPro | LinkedIn Visual Content Kit</title>
+  <style>
+    :root {
+      --ink: #102019;
+      --moss: #2f6f4f;
+      --leaf: #46a66f;
+      --lime: #c9f27a;
+      --clay: #b56a38;
+      --sand: #f3ead7;
+      --cream: #fff9ed;
+      --char: #111815;
+      --muted: #6c7a70;
+      --line: rgba(16, 32, 25, 0.16);
+      --shadow: 0 28px 80px rgba(17, 24, 21, 0.22);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(201, 242, 122, 0.28), transparent 28rem),
+        radial-gradient(circle at 90% 0%, rgba(181, 106, 56, 0.16), transparent 26rem),
+        linear-gradient(135deg, #f8f1e3, #eef4e7 52%, #e0eadc);
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 44px 28px 80px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 30px;
+    }
+
+    .hero-card,
+    .post-card {
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background: rgba(255, 249, 237, 0.72);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-card {
+      padding: 42px;
+      min-height: 420px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #102019, #2f6f4f);
+      display: grid;
+      place-items: center;
+      color: var(--lime);
+      font-weight: 800;
+      font-size: 28px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+    }
+
+    .brand-name {
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 900px;
+      font-size: clamp(46px, 6vw, 90px);
+      line-height: 0.88;
+      letter-spacing: -0.065em;
+    }
+
+    .hero-sub {
+      max-width: 760px;
+      margin: 24px 0 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 34px;
+      max-width: 720px;
+    }
+
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.44);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .post-card {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 420px;
+    }
+
+    .post-card h2,
+    .section-title {
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--moss);
+    }
+
+    .post-copy {
+      margin-top: 18px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.58;
+      color: #26332c;
+      white-space: pre-line;
+    }
+
+    .post-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .tag {
+      border: 1px solid rgba(47, 111, 79, 0.22);
+      background: rgba(47, 111, 79, 0.08);
+      color: var(--moss);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .section-title {
+      margin: 44px 0 18px;
+      color: var(--ink);
+    }
+
+    .reel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
+    .reel {
+      aspect-ratio: 9 / 16;
+      border-radius: 34px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0)),
+        radial-gradient(circle at 70% 5%, rgba(201, 242, 122, 0.42), transparent 34%),
+        linear-gradient(150deg, var(--char), #153123 46%, #f2e7d1 46.2%, var(--cream));
+      color: var(--cream);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .reel.alt {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(201, 242, 122, 0.42), transparent 36%),
+        linear-gradient(155deg, #f8efd9 0 48%, #163323 48.2% 100%);
+      color: var(--ink);
+    }
+
+    .reel.clay {
+      background:
+        radial-gradient(circle at 88% 14%, rgba(255, 249, 237, 0.24), transparent 30%),
+        linear-gradient(155deg, #7b3f24 0 44%, #143325 44.2% 100%);
+    }
+
+    .reel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 58%);
+      z-index: -1;
+    }
+
+    .reel-number {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-weight: 900;
+      background: rgba(255, 249, 237, 0.14);
+      border: 1px solid rgba(255, 249, 237, 0.26);
+      color: var(--cream);
+    }
+
+    .alt .reel-number {
+      background: rgba(47, 111, 79, 0.12);
+      border-color: rgba(47, 111, 79, 0.2);
+      color: var(--moss);
+    }
+
+    .reel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 800;
+      opacity: 0.9;
+    }
+
+    .screen-pill {
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: rgba(255, 249, 237, 0.16);
+      border: 1px solid rgba(255, 249, 237, 0.26);
+    }
+
+    .alt .screen-pill {
+      background: rgba(47, 111, 79, 0.12);
+      border-color: rgba(47, 111, 79, 0.18);
+    }
+
+    .reel-main {
+      margin-top: auto;
+      padding-top: 100px;
+    }
+
+    .reel h3 {
+      margin: 0;
+      font-size: 37px;
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 95%;
+    }
+
+    .reel p {
+      margin: 18px 0 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 249, 237, 0.82);
+    }
+
+    .alt p {
+      color: #526357;
+    }
+
+    .visual {
+      margin-top: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 249, 237, 0.22);
+      background: rgba(255, 249, 237, 0.12);
+      padding: 16px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      backdrop-filter: blur(12px);
+    }
+
+    .alt .visual {
+      background: rgba(255, 255, 255, 0.52);
+      border-color: rgba(47, 111, 79, 0.18);
+    }
+
+    .metric-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255, 249, 237, 0.16);
+      font-size: 12px;
+    }
+
+    .alt .metric-line {
+      border-bottom-color: rgba(47, 111, 79, 0.14);
+    }
+
+    .metric-line:last-child { border-bottom: 0; }
+
+    .metric-line strong {
+      font-size: 18px;
+      color: var(--lime);
+    }
+
+    .alt .metric-line strong {
+      color: var(--moss);
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: var(--w, 68%);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--lime), var(--leaf));
+    }
+
+    .reel-footer {
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+
+    .caption {
+      max-width: 70%;
+    }
+
+    .leaf-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px 12px 12px 4px;
+      transform: rotate(-12deg);
+      background: linear-gradient(145deg, var(--lime), var(--leaf));
+      box-shadow: 0 12px 34px rgba(70, 166, 111, 0.38);
+    }
+
+    .script-board {
+      margin-top: 34px;
+      border-radius: 30px;
+      border: 1px solid var(--line);
+      background: rgba(255, 249, 237, 0.72);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .script-row {
+      display: grid;
+      grid-template-columns: 170px 1fr 1fr;
+      gap: 18px;
+      padding: 18px 22px;
+      border-top: 1px solid var(--line);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .script-row:first-child {
+      border-top: 0;
+      background: rgba(47, 111, 79, 0.08);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--moss);
+    }
+
+    .script-row strong {
+      color: var(--ink);
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card {
+        padding: 28px;
+      }
+
+      .script-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <article class="hero-card">
+        <div class="brand-row">
+          <div class="logo-mark">b</div>
+          <div>
+            <div class="brand-name">BiocharPro</div>
+            <div class="tag">LinkedIn launch kit</div>
+          </div>
+        </div>
+        <h1>De biomasa a proyecto auditable.</h1>
+        <p class="hero-sub">
+          Kit visual para presentar BiocharPro en LinkedIn: reels por pantalla, narrativa de plataforma
+          y piezas verticales pensadas para mostrar simulación, operación, trazabilidad, compradores y auditoría.
+        </p>
+        <div class="mini-grid">
+          <div class="mini">Formato base: 9:16 vertical</div>
+          <div class="mini">Uso: reels, stories, carrusel o video corto</div>
+          <div class="mini">Tono: técnico, claro, comercial</div>
+          <div class="mini">CTA: conversar con desarrolladores de biochar/CDR</div>
+        </div>
+      </article>
+
+      <aside class="post-card">
+        <div>
+          <h2>Post general</h2>
+          <div class="post-copy">Estamos construyendo BiocharPro: una plataforma para llevar proyectos de biochar desde la idea técnica hasta una operación más lista para certificadores, compradores y auditoría.
+
+Muchos proyectos tienen potencial, pero la información queda dispersa entre Excel, PDFs, modelos técnicos, correos y carpetas sueltas. Eso hace más lento validar factibilidad, preparar documentación, ordenar evidencia operativa y conversar con compradores serios de CDR.
+
+BiocharPro ordena ese camino: simulación, constructor IA, gestión de proyectos, evidencia operativa, trazabilidad de offtake, impacto comunitario, preparación frente a compradores y paquete de auditoría.
+
+No reemplaza ingeniería local, certificadores ni validadores. Los acelera.</div>
+        </div>
+        <div class="post-tags">
+          <span class="tag">#Biochar</span>
+          <span class="tag">#CarbonRemoval</span>
+          <span class="tag">#CDR</span>
+          <span class="tag">#MRV</span>
+          <span class="tag">#ClimateTech</span>
+        </div>
+      </aside>
+    </section>
+
+    <h2 class="section-title">Reels visuales por pantalla</h2>
+    <section class="reel-grid">
+      <article class="reel">
+        <div class="reel-top"><span class="reel-number">01</span><span class="screen-pill">Home</span></div>
+        <div class="reel-main">
+          <h3>¿Y si un proyecto de biochar no empezara con 20 archivos sueltos?</h3>
+          <p>BiocharPro reúne simulación, documentación, evidencia operativa y preparación comercial.</p>
+          <div class="visual"><div class="metric-line"><span>Proyecto</span><strong>1 vista</strong></div><div class="metric-line"><span>Datos</span><strong>ordenados</strong></div><div class="metric-line"><span>Salida</span><strong>auditable</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">De biomasa a proyecto estructurado.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel alt">
+        <div class="reel-top"><span class="reel-number">02</span><span class="screen-pill">Simulador</span></div>
+        <div class="reel-main">
+          <h3>Antes de invertir, entendé la biomasa.</h3>
+          <p>Compara temperatura, residencia, rendimiento, carbono y créditos potenciales.</p>
+          <div class="visual"><div class="metric-line"><span>Temperatura</span><strong>650°C</strong></div><div class="bar" style="--w:78%"><span></span></div><div class="metric-line"><span>CDR estimado</span><strong>tCO₂e</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Simular primero. Decidir mejor.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel clay">
+        <div class="reel-top"><span class="reel-number">03</span><span class="screen-pill">AI Builder</span></div>
+        <div class="reel-main">
+          <h3>De tres inputs a un primer dossier técnico.</h3>
+          <p>Biomasa, país y capacidad para crear un punto de partida revisable por ingeniería, legal y certificación.</p>
+          <div class="visual"><div class="metric-line"><span>Inputs</span><strong>3</strong></div><div class="metric-line"><span>Borradores</span><strong>17</strong></div><div class="metric-line"><span>Uso</span><strong>validar</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">IA para acelerar, no reemplazar.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel">
+        <div class="reel-top"><span class="reel-number">04</span><span class="screen-pill">Proyecto</span></div>
+        <div class="reel-main">
+          <h3>Un proyecto no es solo una simulación.</h3>
+          <p>Ubicación, biomasa, capacidad, metodología y estado operativo en una sola vista.</p>
+          <div class="visual"><div class="metric-line"><span>Mapa</span><strong>activo</strong></div><div class="metric-line"><span>BOP ID</span><strong>único</strong></div><div class="metric-line"><span>PDD</span><strong>editable</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Todo el proyecto, sin perder contexto.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel alt">
+        <div class="reel-top"><span class="reel-number">05</span><span class="screen-pill">Evidencia</span></div>
+        <div class="reel-main">
+          <h3>Los compradores no compran promesas. Compran evidencia.</h3>
+          <p>Registra biomasa, pirólisis, laboratorio, energía, turnos, incidentes y aplicación al suelo.</p>
+          <div class="visual"><div class="metric-line"><span>Readiness</span><strong>67%</strong></div><div class="bar" style="--w:67%"><span></span></div><div class="metric-line"><span>Registros</span><strong>3</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">La operación se vuelve auditable.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel clay">
+        <div class="reel-top"><span class="reel-number">06</span><span class="screen-pill">Offtake</span></div>
+        <div class="reel-main">
+          <h3>¿Dónde terminó realmente el biochar?</h3>
+          <p>Cada envío genera trazabilidad: toneladas, destino, estado y confirmación del usuario final.</p>
+          <div class="visual"><div class="metric-line"><span>Enviado</span><strong>5.5 t</strong></div><div class="metric-line"><span>Aplicado</span><strong>5.5 t</strong></div><div class="metric-line"><span>Trazabilidad</span><strong>100%</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Cadena de custodia, no narrativa.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel">
+        <div class="reel-top"><span class="reel-number">07</span><span class="screen-pill">Confirmación</span></div>
+        <div class="reel-main">
+          <h3>El destinatario también cierra el MRV.</h3>
+          <p>Una página pública permite confirmar recepción, aplicación, cultivo, toneladas y ubicación.</p>
+          <div class="visual"><div class="metric-line"><span>Acceso</span><strong>público</strong></div><div class="metric-line"><span>Pago</span><strong>no</strong></div><div class="metric-line"><span>Evidencia</span><strong>sí</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Simple para el usuario final.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel alt">
+        <div class="reel-top"><span class="reel-number">08</span><span class="screen-pill">Comunidad</span></div>
+        <div class="reel-main">
+          <h3>El impacto social no debería vivir en notas sueltas.</h3>
+          <p>Reuniones, reclamos, empleo local, inversión y monitoreo ambiental quedan trazados.</p>
+          <div class="visual"><div class="metric-line"><span>Registros</span><strong>4</strong></div><div class="metric-line"><span>Empleo local</span><strong>100%</strong></div><div class="metric-line"><span>Inversión</span><strong>USD 1.2k</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Impacto con evidencia.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel clay">
+        <div class="reel-top"><span class="reel-number">09</span><span class="screen-pill">Buyer readiness</span></div>
+        <div class="reel-main">
+          <h3>¿Tu proyecto está listo para Microsoft?</h3>
+          <p>Compara evidencia real contra criterios públicos y convierte brechas en acciones.</p>
+          <div class="visual"><div class="metric-line"><span>Microsoft</span><strong>34%</strong></div><div class="bar" style="--w:34%"><span></span></div><div class="metric-line"><span>Salida</span><strong>acciones</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Antes de vender, revisa brechas.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel">
+        <div class="reel-top"><span class="reel-number">10</span><span class="screen-pill">Compradores</span></div>
+        <div class="reel-main">
+          <h3>No todos los compradores son para el mismo momento.</h3>
+          <p>La IA prioriza a quién contactar primero según madurez, trazabilidad y datos reales.</p>
+          <div class="visual"><div class="metric-line"><span>#1</span><strong>Altitude</strong></div><div class="metric-line"><span>#2</span><strong>Shell</strong></div><div class="metric-line"><span>#3</span><strong>Frontier</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Menos pitch genérico. Más estrategia.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel alt">
+        <div class="reel-top"><span class="reel-number">11</span><span class="screen-pill">Auditoría</span></div>
+        <div class="reel-main">
+          <h3>Cuando llega la auditoría, el desorden cuesta caro.</h3>
+          <p>Un paquete consolida evidencia, envíos, comunidad y resumen ejecutivo revisable.</p>
+          <div class="visual"><div class="metric-line"><span>Evidencia</span><strong>3</strong></div><div class="metric-line"><span>Envíos</span><strong>1</strong></div><div class="metric-line"><span>Comunidad</span><strong>4</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Un paquete serio para VVBs y buyers.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel clay">
+        <div class="reel-top"><span class="reel-number">12</span><span class="screen-pill">Portafolio</span></div>
+        <div class="reel-main">
+          <h3>¿Y si tenés más de una planta?</h3>
+          <p>Visualiza sitios, capacidad, biochar estimado, CDR y estado de cada proyecto.</p>
+          <div class="visual"><div class="metric-line"><span>Sitios</span><strong>1</strong></div><div class="metric-line"><span>Capacidad</span><strong>20k</strong></div><div class="metric-line"><span>CDR</span><strong>15k</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">De proyecto a cartera operativa.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel">
+        <div class="reel-top"><span class="reel-number">13</span><span class="screen-pill">Metodologías</span></div>
+        <div class="reel-main">
+          <h3>Cada equipo puede evaluar con su propio marco.</h3>
+          <p>Metodologías públicas e internas conviven para revisar proyectos con criterios propios.</p>
+          <div class="visual"><div class="metric-line"><span>Públicas</span><strong>Puro/EBC</strong></div><div class="metric-line"><span>Internas</span><strong>custom</strong></div><div class="metric-line"><span>Uso</span><strong>evaluar</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Tu criterio también importa.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel alt">
+        <div class="reel-top"><span class="reel-number">14</span><span class="screen-pill">Marca</span></div>
+        <div class="reel-main">
+          <h3>Los reportes también tienen que verse profesionales.</h3>
+          <p>Logo, empresa, color y footer para entregas listas frente a clientes o partners.</p>
+          <div class="visual"><div class="metric-line"><span>Logo</span><strong>propio</strong></div><div class="metric-line"><span>Color</span><strong>marca</strong></div><div class="metric-line"><span>PDF</span><strong>cliente</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">Tu marca sobre la evidencia.</span><span class="leaf-dot"></span></div>
+      </article>
+
+      <article class="reel clay">
+        <div class="reel-top"><span class="reel-number">15</span><span class="screen-pill">API</span></div>
+        <div class="reel-main">
+          <h3>BiocharPro no tiene que vivir aislado.</h3>
+          <p>La API permite conectar simulaciones, datos operativos y flujos con sistemas externos.</p>
+          <div class="visual"><div class="metric-line"><span>Integración</span><strong>REST</strong></div><div class="metric-line"><span>Uso</span><strong>partners</strong></div><div class="metric-line"><span>Escala</span><strong>infra</strong></div></div>
+        </div>
+        <div class="reel-footer"><span class="caption">De plataforma a infraestructura CDR.</span><span class="leaf-dot"></span></div>
+      </article>
+    </section>
+
+    <h2 class="section-title">Guion rápido para grabar</h2>
+    <section class="script-board">
+      <div class="script-row"><div>Pantalla</div><div>Hook</div><div>Voz / texto sugerido</div></div>
+      <div class="script-row"><strong>Home</strong><div>¿Y si un proyecto de biochar no empezara con 20 archivos sueltos?</div><div>BiocharPro reúne simulación, documentación, evidencia operativa y preparación comercial.</div></div>
+      <div class="script-row"><strong>Simulador</strong><div>Antes de invertir, entendé la biomasa.</div><div>Compara temperatura, residencia, rendimiento, carbono y créditos potenciales.</div></div>
+      <div class="script-row"><strong>AI Builder</strong><div>De tres inputs a un primer dossier técnico.</div><div>La IA genera un punto de partida para ingeniería, legal y certificación.</div></div>
+      <div class="script-row"><strong>Evidencia</strong><div>Los compradores no compran promesas. Compran evidencia.</div><div>Cada registro operativo se vuelve parte de un paquete auditable.</div></div>
+      <div class="script-row"><strong>Offtake</strong><div>¿Dónde terminó realmente el biochar?</div><div>La trazabilidad se cierra con confirmación pública del destinatario final.</div></div>
+      <div class="script-row"><strong>Auditoría</strong><div>Cuando llega la auditoría, el desorden cuesta caro.</div><div>BiocharPro consolida evidencia, envíos, comunidad y resumen ejecutivo.</div></div>
+    </section>
+  </main>
+</body>
+</html>

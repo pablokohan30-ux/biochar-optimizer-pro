@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trackEvent } from "@/lib/analytics";
 
 export type SubscribeTierId = "analyst" | "developer" | "engineer" | "expert";
 export type BillingCycle = "monthly" | "quarterly";
@@ -70,11 +71,24 @@ export default function SubscribeButton({
   });
 
   const handleClick = () => {
+    // Analytics: capture intent BEFORE we know if the user is authed. This
+    // lets us see how many logged-out users click a tier button vs. how
+    // many logged-in users actually start checkout — two very different
+    // funnel stages.
+    trackEvent("checkout_intent", {
+      tier_id: tierId,
+      billing_cycle: billingCycle,
+      authenticated: isAuthenticated,
+    });
     if (!isAuthenticated) {
       setLocation("/login");
       return;
     }
     setLocalLoading(true);
+    trackEvent("checkout_started", {
+      tier_id: tierId,
+      billing_cycle: billingCycle,
+    });
     createCheckout.mutate({ tierId, billingCycle });
   };
 

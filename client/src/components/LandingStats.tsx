@@ -61,7 +61,7 @@ function StatTile({
 }
 
 export default function LandingStats() {
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
   const query = trpc.stats.getLandingStats.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 min — landing doesn't need real-time freshness
     refetchOnWindowFocus: false,
@@ -71,7 +71,7 @@ export default function LandingStats() {
   const data = query.data;
   const loading = query.isLoading;
 
-  const activeMeth = data?.coverage.activeMethodologies ?? 4;
+  const activeMeth = data?.coverage.activeMethodologies ?? 5;
   const comingSoonCount = (data?.coverage.totalMethodologies ?? 6) - activeMeth;
   const feedstocks = data?.coverage.feedstocks ?? 53;
   const showUsage = Boolean(data?.usage.visible && data.usage.projectsWithBopId);
@@ -89,7 +89,9 @@ export default function LandingStats() {
         sub={comingSoonCount > 0
           ? t("hero.statMethodologiesSub", {
               count: comingSoonCount,
-              defaultValue: `+${comingSoonCount} coming soon`,
+              defaultValue: i18n.language.startsWith("es")
+                ? `+${comingSoonCount} en preparación`
+                : `+${comingSoonCount} in preparation`,
             })
           : undefined}
         animated={!loading}

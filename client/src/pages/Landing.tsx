@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   Flame, BarChart3, FileText, Beaker, Leaf, Globe,
   Zap, CheckCircle, ArrowRight, Lock, ChevronRight, ChevronDown,
   FlaskConical, Building2, Map, Scale,
-  Microscope, Ruler, BadgeCheck, Sparkles,
+  Microscope, Sparkles,
   ClipboardList, Factory, Plug, Shield,
-  TrendingUp, Landmark, Wheat, Code2, GraduationCap, Briefcase
+  TrendingUp, Landmark, Wheat, Code2, GraduationCap, Briefcase,
+  HelpCircle,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -16,14 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import SiteFooter from "@/components/SiteFooter";
-import MarketPulse from "@/components/MarketPulse";
-import ProjectJourney from "@/components/ProjectJourney";
 import MethodologyCoverage from "@/components/MethodologyCoverage";
 import LandingStats from "@/components/LandingStats";
-import CarbonForumPassButton from "@/components/CarbonForumPassButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SubscribeButton, { type SubscribeTierId } from "@/components/SubscribeButton";
 import { compute_all, FEEDSTOCK_DB } from "@/lib/biocharModel";
+import { ENGINEER_MONTHLY_USD } from "@/lib/pricingCatalog";
 
 
 
@@ -57,8 +56,6 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 export default function Landing() {
   const { t, i18n } = useTranslation(["landing", "common", "pricing", "market"]);
-  const [, setLocation] = useLocation();
-  const [openModule, setOpenModule] = useState<string | null>(null);
 
   const TIERS = useMemo(() => [
     {
@@ -161,113 +158,126 @@ export default function Landing() {
     },
   ], [t]);
 
-  const MODULES = useMemo(() => [
+  const AUDIENCE_CARDS = useMemo(() => [
     {
-      id: "technicalSimulation",
-      icon: FlaskConical,
-      title: t("landing:modules.technicalSimulation.title"),
-      summary: t("landing:modules.technicalSimulation.summary"),
-      desc: t("landing:modules.technicalSimulation.desc"),
-      tier: t("landing:modules.technicalSimulation.tier"),
-      tierColor: "bg-green-500/10 text-green-500 border-green-500/20",
-      color: "text-green-500",
-      borderHover: "hover:border-green-500/40",
-      features: [
-        t("landing:modules.technicalSimulation.features.f1"),
-        t("landing:modules.technicalSimulation.features.f2"),
-        t("landing:modules.technicalSimulation.features.f3"),
-        t("landing:modules.technicalSimulation.features.f4"),
-        t("landing:modules.technicalSimulation.features.f5"),
-      ],
-    },
-    {
-      id: "lca",
-      icon: FileText,
-      title: t("landing:modules.lca.title"),
-      summary: t("landing:modules.lca.summary"),
-      desc: t("landing:modules.lca.desc"),
-      tier: t("landing:modules.lca.tier"),
-      tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      color: "text-blue-500",
-      borderHover: "hover:border-blue-500/40",
-      features: [
-        t("landing:modules.lca.features.f1"),
-        t("landing:modules.lca.features.f2"),
-        t("landing:modules.lca.features.f3"),
-        t("landing:modules.lca.features.f4"),
-        t("landing:modules.lca.features.f5"),
-      ],
-    },
-    {
-      id: "projectDesign",
-      icon: BarChart3,
-      title: t("landing:modules.projectDesign.title"),
-      summary: t("landing:modules.projectDesign.summary"),
-      desc: t("landing:modules.projectDesign.desc"),
-      tier: t("landing:modules.projectDesign.tier"),
-      tierColor: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-      color: "text-purple-500",
-      borderHover: "hover:border-purple-500/40",
-      features: [
-        t("landing:modules.projectDesign.features.f1"),
-        t("landing:modules.projectDesign.features.f2"),
-        t("landing:modules.projectDesign.features.f3"),
-        t("landing:modules.projectDesign.features.f4"),
-        t("landing:modules.projectDesign.features.f5"),
-      ],
-    },
-    {
-      id: "plantEngineering",
+      key: "developer",
+      href: "/solutions/developer",
       icon: Building2,
-      title: t("landing:modules.plantEngineering.title"),
-      summary: t("landing:modules.plantEngineering.summary"),
-      desc: t("landing:modules.plantEngineering.desc"),
-      tier: t("landing:modules.plantEngineering.tier"),
-      tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-      color: "text-yellow-500",
-      borderHover: "hover:border-yellow-500/40",
-      features: [
-        t("landing:modules.plantEngineering.features.f1"),
-        t("landing:modules.plantEngineering.features.f2"),
-        t("landing:modules.plantEngineering.features.f3"),
-        t("landing:modules.plantEngineering.features.f4"),
-        t("landing:modules.plantEngineering.features.f5"),
-      ],
+      color: "text-green-500",
+      bg: "bg-green-500/10",
+      border: "border-green-500/25",
     },
     {
-      id: "regulatory",
-      icon: Scale,
-      title: t("landing:modules.regulatory.title"),
-      summary: t("landing:modules.regulatory.summary"),
-      desc: t("landing:modules.regulatory.desc"),
-      tier: t("landing:modules.regulatory.tier"),
-      tierColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-      color: "text-yellow-500",
-      borderHover: "hover:border-yellow-500/40",
-      features: [
-        t("landing:modules.regulatory.features.f1"),
-        t("landing:modules.regulatory.features.f2"),
-        t("landing:modules.regulatory.features.f3"),
-        t("landing:modules.regulatory.features.f4"),
-        t("landing:modules.regulatory.features.f5"),
-      ],
-    },
-    {
-      id: "applications",
-      icon: Map,
-      title: t("landing:modules.applications.title"),
-      summary: t("landing:modules.applications.summary"),
-      desc: t("landing:modules.applications.desc"),
-      tier: t("landing:modules.applications.tier"),
-      tierColor: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      key: "consultant",
+      href: "/solutions/consultant",
+      icon: Briefcase,
       color: "text-blue-500",
-      borderHover: "hover:border-blue-500/40",
-      features: [
-        t("landing:modules.applications.features.f1"),
-        t("landing:modules.applications.features.f2"),
-        t("landing:modules.applications.features.f3"),
-        t("landing:modules.applications.features.f4"),
-        t("landing:modules.applications.features.f5"),
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/25",
+    },
+    {
+      key: "agribusiness",
+      href: "/solutions/agribusiness",
+      icon: Wheat,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/25",
+    },
+    {
+      key: "integrator",
+      href: "/solutions/integrator",
+      icon: Code2,
+      color: "text-cyan-500",
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/25",
+    },
+  ], []);
+
+  const DELIVERABLE_HIGHLIGHTS = useMemo(() => [
+    {
+      key: "pdd",
+      icon: ClipboardList,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10",
+      title: t("landing:projectPackage.items.pdd.title"),
+      desc: t("landing:projectPackage.items.pdd.desc"),
+    },
+    {
+      key: "equipment",
+      icon: Factory,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      title: t("landing:projectPackage.items.equipment.title"),
+      desc: t("landing:projectPackage.items.equipment.desc"),
+    },
+    {
+      key: "electrical",
+      icon: Plug,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+      title: t("landing:projectPackage.items.electrical.title"),
+      desc: t("landing:projectPackage.items.electrical.desc"),
+    },
+    {
+      key: "certification",
+      icon: Shield,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+      title: t("landing:projectPackage.items.certification.title"),
+      desc: t("landing:projectPackage.items.certification.desc"),
+    },
+  ], [t]);
+
+  const WORKFLOW_STAGES = useMemo(() => [
+    {
+      key: "model",
+      href: "/app",
+      icon: FlaskConical,
+      color: "text-green-500",
+      bg: "bg-green-500/10",
+      border: "border-green-500/25",
+      label: t("landing:journey.stage1Label"),
+      title: t("landing:journey.stage1Title"),
+      desc: t("landing:journey.stage1Desc"),
+      cta: t("landing:journey.stage1Cta"),
+      items: [
+        t("landing:journey.stage1Item1"),
+        t("landing:journey.stage1Item2"),
+        t("landing:journey.stage1Item3"),
+      ],
+    },
+    {
+      key: "prepare",
+      href: "/ai-builder",
+      icon: FileText,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/25",
+      label: t("landing:journey.stage2Label"),
+      title: t("landing:journey.stage2Title"),
+      desc: t("landing:journey.stage2Desc"),
+      cta: t("landing:journey.stage2Cta"),
+      items: [
+        t("landing:journey.stage2Item1"),
+        t("landing:journey.stage2Item2"),
+        t("landing:journey.stage2Item3"),
+      ],
+    },
+    {
+      key: "present",
+      href: "/product/modules",
+      icon: Shield,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/25",
+      label: t("landing:journey.stage3Label"),
+      title: t("landing:journey.stage3Title"),
+      desc: t("landing:journey.stage3Desc"),
+      cta: t("landing:journey.stage3Cta"),
+      items: [
+        t("landing:journey.stage3Item1"),
+        t("landing:journey.stage3Item2"),
+        t("landing:journey.stage3Item3"),
       ],
     },
   ], [t]);
@@ -336,12 +346,19 @@ export default function Landing() {
           <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
+            <Link href="/guide">
+              <Button variant="ghost" size="sm" className="hidden md:inline-flex">
+                {t("common:nav.guide", { defaultValue: "Guía" })}
+              </Button>
+            </Link>
             <Link href="/pricing">
-              <Button variant="ghost" size="sm">{t("common:nav.pricing")}</Button>
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">{t("common:nav.pricing")}</Button>
             </Link>
             <Link href="/app">
-              <Button size="sm" className="gap-1">
-                {t("common:nav.tryForFree")} <ArrowRight className="w-3 h-3" />
+              <Button size="sm" className="gap-1 px-3 sm:px-4">
+                <span className="sm:hidden">{t("landing:hero.ctaPrimaryShort", { defaultValue: "Probar" })}</span>
+                <span className="hidden sm:inline">{t("common:nav.tryForFree")}</span>
+                <ArrowRight className="w-3 h-3" />
               </Button>
             </Link>
           </div>
@@ -367,29 +384,80 @@ export default function Landing() {
                 {t("landing:hero.titleLine1")}<br />
                 <span className="bg-gradient-to-r from-primary to-green-400 bg-clip-text text-transparent">
                   {t("landing:hero.titleHighlight")}
-                </span>,<br />
-                {t("landing:hero.titleLine2")}
+                </span>
+                {t("landing:hero.titleLine2") && (
+                  <>
+                    <br />
+                    {t("landing:hero.titleLine2")}
+                  </>
+                )}
               </h1>
               <p className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed">
                 {t("landing:hero.subtitle")}
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Link href="/app">
-                  <Button size="lg" className="gap-2 text-base px-8 shadow-lg shadow-primary/20">
-                    <Zap className="w-4 h-4" />
-                    {t("landing:hero.ctaPrimary")}
+                  <Button size="lg" className="gap-2 text-base px-6">
+                    {t("landing:hero.ctaPrimary")} <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <Link href="/demo">
-                  <Button size="lg" variant="outline" className="gap-2 text-base px-8">
+                  <Button size="lg" variant="outline" className="gap-2 text-base px-6">
                     {t("landing:hero.ctaSecondary")}
-                    <ChevronRight className="w-4 h-4" />
                   </Button>
+                </Link>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm">
+                <Link href="/projects">
+                  <span className="text-primary hover:text-primary/80 cursor-pointer inline-flex items-center gap-1 font-medium">
+                    {t("landing:hero.ctaOperational", { defaultValue: "Ya tengo una planta operativa" })} <ChevronRight className="w-3 h-3" />
+                  </span>
+                </Link>
+                <Link href="/guide">
+                  <span className="text-muted-foreground hover:text-foreground cursor-pointer inline-flex items-center gap-1">
+                    <GraduationCap className="w-3 h-3" /> {t("landing:hero.ctaGuide", { defaultValue: "Leer la guía" })}
+                  </span>
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
                 {t("landing:hero.noCardRequired")}
               </p>
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-3xl">
+                {[
+                  t("landing:hero.proof1", { defaultValue: "6 metodologías cubiertas" }),
+                  t("landing:hero.proof2", { defaultValue: "Simulador gratis" }),
+                  t("landing:hero.proof3", { defaultValue: "Evidencia lote por lote" }),
+                  t("landing:hero.proof4", { defaultValue: "Exportes listos para auditoría" }),
+                ].map((proof) => (
+                  <div
+                    key={proof}
+                    className="rounded-lg border border-border bg-card/70 px-3 py-2 text-xs font-medium text-foreground/85"
+                  >
+                    {proof}
+                  </div>
+                ))}
+              </div>
+
+              {/* Methodology badges — social proof by certification coverage */}
+              <div className="mt-6 pt-5 border-t border-border/50">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">
+                  {t("landing:hero.methodologiesLabel", { defaultValue: "Compatible con" })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: "Puro.earth", color: "text-green-600 border-green-500/30 bg-green-500/5" },
+                    { name: "Isometric", color: "text-blue-600 border-blue-500/30 bg-blue-500/5" },
+                    { name: "Verra VM0044", color: "text-purple-600 border-purple-500/30 bg-purple-500/5" },
+                    { name: "EBC", color: "text-emerald-600 border-emerald-500/30 bg-emerald-500/5" },
+                    { name: "Rainbow Standard", color: "text-pink-600 border-pink-500/30 bg-pink-500/5" },
+                    { name: "Gold Standard", color: "text-amber-600 border-amber-500/30 bg-amber-500/5" },
+                  ].map((m) => (
+                    <span key={m.name} className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[11px] font-semibold ${m.color}`}>
+                      <CheckCircle className="w-2.5 h-2.5" /> {m.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
               {/* Trust indicators — data-driven via public stats endpoint */}
               <LandingStats />
@@ -461,6 +529,120 @@ export default function Landing() {
                 </div>
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AI PROJECT BUILDER — available from the Engineer tier */}
+      <section className="py-16 md:py-20 border-t border-border bg-gradient-to-b from-indigo-500/5 via-transparent to-amber-500/5 overflow-hidden relative">
+        {/* Decorative sparkles */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 relative">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" />
+              {t("landing:aiBuilder.badge", { defaultValue: "Nuevo · Desde Engineer" })}
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 leading-[1.1]">
+              {t("landing:aiBuilder.title", { defaultValue: "Cargas biomasa + capacidad + país." })}{" "}
+              <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent">
+                {t("landing:aiBuilder.titleHighlight", { defaultValue: "La IA te arma el proyecto completo." })}
+              </span>
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+              {t("landing:aiBuilder.subtitle", { defaultValue: "17 borradores iniciales en unos minutos para arrancar más rápido. Se apoyan en equipos reales (PYREG, Ankur, Beston, Pyrogreen, Syncraft, Carbofex), sus aprobaciones metodológicas y factores de emisión por país." })}
+            </p>
+          </div>
+
+          {/* 3 inputs → 15 docs visual */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1.6fr] gap-5 items-center">
+            {/* Left: 3 inputs */}
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-lg">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">{t("landing:aiBuilder.inputsTitle", { defaultValue: "Tus inputs" })}</div>
+              <div className="space-y-2.5">
+                {[
+                  { icon: "🌾", labelKey: "landing:aiBuilder.inputs.biomass", fallback: "Biomasa", hintKey: "landing:aiBuilder.inputs.biomassHint", hintFb: "48 del catálogo o tu PDF de lab" },
+                  { icon: "⚡", labelKey: "landing:aiBuilder.inputs.capacity", fallback: "Capacidad", hintKey: "landing:aiBuilder.inputs.capacityHint", hintFb: "Toneladas/año de biomasa" },
+                  { icon: "🌍", labelKey: "landing:aiBuilder.inputs.country", fallback: "País", hintKey: "landing:aiBuilder.inputs.countryHint", hintFb: "Para permitología y grid EF" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3 p-2.5 bg-background border border-border rounded-lg">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-base shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold">{t(item.labelKey, { defaultValue: item.fallback })}</div>
+                      <div className="text-xs text-muted-foreground">{t(item.hintKey, { defaultValue: item.hintFb })}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Middle: Arrow with sparkles */}
+            <div className="hidden lg:flex flex-col items-center gap-2 px-2">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-amber-500 flex items-center justify-center shadow-xl shadow-indigo-500/20">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="absolute -inset-2 bg-indigo-500/20 rounded-full blur-lg -z-10" />
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t("landing:aiBuilder.timing", { defaultValue: "~3 min" })}
+              </div>
+            </div>
+
+            {/* Right: 15 docs grid */}
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("landing:aiBuilder.outputsTitle", { defaultValue: "Outputs — 17 documentos" })}</div>
+                <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">PDF + editable</div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  "Resumen ejecutivo",
+                  "Visión técnica general",
+                  "Lista de equipos",
+                  "Registro de riesgos",
+                  "Matriz de permisos",
+                  "Resumen FEL",
+                  "Plan maestro",
+                  "Implementación",
+                  "Paquete eléctrico",
+                  "QA/QC Plan",
+                  "Reporte LCA",
+                  "Resumen financiero",
+                  "Matriz metodológica",
+                  "Plan comunitario",
+                  "MRV Plan",
+                  "Mapa de actores",
+                  "PDD · 11 frentes",
+                ].map((doc, i) => (
+                  <div
+                    key={i}
+                    className="bg-background border border-border rounded px-2 py-1.5 text-[10.5px] font-medium text-foreground/90 flex items-center gap-1.5"
+                  >
+                    <div className="w-1 h-1 rounded-full bg-indigo-500 shrink-0" />
+                    <span className="truncate">{doc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-10">
+            <Link href="/ai-builder">
+              <Button size="lg" className="gap-2 text-base px-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20 text-white">
+                <Sparkles className="w-4 h-4" />
+                {t("landing:aiBuilder.cta", { defaultValue: "Probar constructor IA de proyectos" })}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <p className="text-xs text-muted-foreground mt-3">
+              {t("landing:aiBuilder.disclaimer", { defaultValue: `Incluido desde Engineer (USD $${ENGINEER_MONTHLY_USD}/mes). Todos los documentos salen con marca de agua de borrador y requieren revisión humana.` })}
+            </p>
           </div>
         </div>
       </section>
@@ -578,8 +760,8 @@ export default function Landing() {
                   </div>
                 </div>
 
-                {/* Breakdown */}
-                <div className="space-y-1 text-[11px] flex-1">
+                {/* Breakdown — Puro.earth Ed. 2025 equations */}
+                <div className="space-y-1 text-[11px]">
                   <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground">C_stored (Eq. 6.1)</span>
                     <span className="font-mono font-semibold text-green-600 dark:text-green-400">+{fmt(lcaPreview.cStored, 0)}</span>
@@ -606,7 +788,46 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[10px]">
+                {/* Revenue + methodology coverage to fill the bottom space */}
+                <div className="mt-4 pt-3 border-t border-border space-y-2.5">
+                  {/* Revenue estimate */}
+                  <div className="bg-background/50 border border-border rounded-md p-2.5 flex items-center justify-between">
+                    <div>
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {t("landing:preview.revenueLabel", { defaultValue: "Revenue potencial" })}
+                      </div>
+                      <div className="text-base font-mono font-bold text-foreground leading-tight">
+                        USD {fmt(lcaPreview.netCO2 * 150 / 1e6, 2)}M<span className="text-[10px] font-normal text-muted-foreground"> /yr</span>
+                      </div>
+                    </div>
+                    <div className="text-[9px] text-muted-foreground text-right max-w-[120px] leading-tight">
+                      {t("landing:preview.revenueHint", { defaultValue: "Ref. mercado: USD 150/tCO₂e" })}
+                    </div>
+                  </div>
+
+                  {/* Methodology coverage badges */}
+                  <div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                      {t("landing:preview.methodologyCoverage", { defaultValue: "Compatible con" })}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        { name: "Puro.earth",      color: "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400" },
+                        { name: "Isometric",       color: "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" },
+                        { name: "Verra VM0044",    color: "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400" },
+                        { name: "EBC",             color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" },
+                        { name: "Rainbow Standard", color: "bg-pink-500/10 border-pink-500/30 text-pink-600 dark:text-pink-400" },
+                        { name: "Gold Standard",   color: "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" },
+                      ].map((m) => (
+                        <span key={m.name} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${m.color}`}>
+                          {m.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[10px] mt-auto">
                   <div className="text-muted-foreground">{t("landing:preview.lcaValidations")}</div>
                   <div className="text-primary font-medium opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                     {t("landing:preview.openFullLCA")} <ArrowRight className="w-3 h-3" />
@@ -628,295 +849,131 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PROJECT JOURNEY — end-to-end pipeline with live data */}
-      <ProjectJourney />
-
-      {/* HOW IT WORKS */}
-      <section className="py-20 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold mb-3">{t("landing:howItWorks.title")}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              {t("landing:howItWorks.subtitle")}
-            </p>
-          </div>
-
-          {/* Steps */}
-          <div className="relative">
-            {/* Connector line (desktop) */}
-            <div className="hidden lg:block absolute top-16 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-px bg-gradient-to-r from-green-500/40 via-blue-500/40 to-purple-500/40" />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-              {/* Step 1 */}
-              <div className="flex flex-col items-center text-center group">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center group-hover:border-green-500/60 group-hover:bg-green-500/15 transition-all duration-300">
-                    <Microscope className="w-7 h-7 text-green-500" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
-                    1
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step1.title")}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  {t("landing:howItWorks.step1.desc")}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {["C%", "H:Corg", "CO₂e", "BET", "pH", "Yield"].map((tag) => (
-                    <span key={tag} className="text-[11px] font-medium bg-green-500/10 text-green-500 border border-green-500/20 px-2.5 py-1 rounded-full">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex flex-col items-center text-center group">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center group-hover:border-blue-500/60 group-hover:bg-blue-500/15 transition-all duration-300">
-                    <Ruler className="w-7 h-7 text-blue-500" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
-                    2
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step2.title")}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  {t("landing:howItWorks.step2.desc")}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {["LCA", "CAPEX", "OPEX", "IRR", "NPV", "P&ID"].map((tag) => (
-                    <span key={tag} className="text-[11px] font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2.5 py-1 rounded-full">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex flex-col items-center text-center group">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border-2 border-purple-500/30 flex items-center justify-center group-hover:border-purple-500/60 group-hover:bg-purple-500/15 transition-all duration-300">
-                    <BadgeCheck className="w-7 h-7 text-purple-500" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
-                    3
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold mb-3">{t("landing:howItWorks.step3.title")}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                  {t("landing:howItWorks.step3.desc")}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {["Puro.earth", "Isometric", "EBC", "IBI", t("landing:howItWorks.tagPermits")].map((tag) => (
-                    <span key={tag} className="text-[11px] font-medium bg-purple-500/10 text-purple-500 border border-purple-500/20 px-2.5 py-1 rounded-full">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* METHODOLOGY COVERAGE — 6 certifications with price + durability */}
       <MethodologyCoverage />
 
-      {/* WHO USES IT — 6 verticals */}
-      <section className="py-20 border-t border-border">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-              <Briefcase className="w-3 h-3" />
-              {t("landing:whoUses.badge")}
-            </div>
-            <h2 className="text-3xl font-bold mb-3">{t("landing:whoUses.title")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("landing:whoUses.subtitle")}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { icon: Building2, key: "developer", color: "text-green-500" },
-              { icon: Briefcase, key: "consultant", color: "text-blue-500" },
-              { icon: TrendingUp, key: "trader", color: "text-purple-500" },
-              { icon: Wheat, key: "agribusiness", color: "text-amber-500" },
-              { icon: Code2, key: "integrator", color: "text-cyan-500" },
-              { icon: GraduationCap, key: "researcher", color: "text-red-500" },
-            ].map((item) => {
-              const href = `/solutions/${item.key}`;
-              return (
-                <a
-                  key={item.key}
-                  href={href}
-                  onClick={(e) => {
-                    // Allow normal behavior for middle-click, ctrl/cmd-click
-                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
-                    e.preventDefault();
-                    setLocation(href);
-                  }}
-                  className="block bg-card border border-border rounded-xl p-5 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full group no-underline text-inherit"
-                >
-                  <item.icon className={`w-6 h-6 ${item.color} mb-3`} />
-                  <h3 className="font-semibold text-sm mb-1.5 group-hover:text-primary transition-colors">{t(`landing:whoUses.items.${item.key}.title`)}</h3>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-                    {t(`landing:whoUses.items.${item.key}.desc`)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70 italic">
-                    {t(`landing:whoUses.items.${item.key}.useCase`)}
-                  </p>
-                  <div className="mt-3 text-[11px] text-primary font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {t("landing:whoUses.seeMore")} <ArrowRight className="w-3 h-3" />
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* AUDIENCE + DELIVERABLES */}
+      <section className="py-16 md:py-20 border-t border-border bg-gradient-to-b from-background via-blue-500/[0.03] to-background relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* PULL QUOTE — industry insight */}
-      <section className="py-16 border-t border-border">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <div className="relative">
-            <div className="text-primary text-7xl font-serif leading-none opacity-30 absolute -top-4 left-4 md:left-0">"</div>
-            <blockquote className="relative">
-              <p className="text-2xl md:text-3xl font-semibold leading-tight md:leading-snug mb-4 max-w-3xl mx-auto">
-                {t("landing:quote.text")}
-              </p>
-              <footer className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{t("landing:quote.author")}</span>
-                <span className="mx-2">·</span>
-                <a
-                  href="https://www.linkedin.com/pulse/biochar-y-las-expectativas-mal-entendidas-miguel-%C3%A1ngel-mart%C3%ADnez-hpeoe/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors"
-                >
-                  {t("landing:quote.sourceLabel")}
-                </a>
-              </footer>
-            </blockquote>
-          </div>
-          <div className="mt-8 max-w-2xl mx-auto text-sm text-muted-foreground leading-relaxed">
-            <p>{t("landing:quote.ourTake")}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* MARKET OPPORTUNITY — stats */}
-      <section className="py-20 border-t border-border bg-gradient-to-b from-green-500/5 via-transparent to-transparent">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-              <TrendingUp className="w-3 h-3" />
-              {t("landing:market.badge")}
-            </div>
-            <h2 className="text-3xl font-bold mb-3">{t("landing:market.title")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("landing:market.subtitle")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { stat: "$50B+", key: "marketSize", color: "text-green-500" },
-              { stat: "2.5 Gt", key: "biocharPotential", color: "text-primary" },
-              { stat: "5M+", key: "microsoft", color: "text-blue-500" },
-              { stat: "<100", key: "certified", color: "text-amber-500" },
-            ].map((item) => (
-              <div key={item.key} className="bg-card border border-border rounded-xl p-5 text-center">
-                <div className={`text-4xl font-bold ${item.color} mb-2`}>{item.stat}</div>
-                <div className="text-xs font-semibold text-foreground mb-1.5">
-                  {t(`landing:market.stats.${item.key}.label`)}
+        <div className="max-w-7xl mx-auto px-4 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            <div className="lg:col-span-7">
+              <div className="max-w-2xl mb-8">
+                <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+                  <Briefcase className="w-3 h-3" />
+                  {t("landing:whoUses.badge")}
                 </div>
-                <div className="text-[10px] text-muted-foreground leading-relaxed">
-                  {t(`landing:market.stats.${item.key}.source`)}
-                </div>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 leading-[1.1]">
+                  {t("landing:whoUses.title", {
+                    defaultValue: "La misma plataforma, aterrizada a cuatro usos claros",
+                  })}
+                </h2>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  {t("landing:whoUses.subtitle", {
+                    defaultValue: "No intentamos hablarle a todo el mercado al mismo tiempo. Estas son las cuatro entradas más naturales para empezar.",
+                  })}
+                </p>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-10 max-w-3xl mx-auto text-center">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("landing:market.conclusion")}
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/app">
-                <Button size="lg" className="gap-2">
-                  <Zap className="w-4 h-4" />
-                  {t("landing:market.ctaPrimary")}
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button size="lg" variant="outline" className="gap-2">
-                  {t("landing:market.ctaSecondary")}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MODULES */}
-      <section data-version="accordion-v3" className="py-20 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">{t("landing:modulesSection.title")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("landing:modulesSection.subtitle")}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-            {MODULES.map((mod) => (
-              <div
-                key={mod.id}
-                className={`bg-card border border-border rounded-xl transition-all duration-200 cursor-pointer flex flex-col ${mod.borderHover} ${openModule === mod.id ? "border-primary/30 shadow-md" : ""}`}
-                onClick={() => setOpenModule(prev => prev === mod.id ? null : mod.id)}
-              >
-                <div className="p-6 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className={`w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center shrink-0 ${mod.color}`}>
-                        <mod.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-sm">{mod.title}</h3>
-                          <span className={`text-[10px] font-medium border px-2 py-0.5 rounded-full shrink-0 ${mod.tierColor}`}>
-                            {mod.tier}+
-                          </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {AUDIENCE_CARDS.map((persona) => {
+                  const Icon = persona.icon;
+                  return (
+                    <Link key={persona.key} href={persona.href} className="group">
+                      <div className={`h-full bg-card border ${persona.border} rounded-2xl p-5 hover:-translate-y-1 transition-all duration-200 hover:shadow-lg`}>
+                        <div className={`w-11 h-11 rounded-xl ${persona.bg} flex items-center justify-center ${persona.color} mb-4`}>
+                          <Icon className="w-5 h-5" />
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{mod.summary}</p>
+                        <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">
+                          {t(`landing:whoUses.items.${persona.key}.title`)}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                          {t(`landing:whoUses.items.${persona.key}.desc`)}
+                        </p>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                          {t("landing:whoUses.useCaseLabel", { defaultValue: "Caso de uso típico" })}
+                        </div>
+                        <p className="text-sm italic text-foreground/80">
+                          {t(`landing:whoUses.items.${persona.key}.useCase`)}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-5 max-w-2xl">
+                {t("landing:whoUses.footer", {
+                  defaultValue: "También funciona para traders e investigación, pero la home ahora prioriza las rutas donde más rápido entendemos el valor del producto.",
+                })}
+              </p>
+            </div>
+
+            <div className="lg:col-span-5">
+              <div className="bg-card border border-border rounded-3xl p-6 md:p-7 shadow-2xl">
+                <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+                  <Factory className="w-3 h-3" />
+                  {t("landing:projectPackage.badge")}
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 leading-tight">
+                  {t("landing:projectPackage.title")}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                  {t("landing:projectPackage.subtitle")}
+                </p>
+
+                <div className="space-y-3">
+                  {DELIVERABLE_HIGHLIGHTS.map((item) => (
+                    <div key={item.key} className="flex items-start gap-3 rounded-2xl border border-border bg-background/70 p-3">
+                      <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
+                        <item.icon className={`w-4 h-4 ${item.color}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-semibold leading-tight mb-1">
+                          {item.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                          {item.desc}
+                        </p>
                       </div>
                     </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform duration-200 ${openModule === mod.id ? "rotate-180" : ""}`}
-                    />
-                  </div>
+                  ))}
                 </div>
-                {openModule === mod.id && (
-                  <div className="border-t border-border bg-secondary/30 px-6 py-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{mod.desc}</p>
-                    <ul className="space-y-1.5">
-                      {mod.features.map((f) => (
-                        <li key={f} className="flex items-center gap-2 text-xs">
-                          <CheckCircle className={`w-3.5 h-3.5 shrink-0 ${mod.color}`} />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Link href="/pricing" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" variant="outline" className="mt-2 text-xs gap-1">
-                        {t("landing:modules.viewPlans")} <ArrowRight className="w-3 h-3" />
+
+                <div className="mt-5 pt-5 border-t border-border">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-2xl border border-border bg-background/70 p-3">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                        {t("landing:preview.methodologyCoverage", { defaultValue: "Compatible con" })}
+                      </div>
+                      <div className="font-semibold">6 metodologías</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-background/70 p-3">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                        {t("landing:projectPackage.outputsLabel", { defaultValue: "Entregables" })}
+                      </div>
+                      <div className="font-semibold">PDD + LCA + evidencia</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link href="/product/project-package">
+                      <Button size="sm" className="gap-1.5">
+                        {t("landing:projectPackage.viewAll", { defaultValue: "Ver el paquete completo" })}
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                    <Link href="/pricing">
+                      <Button size="sm" variant="outline" className="gap-1.5">
+                        {t("common:nav.pricing")}
                       </Button>
                     </Link>
                   </div>
-                )}
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -931,47 +988,9 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Carbon Forum special promo */}
-          <div className="relative mb-8 overflow-hidden rounded-xl border-2 border-green-500/40 bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-transparent p-4 md:p-5 max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <div className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    {t("landing:pricingSection.carbonForumBadge")}
-                  </div>
-                  <div className="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    {t("landing:pricingSection.limitedTime")}
-                  </div>
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold mb-1">
-                  {t("landing:pricingSection.carbonForumTitle")} <span className="text-foreground">$100</span>
-                  <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
-                    {t("landing:pricingSection.carbonForumOrShare")}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-normal ml-2">{t("landing:pricingSection.carbonForum30day")}</span>
-                </h3>
-                <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] text-foreground mt-2">
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.simulator")}</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.optimizer")}</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.pdf")}</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.projects")}</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.lca")}</li>
-                  <li className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" /> {t("landing:pricingSection.carbonForumFeatures.aiSearch")}</li>
-                </ul>
-              </div>
-              <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
-                <CarbonForumPassButton />
-                <p className="text-xs text-center md:text-right text-muted-foreground max-w-[220px] leading-snug">
-                  {t("pricing:carbonForumPromo.shareHint")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tier cards — all 5 tiers */}
+          {/* Tier cards — summary on landing, full detail on /pricing */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {TIERS.map((tier) => {
+            {TIERS.slice(0, 3).map((tier) => {
               const isComingSoon = !!(tier as any).comingSoon;
               return (
               <div
@@ -1025,6 +1044,14 @@ export default function Landing() {
               );
             })}
           </div>
+          <div className="text-center mt-6">
+            <Link href="/pricing">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                {t("landing:pricingSection.viewAll", { defaultValue: "Ver todos los planes" })}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             {t("landing:pricingSection.enterprisePrompt")}{" "}
@@ -1033,65 +1060,64 @@ export default function Landing() {
         </div>
       </section>
 
-
-      {/* COMPLETE PROJECT PACKAGE */}
-      <section className="py-20 border-t border-border bg-gradient-to-b from-purple-500/5 via-transparent to-transparent">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-              <Factory className="w-3 h-3" />
-              {t("landing:projectPackage.badge")}
-            </div>
-            <h2 className="text-3xl font-bold mb-3">{t("landing:projectPackage.title")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("landing:projectPackage.subtitle")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { icon: ClipboardList, titleKey: "landing:projectPackage.items.pdd.title", descKey: "landing:projectPackage.items.pdd.desc", color: "text-purple-500" },
-              { icon: Factory, titleKey: "landing:projectPackage.items.equipment.title", descKey: "landing:projectPackage.items.equipment.desc", color: "text-blue-500" },
-              { icon: Map, titleKey: "landing:projectPackage.items.layout.title", descKey: "landing:projectPackage.items.layout.desc", color: "text-green-500" },
-              { icon: Plug, titleKey: "landing:projectPackage.items.electrical.title", descKey: "landing:projectPackage.items.electrical.desc", color: "text-amber-500" },
-              { icon: Microscope, titleKey: "landing:projectPackage.items.quality.title", descKey: "landing:projectPackage.items.quality.desc", color: "text-red-500" },
-              { icon: Shield, titleKey: "landing:projectPackage.items.certification.title", descKey: "landing:projectPackage.items.certification.desc", color: "text-emerald-500" },
-            ].map((item) => (
-              <div key={item.titleKey} className="bg-card border border-border rounded-xl p-5 hover:border-purple-500/30 transition-colors">
-                <item.icon className={`w-6 h-6 ${item.color} mb-3`} />
-                <h3 className="font-semibold text-sm mb-1.5">{t(item.titleKey)}</h3>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">{t(item.descKey)}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link href="/pricing">
-              <Button size="lg" className="gap-2">
-                {t("landing:projectPackage.cta")} <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              {t("landing:projectPackage.ctaHint")}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* MARKET PULSE — live biochar industry news */}
-      <section className="py-20 border-t border-border">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-10">
+      {/* PLATFORM FLOW */}
+      <section className="py-16 md:py-20 border-t border-border bg-gradient-to-b from-background via-card/20 to-background">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-10 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-              <Sparkles className="w-3 h-3" />
-              {t("market:title")}
+              <FlaskConical className="w-3 h-3" />
+              {t("landing:journey.badge")}
             </div>
-            <h2 className="text-3xl font-bold mb-3">{t("market:sectionTitle")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("market:sectionSubtitle")}
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 leading-[1.1]">
+              {t("landing:journey.titleLine1")}{" "}
+              <span className="text-primary">{t("landing:journey.titleHighlight")}</span>
+            </h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              {t("landing:journey.subtitle")}
             </p>
           </div>
-          <MarketPulse limit={6} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
+            {WORKFLOW_STAGES.map((stage) => {
+              const Icon = stage.icon;
+              return (
+                <div key={stage.key} className={`bg-card border ${stage.border} rounded-3xl p-6 flex flex-col shadow-sm`}>
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div className={`w-12 h-12 rounded-2xl ${stage.bg} flex items-center justify-center ${stage.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {stage.label}
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 leading-tight">
+                    {stage.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                    {stage.desc}
+                  </p>
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {stage.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-sm">
+                        <CheckCircle className={`w-4 h-4 ${stage.color} flex-shrink-0 mt-0.5`} />
+                        <span className="leading-relaxed">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={stage.href}>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5">
+                      {stage.cta}
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-6 text-xs uppercase tracking-[0.22em] text-muted-foreground">
+            {t("landing:journey.flowHint")}
+          </div>
         </div>
       </section>
 

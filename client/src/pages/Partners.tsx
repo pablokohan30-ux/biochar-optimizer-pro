@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import LogoLink from "@/components/LogoLink";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SiteFooter from "@/components/SiteFooter";
+import { BRAND_NAME } from "@/lib/brand";
 
 interface PartnerEntry {
   name: string;
@@ -36,53 +37,68 @@ interface PartnerCategory {
   entries: PartnerEntry[];
 }
 
+/**
+ * Categories shown publicly:
+ *
+ * - "Certifications" lists the methodologies we cover by name. These are
+ *   PUBLIC standards (Puro.earth, Isometric, EBC, Verra, Gold Standard) so
+ *   naming them is fair use — same as a SaaS listing "supports MySQL,
+ *   PostgreSQL, SQLite".
+ *
+ * - The other 3 categories (MRV / pyrolyzer makers / analytical labs) used
+ *   to list private companies by name. Those names are our research and
+ *   were given away for free to any visitor; now we show category + count
+ *   only and nudge them to contact us for the actual catalog.
+ */
 const CATEGORIES: PartnerCategory[] = [
   {
     icon: Layers,
     titleKey: "partners.cat.certifications.title",
     descKey: "partners.cat.certifications.desc",
     entries: [
-      { name: "Puro.earth",      tagline: "CORC methodology Ed. 2025",                url: "https://puro.earth",            status: "ecosystem-aware" },
-      { name: "Isometric",       tagline: "Biochar Protocol — 200/1000-year claims",  url: "https://isometric.com",         status: "ecosystem-aware" },
+      { name: "Puro.earth",      tagline: "CORC methodology Ed. 2025",                url: "https://puro.earth",               status: "ecosystem-aware" },
+      { name: "Isometric",       tagline: "Biochar Protocol — 200/1000-year claims",  url: "https://isometric.com",            status: "ecosystem-aware" },
+      { name: "Verra (VM0044)",  tagline: "VCS biochar methodology · CCP-approved",   url: "https://verra.org",                status: "ecosystem-aware" },
       { name: "EBC",             tagline: "European Biochar Certificate",             url: "https://www.european-biochar.org", status: "ecosystem-aware" },
-      { name: "IBI",             tagline: "International Biochar Initiative",         url: "https://biochar-international.org", status: "ecosystem-aware" },
-      { name: "Verra (VM0044)",  tagline: "VCS biochar methodology",                  url: "https://verra.org",             status: "coming-soon" },
-      { name: "Gold Standard",   tagline: "SOC framework + biochar",                  url: "https://www.goldstandard.org", status: "coming-soon" },
+      { name: "Gold Standard",   tagline: "Sustainable Biochar (in development)",     url: "https://www.goldstandard.org",     status: "coming-soon" },
     ],
   },
+];
+
+/**
+ * Categories that are referenced but whose specific company names are NOT
+ * shown publicly. Each one renders as a single "summary card" with a
+ * count + a contact CTA — no nominal list given away.
+ */
+interface GatedCategory {
+  icon: any;
+  titleKey: string;
+  descKey: string;
+  count: number;
+  countLabelKey: string;
+}
+
+const GATED_CATEGORIES: GatedCategory[] = [
   {
     icon: ShieldCheck,
     titleKey: "partners.cat.mrv.title",
     descKey: "partners.cat.mrv.desc",
-    entries: [
-      { name: "Carbon Standards Intl.", tagline: "EBC audit & certification",      url: "https://www.carbon-standards.com", status: "ecosystem-aware" },
-      { name: "Isometric Certify",       tagline: "Submission platform",            url: "https://isometric.com/certify",   status: "ecosystem-aware" },
-      { name: "Sylvera",                 tagline: "Independent rating agency",       url: "https://www.sylvera.com",         status: "coming-soon" },
-      { name: "BeZero Carbon",           tagline: "Independent rating agency",       url: "https://bezerocarbon.com",        status: "coming-soon" },
-    ],
+    count: 4,
+    countLabelKey: "partners.gated.mrvCount",
   },
   {
     icon: Wrench,
     titleKey: "partners.cat.equipment.title",
     descKey: "partners.cat.equipment.desc",
-    entries: [
-      { name: "PYREG",       tagline: "German pyrolysis units (PX/P/CO series)",     url: "https://pyreg.com",        status: "ecosystem-aware" },
-      { name: "Beston",      tagline: "Continuous pyrolysis (China)",                 url: "https://www.bestongroup.com", status: "ecosystem-aware" },
-      { name: "Ankur Scientific", tagline: "Indian biomass gasification + pyrolysis", url: "https://www.ankurscientific.com", status: "ecosystem-aware" },
-      { name: "Biowatt",     tagline: "Containerized pyrolysis modules",              url: "https://biowatt.com.br",   status: "ecosystem-aware" },
-      { name: "Mingyang",    tagline: "Industrial pyrolysis equipment",               url: "https://www.mingyangbiochar.com", status: "ecosystem-aware" },
-    ],
+    count: 5,
+    countLabelKey: "partners.gated.equipmentCount",
   },
   {
     icon: FlaskConical,
     titleKey: "partners.cat.labs.title",
     descKey: "partners.cat.labs.desc",
-    entries: [
-      { name: "Eurofins Agro",         tagline: "Heavy metals, PAH, BET (EU)",         status: "coming-soon" },
-      { name: "Control Lab Argentina", tagline: "C/H/N/S/O, ash, moisture (LatAm)",   status: "coming-soon" },
-      { name: "ALS Global",            tagline: "Biochar full panel (international)", status: "coming-soon" },
-      { name: "IBI-recognized labs",   tagline: "See IBI's directory of certified labs", url: "https://biochar-international.org/program/biochar-testing-laboratories/", status: "ecosystem-aware" },
-    ],
+    count: 4,
+    countLabelKey: "partners.gated.labsCount",
   },
 ];
 
@@ -127,18 +143,18 @@ export default function Partners() {
         <div className="max-w-5xl mx-auto px-4 py-16 md:py-20 relative">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold px-3 py-1 rounded-full mb-6 uppercase tracking-wider">
             <Sparkles className="w-3 h-3" />
-            {t("partners:badge", { defaultValue: "Ecosystem & partnerships" })}
+            {t("partners:badge", { defaultValue: "Ecosistema y alianzas" })}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 leading-[1.1]">
-            {t("partners:heroTitle", { defaultValue: "We get your project to their door — ready to be reviewed." })}
+            {t("partners:heroTitle", { defaultValue: "Llevamos tu proyecto hasta su puerta, listo para revisión." })}
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl">
-            {t("partners:heroSubtitle", { defaultValue: "Biochar Optimizer Pro is the digital infrastructure layer between project developers and the rest of the biochar ecosystem: certifiers, MRV platforms, equipment makers, and labs. We don't issue credits or sell pyrolyzers — we make sure the data the next layer needs is structured, audit-ready, and immediately usable." })}
+            {t("partners:heroSubtitle", { defaultValue: `${BRAND_NAME} es la capa de infraestructura digital entre los desarrolladores de proyectos y el resto del ecosistema biochar: certificadores, plataformas MRV, fabricantes de equipos y laboratorios. No emitimos créditos ni vendemos pirolizadores; nos aseguramos de que la información que la siguiente capa necesita llegue estructurada, lista para auditoría y realmente utilizable.` })}
           </p>
         </div>
       </section>
 
-      {/* CATEGORIES */}
+      {/* CATEGORIES (visible — methodology standards only) */}
       <section className="py-12 border-t border-border">
         <div className="max-w-5xl mx-auto px-4 space-y-12">
           {CATEGORIES.map((cat, idx) => {
@@ -182,31 +198,73 @@ export default function Partners() {
               </div>
             );
           })}
+
+          {/* GATED CATEGORIES — count + CTA, no nominal list */}
+          <div>
+            <h2 className="text-2xl font-bold mb-2">
+              {t("partners:gated.sectionTitle", { defaultValue: "Resto del ecosistema" })}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
+              {t("partners:gated.sectionSubtitle", { defaultValue: "Los nombres específicos de fabricantes, plataformas MRV y laboratorios, junto con especificaciones, contactos y compatibilidad, están disponibles bajo pedido." })}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {GATED_CATEGORIES.map((cat, idx) => {
+                const Icon = cat.icon;
+                return (
+                  <div key={idx} className="bg-card border border-border rounded-xl p-5 flex flex-col">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 flex-shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <h3 className="font-bold text-sm">{t(cat.titleKey)}</h3>
+                    </div>
+                    <div className="text-3xl font-bold text-primary leading-none mb-1">{cat.count}+</div>
+                    <p className="text-xs text-muted-foreground mb-4 leading-snug flex-1">
+                      {t(cat.countLabelKey, {
+                        count: cat.count,
+                        defaultValue: cat.titleKey.includes("equipment")
+                          ? "fabricantes industriales validados"
+                          : cat.titleKey.includes("labs")
+                          ? "laboratorios recomendados (compatibilidad EBC/Puro)"
+                          : "plataformas curadas",
+                      })}
+                    </p>
+                    <Link href="/pricing#contact">
+                      <Button size="sm" variant="outline" className="w-full text-xs gap-1">
+                        {t("partners:gated.requestAccess", { defaultValue: "Solicitar catálogo" })}
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* WHAT IT MEANS */}
       <section className="py-16 border-t border-border bg-muted/20">
         <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-6">{t("partners:legend.title", { defaultValue: "What these labels mean" })}</h2>
+          <h2 className="text-3xl font-bold mb-6">{t("partners:legend.title", { defaultValue: "Qué significan estas etiquetas" })}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <LegendItem
               status="active"
               t={t}
-              defaultLabel="Active integration"
-              defaultDesc="Direct API connection — data flows from Biochar Optimizer Pro into their system."
+              defaultLabel="Integración activa"
+              defaultDesc={`Conexión directa por API: la información fluye de ${BRAND_NAME} hacia su sistema.`}
             />
             <LegendItem
               status="ecosystem-aware"
               t={t}
-              defaultLabel="Ecosystem-aware"
-              defaultDesc="Our platform is designed to produce the data structure their methodology / hardware / lab pipeline expects. No direct API yet — but exports drop into their workflow with minimal massage."
+              defaultLabel="Compatible con el ecosistema"
+              defaultDesc="Nuestra plataforma está diseñada para producir la estructura de datos que su metodología, hardware o flujo de laboratorio espera. Todavía no hay API directa, pero las exportaciones encajan con fricción mínima."
             />
             <LegendItem
               status="coming-soon"
               t={t}
-              defaultLabel="Coming soon"
-              defaultDesc="On the roadmap. Reach out below if you'd like to accelerate the work."
+              defaultLabel="Próximamente"
+              defaultDesc="Está en la hoja de ruta. Escríbenos si quieres ayudar a priorizarlo."
             />
           </div>
         </div>
@@ -216,13 +274,13 @@ export default function Partners() {
       <section className="py-20 border-t border-border">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <Building2 className="w-10 h-10 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("partners:cta.title", { defaultValue: "Want to plug into BiocharPro?" })}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("partners:cta.title", { defaultValue: "¿Quieres conectarte con BiocharPro?" })}</h2>
           <p className="text-base text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
-            {t("partners:cta.body", { defaultValue: "If you're a certifier, MRV platform, pyrolyzer maker, or lab and want to be listed here as an active integration — or just talk about how our data can flow into your workflow — get in touch." })}
+            {t("partners:cta.body", { defaultValue: "Si eres certificador, plataforma MRV, fabricante de pirolizadores o laboratorio y quieres aparecer aquí como integración activa, o simplemente hablar de cómo nuestros datos pueden fluir hacia tu operación, escríbenos." })}
           </p>
           <Link href="/pricing#contact">
             <Button size="lg">
-              {t("partners:cta.button", { defaultValue: "Contact us" })} <ArrowRight className="w-4 h-4 ml-1" />
+              {t("partners:cta.button", { defaultValue: "Contáctanos" })} <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
         </div>

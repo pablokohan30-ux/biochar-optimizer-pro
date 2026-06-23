@@ -30,7 +30,11 @@ import LogoLink from "@/components/LogoLink";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SiteFooter from "@/components/SiteFooter";
 import { trpc } from "@/lib/trpc";
-import { METHODOLOGIES, type MethodologyId } from "@/lib/methodologies";
+import {
+  getMethodologyTagline,
+  METHODOLOGIES,
+  type MethodologyId,
+} from "@/lib/methodologies";
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
   draft:     { color: "text-gray-600 dark:text-gray-300", bg: "bg-gray-500/10 border-gray-500/30" },
@@ -38,6 +42,14 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
   approved:  { color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10 border-green-500/30" },
   rejected:  { color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10 border-red-500/30" },
 };
+
+function formatAutoCheckDetail(detail: string, lang: string): string {
+  if (!lang.toLowerCase().startsWith("es")) return detail;
+  return detail
+    .replace(/Net CO₂e/g, "CO₂e neto")
+    .replace(/\brequired\b/g, "requerido")
+    .replace(/\bchecks\b/g, "chequeos");
+}
 
 export default function Verify() {
   const params = useParams<{ bopId: string }>();
@@ -76,9 +88,14 @@ export default function Verify() {
   const project = query.data;
   const isLoading = query.isLoading;
   const isNotFound = !isLoading && (project === null || project === undefined);
+  const locale = i18n.resolvedLanguage?.toLowerCase().startsWith("es")
+    ? "es-AR"
+    : (i18n.resolvedLanguage || "en-US");
 
   // Methodology meta
-  const methId = (project?.methodology ?? "puro-earth") as MethodologyId;
+  const methId = project?.methodology && project.methodology in METHODOLOGIES
+    ? (project.methodology as MethodologyId)
+    : "puro-earth";
   const methodology = METHODOLOGIES[methId] ?? METHODOLOGIES["puro-earth"];
 
   const statusKey = project?.status ?? "draft";
@@ -87,14 +104,15 @@ export default function Verify() {
   const fmtDate = (d: Date | string | null | undefined): string => {
     if (!d) return "—";
     const date = typeof d === "string" ? new Date(d) : d;
-    return date.toLocaleDateString(i18n.language === "es" ? "es-AR" : "en-US", {
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString(locale, {
       year: "numeric", month: "long", day: "numeric"
     });
   };
 
   const fmtNumber = (n: number | null | undefined, decimals = 0): string => {
     if (n === null || n === undefined) return "—";
-    return n.toLocaleString(i18n.language === "es" ? "es-AR" : "en-US", {
+    return n.toLocaleString(locale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
@@ -311,7 +329,7 @@ export default function Verify() {
                   {methodology.shortName}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {methodology.tagline}
+                  {getMethodologyTagline(methodology.id, i18n.language)}
                 </div>
               </div>
 
@@ -367,7 +385,9 @@ export default function Verify() {
                           )}
                         </div>
                         {check.detail && (
-                          <div className="text-[10px] font-mono text-muted-foreground">{check.detail}</div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            {formatAutoCheckDetail(check.detail, i18n.resolvedLanguage || i18n.language || "en")}
+                          </div>
                         )}
                       </div>
                     </div>

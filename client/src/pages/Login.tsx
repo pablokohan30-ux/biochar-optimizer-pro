@@ -7,18 +7,10 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trackEvent } from "@/lib/analytics";
+import { BRAND_WORDMARK } from "@/lib/brand";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-
-const FREE_EMAIL_DOMAINS = [
-  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.com.ar", "hotmail.com",
-  "outlook.com", "live.com", "aol.com", "icloud.com", "me.com", "mail.com",
-  "protonmail.com", "proton.me", "zoho.com", "yandex.com", "gmx.com",
-];
-
-function isCorporateEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
-  return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
-}
+import { isCorporateEmail } from "@shared/corporateEmail";
 
 function getInitialMode(): "login" | "register" {
   if (typeof window === "undefined") return "login";
@@ -54,19 +46,33 @@ export default function Login() {
   const redirectAfterAuth = fromSource === "lca" ? "/lca" : "/app";
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
-      utils.auth.me.invalidate();
+    onSuccess: async () => {
+      trackEvent("login_success", { from_source: fromSource ?? null });
+      await Promise.all([
+        utils.auth.me.invalidate(),
+        utils.subscription.getMyTier.invalidate(),
+      ]);
       setLocation(redirectAfterAuth);
     },
-    onError: (err) => setError(err.message),
+    onError: (err) => {
+      trackEvent("login_failed", { error_message: err.message });
+      setError(err.message);
+    },
   });
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: () => {
-      utils.auth.me.invalidate();
+    onSuccess: async () => {
+      trackEvent("signup_success", { from_source: fromSource ?? null });
+      await Promise.all([
+        utils.auth.me.invalidate(),
+        utils.subscription.getMyTier.invalidate(),
+      ]);
       setLocation(redirectAfterAuth);
     },
-    onError: (err) => setError(err.message),
+    onError: (err) => {
+      trackEvent("signup_failed", { error_message: err.message });
+      setError(err.message);
+    },
   });
 
   const isLoading = loginMutation.isPending || registerMutation.isPending;
@@ -138,7 +144,7 @@ export default function Login() {
                   </div>
                   <div>
                     <h1 className="font-bold tracking-wider text-green-500 text-base group-hover:opacity-80 transition-opacity">
-                      BIOCHAR OPTIMIZER PRO
+                      {BRAND_WORDMARK}
                     </h1>
                   </div>
                 </div>
@@ -190,7 +196,7 @@ export default function Login() {
                     <Flame className="w-4 h-4" />
                   </div>
                   <span className="font-bold tracking-wider text-green-500 text-sm">
-                    BIOCHAR OPTIMIZER PRO
+                    {BRAND_WORDMARK}
                   </span>
                 </div>
               </Link>
@@ -253,8 +259,12 @@ export default function Login() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value.replace(/\s+/g, ""))}
                     placeholder={t("auth:login.emailPlaceholder")}
                     required
                     className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-shadow"

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useTier } from "@/hooks/useTier";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { BRAND_NAME } from "@/lib/brand";
 
 const STORAGE_KEY = "bop_welcome_seen";
 
@@ -56,12 +57,12 @@ export default function WelcomeBanner() {
           <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
             <div className="text-sm font-semibold">
-              {t("welcome.title", { defaultValue: "Bienvenido/a — Biochar Optimizer Pro en 3 pasos" })}
+              {t("welcome.title", { defaultValue: `Bienvenido/a — ${BRAND_NAME} en 3 pasos` })}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {t("welcome.subtitle", {
                 defaultValue:
-                  "El simulador es gratis para siempre. Probá la app con estas 3 rutas rápidas:",
+                  "El simulador es gratis para siempre. Prueba la app con estas 3 rutas rápidas:",
               })}
             </div>
           </div>

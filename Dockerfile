@@ -21,6 +21,25 @@ ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV NODE_ENV=development
 
+# Vite bakes VITE_* env vars into the client bundle at build time. PostHog's
+# project key is PUBLIC (it's literally designed to be shipped to browsers),
+# so it's safe to pass via --build-arg. If missing at build time the analytics
+# module silently no-ops (see client/src/lib/analytics.ts).
+ARG VITE_POSTHOG_KEY
+ARG VITE_POSTHOG_HOST
+ENV VITE_POSTHOG_KEY=${VITE_POSTHOG_KEY}
+ENV VITE_POSTHOG_HOST=${VITE_POSTHOG_HOST}
+
+# Same deal for Sentry's browser DSN: a public write-only endpoint. Safe to
+# bake into the bundle. Server DSN (SENTRY_DSN) is a runtime env var set
+# separately via `flyctl secrets set`.
+ARG VITE_SENTRY_DSN
+ARG VITE_SENTRY_ENV
+ARG VITE_SENTRY_RELEASE
+ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+ENV VITE_SENTRY_ENV=${VITE_SENTRY_ENV}
+ENV VITE_SENTRY_RELEASE=${VITE_SENTRY_RELEASE}
+
 # Native deps need a C++ toolchain to build (better-sqlite3, bcrypt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 \

@@ -18,10 +18,11 @@ import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   Activity, FolderOpen, Layers, Code2, LogOut, ChevronLeft, ChevronRight,
-  X, Lock, Leaf, Globe
+  X, Lock, Leaf, Sparkles, LineChart, Palette, Scale, Inbox
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
+import { BRAND_NAME } from "@/lib/brand";
 
 interface AppSidebarProps {
   /** Desktop: persisted collapsed (icon-only) state. */
@@ -44,18 +45,33 @@ interface NavItem {
   matchPrefix?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/app",      labelKey: "nav.simulator", icon: Activity },
-  { href: "/projects", labelKey: "nav.projects",  icon: FolderOpen, requiredTier: "analyst", matchPrefix: true },
-  { href: "/batch",    labelKey: "nav.batch",     icon: Layers,     requiredTier: "developer" },
-  { href: "/api",      labelKey: "nav.api",       icon: Code2,      requiredTier: "developer" },
+const PRIMARY_NAV_ITEMS: NavItem[] = [
+  { href: "/app",                labelKey: "nav.simulator",  icon: Activity },
+  { href: "/projects",           labelKey: "nav.projects",   icon: FolderOpen, requiredTier: "analyst", matchPrefix: true },
+  { href: "/ai-builder",         labelKey: "nav.aiBuilder",  icon: Sparkles,   requiredTier: "engineer", matchPrefix: true },
+];
+
+const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { href: "/portfolio",          labelKey: "nav.portfolio",  icon: LineChart,  requiredTier: "expert" },
+  { href: "/methodologies",      labelKey: "nav.methodologies", icon: Scale,  requiredTier: "expert" },
+  { href: "/settings/branding",  labelKey: "nav.branding",   icon: Palette,    requiredTier: "developer" },
+  { href: "/batch",              labelKey: "nav.batch",      icon: Layers,     requiredTier: "developer" },
+  { href: "/api",                labelKey: "nav.api",        icon: Code2,      requiredTier: "developer" },
+];
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  { href: "/admin/launch-inbox", labelKey: "nav.adminLeads", icon: Inbox },
+  { href: "/admin/ai-stats",     labelKey: "nav.adminAiStats", icon: Sparkles },
 ];
 
 export default function AppSidebar({ collapsed, onToggleCollapsed, mobileOpen, onMobileClose }: AppSidebarProps) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["common", "pricing"]);
   const { user, logout } = useAuth();
   const { tier, hasAccess } = useTier();
   const [location] = useLocation();
+  const tierLabel = tier === "free"
+    ? t("common:plan.free")
+    : t(`pricing:tiers.${tier}.name`, { defaultValue: tier });
 
   const isActive = (item: NavItem) => {
     if (location === item.href) return true;
@@ -64,9 +80,7 @@ export default function AppSidebar({ collapsed, onToggleCollapsed, mobileOpen, o
   };
 
   // ── Shared nav list (renders for both desktop + mobile) ─────────────────
-  const navList = (
-    <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-      {NAV_ITEMS.map((item) => {
+  const renderNavItems = (items: NavItem[]) => items.map((item) => {
         const active = isActive(item);
         const locked = item.requiredTier ? !hasAccess(item.requiredTier) : false;
         const Icon = item.icon;
@@ -92,7 +106,36 @@ export default function AppSidebar({ collapsed, onToggleCollapsed, mobileOpen, o
             </div>
           </Link>
         );
-      })}
+      });
+
+  const navList = (
+    <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto">
+      <div className="space-y-0.5">
+        {!collapsed && (
+          <div className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">
+            {t("sidebar.primary", { defaultValue: "Core" })}
+          </div>
+        )}
+        {renderNavItems(PRIMARY_NAV_ITEMS)}
+      </div>
+      <div className="space-y-0.5 border-t border-border/70 pt-3">
+        {!collapsed && (
+          <div className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">
+            {t("sidebar.secondary", { defaultValue: "Advanced" })}
+          </div>
+        )}
+        {renderNavItems(SECONDARY_NAV_ITEMS)}
+      </div>
+      {user?.role === "admin" && (
+        <div className="space-y-0.5 border-t border-border/70 pt-3">
+          {!collapsed && (
+            <div className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">
+              {t("sidebar.admin", { defaultValue: "Admin" })}
+            </div>
+          )}
+          {renderNavItems(ADMIN_NAV_ITEMS)}
+        </div>
+      )}
     </nav>
   );
 
@@ -104,11 +147,11 @@ export default function AppSidebar({ collapsed, onToggleCollapsed, mobileOpen, o
           className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 cursor-pointer transition-colors bg-primary/10 text-primary hover:bg-primary/20 ${
             collapsed ? "md:justify-center md:px-2" : ""
           }`}
-          title={collapsed ? (tier === "free" ? t("plan.free") : tier.toUpperCase()) : undefined}
+          title={collapsed ? tierLabel : undefined}
         >
           <Leaf className="w-3.5 h-3.5 flex-shrink-0" />
           <span className={`text-xs font-bold uppercase tracking-wider truncate ${collapsed ? "md:hidden" : ""}`}>
-            {tier === "free" ? t("plan.free") : tier}
+            {tierLabel}
           </span>
         </div>
       </Link>
@@ -162,7 +205,7 @@ export default function AppSidebar({ collapsed, onToggleCollapsed, mobileOpen, o
               <div className="w-7 h-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
                 <Leaf className="w-3.5 h-3.5 text-primary" />
               </div>
-              <span className={`font-bold text-sm truncate ${collapsed ? "md:hidden" : ""}`}>Biochar Pro</span>
+              <span className={`font-bold text-sm truncate ${collapsed ? "md:hidden" : ""}`}>{BRAND_NAME}</span>
             </div>
           </Link>
           <div className="ml-auto flex items-center">

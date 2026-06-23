@@ -104,6 +104,25 @@ export async function extractFromPdf(params: ExtractFromPdfParams): Promise<stri
   return text;
 }
 
+/**
+ * Returns a directive block to append to the system prompt so the LLM
+ * responds in the user's UI language. Keep technical labels and proper
+ * nouns (methodology IDs, buyer names, units like t/yr, tCO2e) in their
+ * original form — only natural-language content (narratives, summaries,
+ * gap descriptions, recommendations) gets translated.
+ *
+ * Defaults to English when `lang` is unknown so we never break existing
+ * behaviour for callers that haven't been updated yet.
+ */
+export function buildLangDirective(lang: string | null | undefined): string {
+  const l = (lang ?? "en").toLowerCase().slice(0, 2);
+  if (l === "es") {
+    return `\n\n---\nIDIOMA DE RESPUESTA: español neutro (LATAM). Toda la prosa generada (resúmenes, narrativas, descripciones de gaps, recomendaciones, evidencia, acciones) debe estar en español neutro — usa tuteo (tú / tienes / puedes / haz / verifica / selecciona) y evita regionalismos: NADA de "vos / tenés / podés / hacé / verificá / seleccioná" (rioplatense), ni "vosotros / coger" (España). Mantén en su forma original los términos técnicos universalmente reconocidos: nombres de metodologías (Puro.earth, Isometric, Verra VM0044, EBC, Gold Standard, Rainbow Standard), nombres de buyers (Microsoft, Frontier, Shell, Altitude), unidades (t/año, tCO2e, kWh, °C), siglas (CDR, CORC, BiCRS, ICVCM, MRV, VVB, LCA, PDD), y campos JSON cuyos enums están definidos en el schema (MEETS / PARTIAL / MISSING / P1_CRITICAL / P2_IMPORTANT / P3_NICE_TO_HAVE / etc — esos se mantienen en mayúsculas como en el schema).`;
+  }
+  // Default: English
+  return `\n\n---\nRESPONSE LANGUAGE: English. All natural-language prose (summaries, narratives, gap descriptions, recommendations, evidence, actions) must be in English. Keep technical labels and proper nouns in their original form: methodology names, buyer names, units, acronyms (CDR, CORC, BiCRS, ICVCM, MRV, VVB, LCA, PDD), and JSON enum values defined in the schema.`;
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const client = getClient();
 

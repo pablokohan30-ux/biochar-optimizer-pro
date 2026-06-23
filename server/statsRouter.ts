@@ -3,7 +3,8 @@ import { publicProcedure, router } from "./_core/trpc";
 import { requireDb } from "./db";
 import { projects } from "../drizzle/schema";
 import {
-  ACTIVE_METHODOLOGIES,
+  COVERED_METHODOLOGIES,
+  LIVE_METHODOLOGIES,
   METHODOLOGIES,
 } from "../client/src/lib/methodologies";
 import { FEEDSTOCK_DB } from "../client/src/lib/biocharModel";
@@ -30,11 +31,11 @@ const USAGE_THRESHOLD_PROJECTS = 5;
 export const statsRouter = router({
   getLandingStats: publicProcedure.query(() => {
     // ─── Coverage (static / derived from our own artifacts) ────────────────
-    const activeMethodologies = ACTIVE_METHODOLOGIES.length;
-    const totalMethodologies = Object.keys(METHODOLOGIES).length;
+    const activeMethodologies = LIVE_METHODOLOGIES.length;
+    const totalMethodologies = COVERED_METHODOLOGIES.length;
     const feedstocks = Object.keys(FEEDSTOCK_DB).length;
     // "Active" credit-issuing methodologies — the ones that actually mint carbon credits
-    const activeCreditIssuing = ACTIVE_METHODOLOGIES.filter(
+    const activeCreditIssuing = LIVE_METHODOLOGIES.filter(
       (id) => METHODOLOGIES[id].credits,
     ).length;
 
