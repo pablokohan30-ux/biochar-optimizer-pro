@@ -1,0 +1,33 @@
+name: Deploy to Fly.io
+
+# Auto-deploy on every push to main. Manual trigger also available from
+# the Actions tab (workflow_dispatch). Skip CI with [skip ci] in the
+# commit message (e.g. for docs-only changes).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only one deploy at a time per branch — if you push twice quickly, the
+# second one waits for the first to finish (or cancels it).
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy (rolling, build remote on Fly)
+        run: flyctl deploy --remote-only --strategy rolling
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
