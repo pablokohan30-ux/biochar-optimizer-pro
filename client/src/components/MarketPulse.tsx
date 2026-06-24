@@ -114,7 +114,7 @@ export default function MarketPulse({ limit = 5, compact = false }: MarketPulseP
               {item.imageUrl && (
                 <img
                   src={item.imageUrl}
-                  alt=""
+                  alt={item.title}
                   loading="lazy"
                   className="w-12 h-12 rounded object-cover flex-shrink-0 bg-muted"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -147,7 +147,7 @@ export default function MarketPulse({ limit = 5, compact = false }: MarketPulseP
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
-                    alt=""
+                    alt={item.title}
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {
