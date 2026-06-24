@@ -651,7 +651,7 @@ export default function Home() {
               <div className="flex items-center gap-2 py-1">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                  {tr("orPickFromDB", { defaultValue: "o elegí de la base" })}
+                  {tr("orPickFromDB", { defaultValue: "o elige de la base" })}
                 </span>
                 <div className="flex-1 h-px bg-border" />
               </div>

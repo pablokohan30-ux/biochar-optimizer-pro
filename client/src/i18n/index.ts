@@ -3133,7 +3133,7 @@ const resources = {
         login: "Iniciar sesión",
         signUp: "Crear cuenta",
         tryForFree: "Probar gratis",
-        signUpFree: "Registrate gratis",
+        signUpFree: "Regístrate gratis",
         signOut: "Cerrar sesión",
         batch: "Lotes",
         api: "API",
@@ -4296,7 +4296,7 @@ const resources = {
           simulate: {
             q: "¿Cómo simulo mi biochar?",
             hint: "48 feedstocks, 500–900°C, resultados en segundos.",
-            a: "Nuestro simulador técnico calcula H/C, O/C, contenido fijo de carbono y rendimiento — gratis. Elegí tu biomasa, tu temperatura, y obtené resultados calibrados contra literatura científica.",
+            a: "Nuestro simulador técnico calcula H/C, O/C, contenido fijo de carbono y rendimiento — gratis. Elige tu biomasa, tu temperatura, y obtén resultados calibrados contra literatura científica.",
             cta: "Prueba el simulador",
           },
           methodology: {
@@ -4815,12 +4815,12 @@ const resources = {
         name: "Nombre",
         corporateEmail: "Email corporativo",
         company: "Empresa / Organización",
-        projectDescription: "Contanos sobre tu proyecto",
+        projectDescription: "Cuéntanos sobre tu proyecto",
         namePlaceholder: "Tu nombre",
         emailPlaceholder: "tu@empresa.com",
         companyPlaceholder: "Nombre de la empresa",
         projectPlaceholder:
-          "Describí tu proyecto: tipo de biomasa, escala, ubicación, objetivos…",
+          "Describe tu proyecto: tipo de biomasa, escala, ubicación, objetivos…",
         send: "Enviar mensaje",
         sending: "Enviando…",
         sent: "¡Mensaje enviado!",
@@ -4840,7 +4840,7 @@ const resources = {
         q3: "¿Cómo funciona el Carbon Forum Pass?",
         a3Before:
           "Un pago único de $100 te da 30 días de acceso completo Analyst. Haz clic en ",
-        a3Button: "Obtené el Carbon Forum Pass",
+        a3Button: "Obtén el Carbon Forum Pass",
         a3Middle:
           " para pagar $100 directo — o publica sobre nosotros en LinkedIn / X y pega el link en el modal para desbloquear el precio de $50. En cualquier caso te redirigimos al Checkout de Stripe. Sin renovación automática — si quieres seguir usando la plataforma después de 30 días, te suscribes normalmente.",
         q4: "¿Se usan mis datos para entrenar modelos de IA?",
@@ -4885,7 +4885,7 @@ const resources = {
             "Tienes que aceptar los Términos del Servicio y la Política de Privacidad para crear una cuenta.",
         },
         fromSimulator: {
-          title: "Registrate gratis para usar el simulador.",
+          title: "Regístrate gratis para usar el simulador.",
           body:
             "El simulador de pirólisis es gratuito — sólo necesitamos un email corporativo para saber para quién estamos construyendo esto. Los proveedores personales (Gmail, Yahoo, Hotmail, etc.) no son aceptados.",
         },
@@ -5044,7 +5044,7 @@ const resources = {
 
       // Social share unlock
       shareUnlockTitle: "Desbloquea 3 Análisis Gratis con IA",
-      shareUnlockDesc: `Comparte ${BRAND_NAME} en LinkedIn o X y obtené 3 análisis de biomasa personalizados con IA.`,
+      shareUnlockDesc: `Comparte ${BRAND_NAME} en LinkedIn o X y obtén 3 análisis de biomasa personalizados con IA.`,
       shareUnlockStep1: "Comparte en LinkedIn o X",
       shareUnlockStep2: "Pega la URL del post abajo",
       shareUnlockStep3: "Recibí 3 análisis con IA al instante",
@@ -5797,15 +5797,15 @@ const resources = {
           questions: {
             projectDeveloper: {
               label: "Desarrollador del Proyecto",
-              hint: "Describí la historia del desarrollador del proyecto, sus operaciones, tamaño de equipo y trayectoria. Incluí experiencia relevante en remoción de carbono, producción de biochar o industrias relacionadas.",
+              hint: "Describe la historia del desarrollador del proyecto, sus operaciones, tamaño de equipo y trayectoria. Incluye experiencia relevante en remoción de carbono, producción de biochar o industrias relacionadas.",
             },
             commercialPartners: {
               label: "Socios Comerciales",
-              hint: "Lista los socios confirmados y previstos con sus roles: proveedores de biomasa, proveedores de tecnología, compradores de biochar, compradores de créditos de carbono, etc. Incluí el estado de cada relación (contrato firmado, LOI, negociaciones avanzadas).",
+              hint: "Lista los socios confirmados y previstos con sus roles: proveedores de biomasa, proveedores de tecnología, compradores de biochar, compradores de créditos de carbono, etc. Incluye el estado de cada relación (contrato firmado, LOI, negociaciones avanzadas).",
             },
             technicalPartners: {
               label: "Socios Técnicos",
-              hint: "Describí el contratista EPC/EPCM, sus capacidades, proyectos de referencia y experiencia. Incluí la firma de ingeniería para front-end loading (FEL) y los proveedores clave de equipos.",
+              hint: "Describe el contratista EPC/EPCM, sus capacidades, proyectos de referencia y experiencia. Incluye la firma de ingeniería para front-end loading (FEL) y los proveedores clave de equipos.",
             },
           },
         },
@@ -5814,27 +5814,27 @@ const resources = {
           questions: {
             facilityLocation: {
               label: "Ubicación y Escala de la Planta",
-              hint: "Especifica la ubicación de la planta, superficie del terreno y capacidad de diseño. Incluí información sobre la proximidad a fuentes de biomasa y mercados de uso final. Si esta disponible, haz referencia al plano de planta.",
+              hint: "Especifica la ubicación de la planta, superficie del terreno y capacidad de diseño. Incluye información sobre la proximidad a fuentes de biomasa y mercados de uso final. Si esta disponible, haz referencia al plano de planta.",
             },
             landUse: {
               label: "Uso del Suelo",
-              hint: "Describí los requerimientos de terreno para la planta y las distancias a las ubicaciones de uso final del biochar. Incluí proximidad a fuentes de biomasa y rutas de transporte clave.",
+              hint: "Describe los requerimientos de terreno para la planta y las distancias a las ubicaciones de uso final del biochar. Incluye proximidad a fuentes de biomasa y rutas de transporte clave.",
             },
             gridConnection: {
               label: "Conexión a la Red",
-              hint: "Describí los arreglos de conexión a la red eléctrica: nombre de la prestataria, nivel de tensión, capacidad del punto de conexión, cronograma y estado de la oferta de conexión. Incluí los pasos del proceso (factibilidad de suministro, proyecto técnico, permisos, medición). Aclara si la electricidad cubre sólo cargas auxiliares (cuando los gases de pirólisis dan calor al proceso) o toda la demanda.",
+              hint: "Describe los arreglos de conexión a la red eléctrica: nombre de la prestataria, nivel de tensión, capacidad del punto de conexión, cronograma y estado de la oferta de conexión. Incluye los pasos del proceso (factibilidad de suministro, proyecto técnico, permisos, medición). Aclara si la electricidad cubre sólo cargas auxiliares (cuando los gases de pirólisis dan calor al proceso) o toda la demanda.",
             },
             permittingStatus: {
               label: "Estado de Permisos",
-              hint: "Lista todos los permisos y licencias requeridos: Evaluación de Impacto Ambiental (EIA), permisos industriales, aprobaciones de zonificación, permisos de calidad de aire. Incluí la autoridad emisora, cronograma y estado actual de cada uno.",
+              hint: "Lista todos los permisos y licencias requeridos: Evaluación de Impacto Ambiental (EIA), permisos industriales, aprobaciones de zonificación, permisos de calidad de aire. Incluye la autoridad emisora, cronograma y estado actual de cada uno.",
             },
             eiaAssessment: {
               label: "Evaluación de Impacto Ambiental (EIA)",
-              hint: "Describí el proceso de EIA en detalle: marco regulatorio, nivel de categorización (aviso simple vs ESIA completo), estudios de línea base completados, nivel de complejidad ambiental esperado. Incluí factores de riesgo de permisología y mitigación ante posibles demoras.",
+              hint: "Describe el proceso de EIA en detalle: marco regulatorio, nivel de categorización (aviso simple vs ESIA completo), estudios de línea base completados, nivel de complejidad ambiental esperado. Incluye factores de riesgo de permisología y mitigación ante posibles demoras.",
             },
             commercial: {
               label: "Acuerdos Comerciales",
-              hint: "Detalla los acuerdos de venta de biochar y bio-oil, incluyendo clientes existentes y potenciales, contratos de offtake firmados, LOIs y precios. Incluí planes para la venta de créditos de carbono.",
+              hint: "Detalla los acuerdos de venta de biochar y bio-oil, incluyendo clientes existentes y potenciales, contratos de offtake firmados, LOIs y precios. Incluye planes para la venta de créditos de carbono.",
             },
             riskRegister: {
               label: "Registro de Riesgos",
@@ -5847,19 +5847,19 @@ const resources = {
           questions: {
             timeline: {
               label: "Cronograma del Proyecto",
-              hint: "Proporciona un masterplan con hitos clave mostrando la ruta crítica. Incluí fases de construcción, puesta en marcha, validación y operación plena.",
+              hint: "Proporciona un masterplan con hitos clave mostrando la ruta crítica. Incluye fases de construcción, puesta en marcha, validación y operación plena.",
             },
             executionPlan: {
               label: "Plan de Ejecución",
-              hint: "Describí el marco de gestión del proyecto, fases (infraestructura, validación, ingeniería, procurement, instalación, puesta en marcha), estructura del equipo y entregables.",
+              hint: "Describe el marco de gestión del proyecto, fases (infraestructura, validación, ingeniería, procurement, instalación, puesta en marcha), estructura del equipo y entregables.",
             },
             procurementStrategy: {
               label: "Estrategia de Procurement",
-              hint: "Describí el modelo de entrega (EPC, EPCM o híbrido). Incluí el estado de la selección del contratista y cualquier procurement especializado para tecnología de pirólisis.",
+              hint: "Describe el modelo de entrega (EPC, EPCM o híbrido). Incluye el estado de la selección del contratista y cualquier procurement especializado para tecnología de pirólisis.",
             },
             omArrangements: {
               label: "Acuerdos de O&M",
-              hint: "Describí si es operado por el propietario o por un tercero de O&M. Incluí tamaño del equipo, estructura de turnos, cronogramas de mantenimiento y filosofía de repuestos.",
+              hint: "Describe si es operado por el propietario o por un tercero de O&M. Incluye tamaño del equipo, estructura de turnos, cronogramas de mantenimiento y filosofía de repuestos.",
             },
           },
         },
@@ -5868,15 +5868,15 @@ const resources = {
           questions: {
             sourcingStrategy: {
               label: "Estrategia de Abastecimiento",
-              hint: "Identifica las fuentes de biomasa (especies, tipo: residuos/desechos), el concepto de abastecimiento y los principales riesgos de suministro. Incluí fuentes de respaldo/contingencia.",
+              hint: "Identifica las fuentes de biomasa (especies, tipo: residuos/desechos), el concepto de abastecimiento y los principales riesgos de suministro. Incluye fuentes de respaldo/contingencia.",
             },
             supplyDemand: {
               label: "Modelo de Oferta y Demanda",
-              hint: "Evalúa la disponibilidad actual de biomasa y modela el suministro durante el período operativo. Incluí variaciones estacionales y sustentabilidad a largo plazo.",
+              hint: "Evalúa la disponibilidad actual de biomasa y modela el suministro durante el período operativo. Incluye variaciones estacionales y sustentabilidad a largo plazo.",
             },
             kpis: {
               label: "KPIs de Biomasa",
-              hint: "Describí los parámetros de calidad: composición de especies, contenido de humedad, tamaño de partícula, contenido de cenizas, carbono fijo. Incluí rangos aceptables y frecuencia de análisis.",
+              hint: "Describe los parámetros de calidad: composición de especies, contenido de humedad, tamaño de partícula, contenido de cenizas, carbono fijo. Incluye rangos aceptables y frecuencia de análisis.",
             },
             tonnageRequired: {
               label: "Tonelaje Anual",
@@ -5884,11 +5884,11 @@ const resources = {
             },
             certifications: {
               label: "Certificaciones",
-              hint: "Lista las certificaciones forestales (FSC, PEFC) y documentación de cadena de custodia. Incluí números de certificado, períodos de validez y alcance.",
+              hint: "Lista las certificaciones forestales (FSC, PEFC) y documentación de cadena de custodia. Incluye números de certificado, períodos de validez y alcance.",
             },
             counterfactualUse: {
               label: "Uso Contrafáctico de la Biomasa",
-              hint: "Describí qué pasaría con la biomasa si el proyecto no existiera (contrafáctico). Incluí evidencia: método de disposición actual (quema abierta, relleno sanitario, descomposición in-situ), emisiones asociadas, y cómo derivarla a biochar es adicional. Clave para las afirmaciones de adicionalidad en Puro.earth, Verra VM0044 y el DD de Microsoft.",
+              hint: "Describe qué pasaría con la biomasa si el proyecto no existiera (contrafáctico). Incluye evidencia: método de disposición actual (quema abierta, relleno sanitario, descomposición in-situ), emisiones asociadas, y cómo derivarla a biochar es adicional. Clave para las afirmaciones de adicionalidad en Puro.earth, Verra VM0044 y el DD de Microsoft.",
             },
           },
         },
@@ -5897,19 +5897,19 @@ const resources = {
           questions: {
             endUse: {
               label: "Aplicaciones de Uso Final",
-              hint: "Describí las aplicaciones planificadas: enmienda de suelos agrícolas, construcción (aditivo para cemento), secuestro de carbono. Incluí volúmenes por aplicación.",
+              hint: "Describe las aplicaciones planificadas: enmienda de suelos agrícolas, construcción (aditivo para cemento), secuestro de carbono. Incluye volúmenes por aplicación.",
             },
             customers: {
               label: "Clientes y Offtake",
-              hint: "Lista clientes confirmados y potenciales con estado: contratos firmados, LOIs/MOUs, negociaciones avanzadas. Incluí volúmenes y términos de precios.",
+              hint: "Lista clientes confirmados y potenciales con estado: contratos firmados, LOIs/MOUs, negociaciones avanzadas. Incluye volúmenes y términos de precios.",
             },
             purityComposition: {
               label: "Pureza y Composición",
-              hint: "Especifica la calidad esperada del biochar: contenido de carbono orgánico (%), relación molar H/C, superficie BET, pH, contenido de cenizas. Referencia análisis de laboratorio independiente si esta disponible (ej., CONICET). Incluí frecuencia de monitoreo.",
+              hint: "Especifica la calidad esperada del biochar: contenido de carbono orgánico (%), relación molar H/C, superficie BET, pH, contenido de cenizas. Referencia análisis de laboratorio independiente si esta disponible (ej., CONICET). Incluye frecuencia de monitoreo.",
             },
             transportation: {
               label: "Transporte",
-              hint: "Describí el método de transporte, distancias a ubicaciones de uso final y formato (a granel, big bags, embolsado). Incluí detalles de rutas.",
+              hint: "Describe el método de transporte, distancias a ubicaciones de uso final y formato (a granel, big bags, embolsado). Incluye detalles de rutas.",
             },
           },
         },
@@ -5918,11 +5918,11 @@ const resources = {
           questions: {
             revenueStack: {
               label: "Stack de Ingresos",
-              hint: "Desglosa el modelo completo de ingresos: créditos de carbono (CDR/VCM), ventas de biochar, ventas de bio-oil. Incluí supuestos de precios y porcentaje de ingresos totales por flujo.",
+              hint: "Desglosa el modelo completo de ingresos: créditos de carbono (CDR/VCM), ventas de biochar, ventas de bio-oil. Incluye supuestos de precios y porcentaje de ingresos totales por flujo.",
             },
             carbonCredits: {
               label: "Venta de Créditos de Carbono",
-              hint: "Detalla la generación anual de créditos de carbono: volumen (tCO\u2082e), precio por tonelada, cronograma de ramp-up, metodología de certificación (ej., Puro.earth CORC). Incluí el factor utilizado (ej., 3 tCO\u2082e por tonelada de biochar).",
+              hint: "Detalla la generación anual de créditos de carbono: volumen (tCO\u2082e), precio por tonelada, cronograma de ramp-up, metodología de certificación (ej., Puro.earth CORC). Incluye el factor utilizado (ej., 3 tCO\u2082e por tonelada de biochar).",
             },
             capex: {
               label: "CAPEX",
@@ -5934,7 +5934,7 @@ const resources = {
             },
             financing: {
               label: "Plan de Financiamiento",
-              hint: "Describí la estructura de financiamiento: equity, deuda, subsidios, acuerdos de pre-compra de créditos de carbono. Incluí el estado de las negociaciones con inversores y cualquier contrato de offtake que active el financiamiento.",
+              hint: "Describe la estructura de financiamiento: equity, deuda, subsidios, acuerdos de pre-compra de créditos de carbono. Incluye el estado de las negociaciones con inversores y cualquier contrato de offtake que active el financiamiento.",
             },
             additionality: {
               label: "Adicionalidad Financiera",
@@ -5951,27 +5951,27 @@ const resources = {
           questions: {
             facilityDesign: {
               label: "Diseño de Planta",
-              hint: "Describí la tecnología: tipo de reactor, temperatura operativa, modo continuo/batch, materiales de construcción, aislamiento. Incluí productos primarios y secundarios.",
+              hint: "Describe la tecnología: tipo de reactor, temperatura operativa, modo continuo/batch, materiales de construcción, aislamiento. Incluye productos primarios y secundarios.",
             },
             pyrolysisSpecs: {
               label: "Especificaciones de Pirólisis",
-              hint: "Detalla cantidad de reactores, dimensiones, capacidad (kg/h por unidad), condiciones operativas (temperatura, presión, tiempo de residencia). Incluí balance de masa y energía.",
+              hint: "Detalla cantidad de reactores, dimensiones, capacidad (kg/h por unidad), condiciones operativas (temperatura, presión, tiempo de residencia). Incluye balance de masa y energía.",
             },
             operationalHistory: {
               label: "Historial Operativo",
-              hint: "Documenta el nivel de TRL de la tecnología y su trayectoria comercial. Incluí instalaciones de referencia, datos operativos y lecciones aprendidas de ensayos piloto.",
+              hint: "Documenta el nivel de TRL de la tecnología y su trayectoria comercial. Incluye instalaciones de referencia, datos operativos y lecciones aprendidas de ensayos piloto.",
             },
             energyRequirements: {
               label: "Requerimientos Energéticos",
-              hint: "Cuantifica la demanda de electricidad y combustibles por fase. Describí cómo la recuperación de syngas/bio-oil reduce las necesidades de energía externa. Incluí detalles de conexión a la red.",
+              hint: "Cuantifica la demanda de electricidad y combustibles por fase. Describe cómo la recuperación de syngas/bio-oil reduce las necesidades de energía externa. Incluye detalles de conexión a la red.",
             },
             massEnergyBalance: {
               label: "Balance de Masa y Energía",
-              hint: "Balance de masa y energía de alto nivel para todo el diseño de proceso, mostrando electricidad (kWh/t), combustible (kg o m\u00b3/t), agua, consumibles mayores y utilities, con la intensidad de carbono asociada de todos los inputs y outputs. Incluí rendimiento de biochar (% en peso, base seca), recuperación de syngas y salida de cenizas. Requerido por el DD Engineered de Microsoft.",
+              hint: "Balance de masa y energía de alto nivel para todo el diseño de proceso, mostrando electricidad (kWh/t), combustible (kg o m\u00b3/t), agua, consumibles mayores y utilities, con la intensidad de carbono asociada de todos los inputs y outputs. Incluye rendimiento de biochar (% en peso, base seca), recuperación de syngas y salida de cenizas. Requerido por el DD Engineered de Microsoft.",
             },
             seasonalVariations: {
               label: "Variaciones Estacionales de Biomasa",
-              hint: "Describí la estrategia de mitigación frente a variaciones estacionales de disponibilidad de biomasa: fuentes alternativas por temporada (residuos forestales vs agrícolas vs biomasa de campo), almacenamiento buffer on-site y flexibilidad del proceso para aceptar distintos tipos de biomasa sin pérdida de rendimiento.",
+              hint: "Describe la estrategia de mitigación frente a variaciones estacionales de disponibilidad de biomasa: fuentes alternativas por temporada (residuos forestales vs agrícolas vs biomasa de campo), almacenamiento buffer on-site y flexibilidad del proceso para aceptar distintos tipos de biomasa sin pérdida de rendimiento.",
             },
           },
         },
@@ -5980,7 +5980,7 @@ const resources = {
           questions: {
             lcaMethodology: {
               label: "Metodología LCA",
-              hint: "Describí el enfoque de LCA: metodología (ej., Puro.earth Biochar Methodology), factores de emisión utilizados, fuentes de datos. Incluí el factor de emisión de la red eléctrica argentina si corresponde.",
+              hint: "Describe el enfoque de LCA: metodología (ej., Puro.earth Biochar Methodology), factores de emisión utilizados, fuentes de datos. Incluye el factor de emisión de la red eléctrica argentina si corresponde.",
             },
             systemBoundary: {
               label: "Límite del Sistema",
@@ -5988,11 +5988,11 @@ const resources = {
             },
             mmrvPlan: {
               label: "Plan MMRV",
-              hint: "Describí el marco de monitoreo, medición, reporte y verificación. Incluí frecuencia de muestreo, protocolos de análisis de laboratorio, sistemas de gestión de datos y alineación con los requerimientos de Puro.earth.",
+              hint: "Describe el marco de monitoreo, medición, reporte y verificación. Incluye frecuencia de muestreo, protocolos de análisis de laboratorio, sistemas de gestión de datos y alineación con los requerimientos de Puro.earth.",
             },
             certificationPartner: {
               label: "Socio de Certificación",
-              hint: "Describí el proceso de selección y contratación del organismo de verificación. Incluí socios preseleccionados y cronograma de contratación.",
+              hint: "Describe el proceso de selección y contratación del organismo de verificación. Incluye socios preseleccionados y cronograma de contratación.",
             },
             sensitivityAnalysis: {
               label: "Análisis de Sensibilidad",
@@ -6000,11 +6000,11 @@ const resources = {
             },
             independentReview: {
               label: "Revisión Independiente del LCA",
-              hint: "Indica si el LCA fue desarrollado internamente o por un tercero, si fue revisado de forma independiente y por quién. Incluí las credenciales del revisor y el alcance de la revisión.",
+              hint: "Indica si el LCA fue desarrollado internamente o por un tercero, si fue revisado de forma independiente y por quién. Incluye las credenciales del revisor y el alcance de la revisión.",
             },
             emissionFactors: {
               label: "Factores de Emisión y Fuentes",
-              hint: "Lista todos los factores de emisión usados con sus fuentes públicas: electricidad de red (tCO\u2082e/kWh por país), gas natural (tCO\u2082e/m\u00b3), diesel (tCO\u2082e/L), transporte de biomasa, metano fugitivo por flare. Incluí el cálculo del CH\u2084 sin quemar si el flare opera a eficiencia sub-100%.",
+              hint: "Lista todos los factores de emisión usados con sus fuentes públicas: electricidad de red (tCO\u2082e/kWh por país), gas natural (tCO\u2082e/m\u00b3), diesel (tCO\u2082e/L), transporte de biomasa, metano fugitivo por flare. Incluye el cálculo del CH\u2084 sin quemar si el flare opera a eficiencia sub-100%.",
             },
           },
         },
@@ -6021,7 +6021,7 @@ const resources = {
             },
             waterUsage: {
               label: "Uso del Agua y Efluentes",
-              hint: "Fuentes de agua (municipal, red del parque), consumo anual, usos (enfriamiento, supresión de polvo, limpieza), método de pre-tratamiento (sedimentación, filtración), destino de descarga (alcantarillado del parque, cuerpo natural) y cumplimiento de estándares de descarga. Incluí análisis de químicos traza si corresponde.",
+              hint: "Fuentes de agua (municipal, red del parque), consumo anual, usos (enfriamiento, supresión de polvo, limpieza), método de pre-tratamiento (sedimentación, filtración), destino de descarga (alcantarillado del parque, cuerpo natural) y cumplimiento de estándares de descarga. Incluye análisis de químicos traza si corresponde.",
             },
             hazardousWaste: {
               label: "Gestión de Residuos Peligrosos",
@@ -6037,7 +6037,7 @@ const resources = {
             },
             communityEngagement: {
               label: "Plan de Participación Comunitaria",
-              hint: "Métodos de engagement según el continuum ATSDR: audiencias públicas, jornadas abiertas, focus groups, reuniones uno-a-uno, sesiones de consulta. Incluí documentación: actas, emails, audios, encuestas, artículos periodísticos. Describí mecanismos de reclamo y distribución de beneficios.",
+              hint: "Métodos de engagement según el continuum ATSDR: audiencias públicas, jornadas abiertas, focus groups, reuniones uno-a-uno, sesiones de consulta. Incluye documentación: actas, emails, audios, encuestas, artículos periodísticos. Describe mecanismos de reclamo y distribución de beneficios.",
             },
             stakeholderMapping: {
               label: "Mapeo de Stakeholders",
@@ -6054,27 +6054,27 @@ const resources = {
           questions: {
             preProcessing: {
               label: "Equipos de Pre-Procesamiento",
-              hint: "Lista todos los equipos de pre-procesamiento con especificaciones: chipeadoras (modelo, capacidad, potencia), molinos de martillos (capacidad, tamaño final de partícula), secadores rotativos (capacidad, reducción de humedad), pelletizadoras (modelo, capacidad, diámetro de pellet). Incluí cantidades, potencias (kW) y requerimientos de tensión.",
+              hint: "Lista todos los equipos de pre-procesamiento con especificaciones: chipeadoras (modelo, capacidad, potencia), molinos de martillos (capacidad, tamaño final de partícula), secadores rotativos (capacidad, reducción de humedad), pelletizadoras (modelo, capacidad, diámetro de pellet). Incluye cantidades, potencias (kW) y requerimientos de tensión.",
             },
             pyrolysisUnits: {
               label: "Unidades de Pirólisis",
-              hint: "Describí los reactores de pirólisis: modelo, cantidad, dimensiones, capacidad (kg/h de biochar), rango de temperatura operativa, material de construcción (ej., acero de caldera Q245R), espesor de aislamiento, sistema de reciclado de gas, sistema de enfriamiento. Incluí la lista completa de partes de producción.",
+              hint: "Describe los reactores de pirólisis: modelo, cantidad, dimensiones, capacidad (kg/h de biochar), rango de temperatura operativa, material de construcción (ej., acero de caldera Q245R), espesor de aislamiento, sistema de reciclado de gas, sistema de enfriamiento. Incluye la lista completa de partes de producción.",
             },
             postProcessing: {
               label: "Post-Procesamiento y Enfriamiento",
-              hint: "Detalla el manejo post-pirólisis: transportadores de enfriamiento (tipo, longitud, temperatura de salida), sistemas de almacenamiento (capacidad, ventilación), equipos de packaging. Incluí características de seguridad para el manejo de biochar caliente.",
+              hint: "Detalla el manejo post-pirólisis: transportadores de enfriamiento (tipo, longitud, temperatura de salida), sistemas de almacenamiento (capacidad, ventilación), equipos de packaging. Incluye características de seguridad para el manejo de biochar caliente.",
             },
             ancillaryEquipment: {
               label: "Equipos Auxiliares",
-              hint: "Lista equipos de soporte: transportadores de cinta (longitud, potencia), silos/tolvas de almacenamiento (capacidad, bocas de descarga), sistemas de recolección de polvo, sistemas de purificación de gases, torres de enfriamiento. Incluí requerimientos de repuestos y cronogramas de reemplazo.",
+              hint: "Lista equipos de soporte: transportadores de cinta (longitud, potencia), silos/tolvas de almacenamiento (capacidad, bocas de descarga), sistemas de recolección de polvo, sistemas de purificación de gases, torres de enfriamiento. Incluye requerimientos de repuestos y cronogramas de reemplazo.",
             },
             plantLayout: {
               label: "Layout de Planta y Flujo de Materiales",
-              hint: "Describí el layout del sitio: superficie total, dimensiones del edificio, disposición de zonas de proceso (materia prima, secado/pelletizado, pirólisis, almacenamiento), caminos de flujo de materiales, accesos viales, zonas de carga, oficinas. Referencia el plano arquitectónico y escala.",
+              hint: "Describe el layout del sitio: superficie total, dimensiones del edificio, disposición de zonas de proceso (materia prima, secado/pelletizado, pirólisis, almacenamiento), caminos de flujo de materiales, accesos viales, zonas de carga, oficinas. Referencia el plano arquitectónico y escala.",
             },
             supplierWarranty: {
               label: "Proveedores y Garantía",
-              hint: "Lista los principales proveedores de equipos con: nombre de empresa, país de origen, términos de garantía, plazo de entrega, condiciones de pago, precios CIF/FOB. Incluí disponibilidad de repuestos y acuerdos de soporte técnico.",
+              hint: "Lista los principales proveedores de equipos con: nombre de empresa, país de origen, términos de garantía, plazo de entrega, condiciones de pago, precios CIF/FOB. Incluye disponibilidad de repuestos y acuerdos de soporte técnico.",
             },
           },
         },
@@ -6087,11 +6087,11 @@ const resources = {
             },
             motorControlCenters: {
               label: "Centros de Control de Motores (CCMs)",
-              hint: "Detalla los CCMs por zona de proceso: ubicación, capacidad (A, V, Hz), alimentadores por equipo principal, método de ruteo de cables, paneles VFD para control de velocidad. Incluí clasificaciones de zona para áreas peligrosas.",
+              hint: "Detalla los CCMs por zona de proceso: ubicación, capacidad (A, V, Hz), alimentadores por equipo principal, método de ruteo de cables, paneles VFD para control de velocidad. Incluye clasificaciones de zona para áreas peligrosas.",
             },
             emergencyPower: {
               label: "Sistemas de Emergencia y Seguridad",
-              hint: "Describí energía de respaldo: capacidad del generador (kW), UPS para sistemas críticos, ubicaciones de paradas de emergencia (espaciamiento), requerimientos de equipos antiexplosión, especificaciones de cables de alta temperatura, carga de iluminación y auxiliares.",
+              hint: "Describe energía de respaldo: capacidad del generador (kW), UPS para sistemas críticos, ubicaciones de paradas de emergencia (espaciamiento), requerimientos de equipos antiexplosión, especificaciones de cables de alta temperatura, carga de iluminación y auxiliares.",
             },
             qualityParameters: {
               label: "Parámetros de Control de Calidad",
@@ -6099,7 +6099,7 @@ const resources = {
             },
             labAnalysis: {
               label: "Protocolo de Análisis de Laboratorio",
-              hint: "Describí el programa de análisis de laboratorio: análisis elemental (CHONS), screening de metales pesados (Pb, Cd, Cr, Cu, Ni, Zn, Hg, As con límites de detección), análisis de estabilidad térmica (TGA), caracterización SEM/EDS, medición de superficie BET. Incluí el laboratorio acreditado y estándares metodológicos (ASTM, EPA).",
+              hint: "Describe el programa de análisis de laboratorio: análisis elemental (CHONS), screening de metales pesados (Pb, Cd, Cr, Cu, Ni, Zn, Hg, As con límites de detección), análisis de estabilidad térmica (TGA), caracterización SEM/EDS, medición de superficie BET. Incluye el laboratorio acreditado y estándares metodológicos (ASTM, EPA).",
             },
             certificationStandards: {
               label: "Estándares de Certificación de Calidad",
