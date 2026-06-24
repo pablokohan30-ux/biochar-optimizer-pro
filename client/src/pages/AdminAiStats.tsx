@@ -108,7 +108,7 @@ export default function AdminAiStats() {
             {/* Per-user breakdown */}
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-3">Por usuario (top 20)</h2>
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
+              <div className="border border-border rounded-lg overflow-x-auto bg-card">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40 text-muted-foreground">
                     <tr>
@@ -141,7 +141,7 @@ export default function AdminAiStats() {
             {/* Recent projects */}
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-3">Proyectos recientes</h2>
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
+              <div className="border border-border rounded-lg overflow-x-auto bg-card">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40 text-muted-foreground">
                     <tr>
@@ -186,7 +186,7 @@ export default function AdminAiStats() {
                 <p className="text-xs text-muted-foreground mb-3">
                   Ordenado por porcentaje de votos negativos. Un down-rate alto indica que ese prompt necesita otra iteración.
                 </p>
-                <div className="border border-border rounded-lg overflow-hidden bg-card">
+                <div className="border border-border rounded-lg overflow-x-auto bg-card">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
@@ -238,7 +238,7 @@ export default function AdminAiStats() {
 
                 {/* By feature */}
                 <h3 className="text-sm font-semibold text-foreground mb-2">Por feature</h3>
-                <div className="border border-border rounded-lg overflow-hidden bg-card mb-5">
+                <div className="border border-border rounded-lg overflow-x-auto bg-card mb-5">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
@@ -271,7 +271,7 @@ export default function AdminAiStats() {
 
                 {/* By user */}
                 <h3 className="text-sm font-semibold text-foreground mb-2">Por usuario (top 20)</h3>
-                <div className="border border-border rounded-lg overflow-hidden bg-card mb-5">
+                <div className="border border-border rounded-lg overflow-x-auto bg-card mb-5">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
@@ -302,7 +302,7 @@ export default function AdminAiStats() {
 
                 {/* Recent calls */}
                 <h3 className="text-sm font-semibold text-foreground mb-2">Llamadas recientes (últimas 30)</h3>
-                <div className="border border-border rounded-lg overflow-hidden bg-card">
+                <div className="border border-border rounded-lg overflow-x-auto bg-card">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>

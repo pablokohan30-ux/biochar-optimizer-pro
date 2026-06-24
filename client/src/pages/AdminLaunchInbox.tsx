@@ -108,7 +108,7 @@ export default function AdminLaunchInbox() {
         </div>
 
         <section>
-          <div className="border border-border rounded-lg overflow-hidden bg-card">
+          <div className="border border-border rounded-lg overflow-x-auto bg-card">
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>

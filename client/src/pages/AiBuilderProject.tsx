@@ -117,7 +117,7 @@ function EquipmentBomTable({ data }: { data: any }) {
       {Object.entries(byCategory).map(([category, items]) => (
         <div key={category}>
           <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">{category.replace(/-/g, " ")}</h4>
-          <div className="border border-border rounded-lg overflow-hidden">
+          <div className="border border-border rounded-lg overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
@@ -207,7 +207,7 @@ function PermitMatrixTable({ data }: { data: any }) {
   return (
     <div className="space-y-3">
       <div className="text-sm text-muted-foreground">{tb("countryLabel", "Country")}: <span className="font-medium text-foreground">{data.country}</span></div>
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="bg-muted/40 text-muted-foreground">
             <tr>
@@ -588,7 +588,7 @@ export default function AiBuilderProject() {
                 setExpandedDocs((s) => ({ ...s, [docType.id]: !(s[docType.id] ?? true) }));
 
               return (
-                <div key={docType.id} className="bg-card border border-border rounded-lg overflow-hidden">
+                <div key={docType.id} className="bg-card border border-border rounded-lg overflow-x-auto">
                   {/* Header */}
                   <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/40/50">
                     <button onClick={toggleExpanded} className="flex items-center gap-3 flex-1 text-left">
@@ -750,7 +750,7 @@ function ElectricalPackageView({ data }: { data: any }) {
       {Array.isArray(data.loadCenters) && data.loadCenters.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">{tb("loadCenters", "Load Centers")}</h4>
-          <table className="w-full text-xs border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-xs border border-border rounded-lg overflow-x-auto">
             <thead className="bg-muted/40 text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2 font-medium">Area</th>
@@ -862,7 +862,7 @@ function FinancialSummaryView({ data }: { data: any }) {
       {Array.isArray(capex.breakdown) && (
         <div>
           <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">{tb("capexBreakdown", "CAPEX Breakdown")}</h4>
-          <table className="w-full text-xs border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-xs border border-border rounded-lg overflow-x-auto">
             <thead className="bg-muted/40 text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2 font-medium">{tb("category", "Category")}</th>
@@ -890,7 +890,7 @@ function FinancialSummaryView({ data }: { data: any }) {
       {Array.isArray(opex.breakdown) && (
         <div>
           <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">{tb("opexBreakdown", "OPEX Breakdown (Annual)")}</h4>
-          <table className="w-full text-xs border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-xs border border-border rounded-lg overflow-x-auto">
             <thead className="bg-muted/40 text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2 font-medium">{tb("category", "Category")}</th>
@@ -980,7 +980,7 @@ function MethodologyComplianceView({ data }: { data: any }) {
       )}
 
       {data.methodologies.map((m: any, i: number) => (
-        <div key={i} className="border border-border rounded-lg overflow-hidden">
+        <div key={i} className="border border-border rounded-lg overflow-x-auto">
           <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
             <div>
               <div className="text-sm font-semibold text-foreground">{m.name}</div>
@@ -1124,7 +1124,7 @@ function PddPreFillView({ data }: { data: any }) {
         {tb("prefilledDraftNote", "Respuestas borrador precargadas para el constructor de PDD. Llévalas a esa pantalla para editarlas y cerrar cada respuesta.")}
       </p>
       {data.workstreams.map((ws: any, i: number) => (
-        <details key={i} className="border border-border rounded-lg overflow-hidden">
+        <details key={i} className="border border-border rounded-lg overflow-x-auto">
           <summary className="px-4 py-2 bg-muted/40 font-medium text-sm text-foreground cursor-pointer hover:bg-muted">
             {ws.id.toUpperCase()}. {ws.title} <span className="text-xs text-muted-foreground font-normal">· {ws.answers?.length ?? 0} {tb("questions", "preguntas")}</span>
           </summary>
