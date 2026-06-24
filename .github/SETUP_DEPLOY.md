@@ -34,7 +34,7 @@ que corre `flyctl deploy --remote-only` y sube los cambios a biocharpro.io.
 
 ## Saltar el deploy en un commit
 
-Si querés que un commit NO dispare el deploy (ej. solo docs), poné `[skip ci]` en el mensaje:
+Si quieres que un commit NO dispare el deploy (ej. solo docs), pon `[skip ci]` en el mensaje:
 
 ```bash
 git commit -m "docs: update README [skip ci]"
