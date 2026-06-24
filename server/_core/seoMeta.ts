@@ -99,6 +99,12 @@ const STATIC_OVERRIDES: Record<string, MetaOverride> = {
     description:
       `Gratis para siempre para el simulador. Desde USD ${ANALYST_MONTHLY_USD}/mes para gestión de proyectos, 5 metodologías activas (Puro.earth · Isometric · Verra VM0044 · EBC · Rainbow) y Gold Standard en preparación.`,
   },
+  "/early-access": {
+    title: `Early access demo · ${BRAND_NAME}`,
+    description:
+      "Pedí acceso a la demo pública de BiocharPro y explorá simulación, trazabilidad, evidencia operativa y preparación comercial para proyectos reales de biochar.",
+    canonical: "https://biocharpro.io/early-access",
+  },
   "/guide": {
     title: `Guía del usuario — cómo, porqué y resultados · ${BRAND_NAME}`,
     description:
