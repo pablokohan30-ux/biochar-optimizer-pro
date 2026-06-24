@@ -116,11 +116,11 @@ export default function Guide() {
           <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <Link href="/pricing">
+            <Link href="/pricing" className="hidden sm:inline-flex">
               <Button variant="ghost" size="sm">{content.nav.pricing}</Button>
             </Link>
             <Link href="/app">
-              <Button size="sm">{content.nav.tryFree}</Button>
+              <Button size="sm" className="whitespace-nowrap">{content.nav.tryFree}</Button>
             </Link>
           </div>
         </div>

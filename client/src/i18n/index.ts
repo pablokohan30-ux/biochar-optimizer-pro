@@ -1742,7 +1742,7 @@ const resources = {
       invalidShareUrl:
         "That doesn't look like a valid LinkedIn or X post URL. Please paste the full link to your public post.",
       shareTemplate:
-        `🌱 ${BRAND_NAME} — AI-powered pyrolysis simulator & CO₂e credit estimator / Simulador de pirólisis y créditos de carbono con IA.\n\nPredict yield, carbon & credits for any biomass / Predecí rendimiento y créditos para cualquier biomasa.\n\nFree / Gratis 👇\n\n#biochar #CDR #carbonremoval`,
+        `🌱 ${BRAND_NAME} — AI-powered pyrolysis simulator & CO₂e credit estimator / Simulador de pirólisis y créditos de carbono con IA.\n\nPredict yield, carbon & credits for any biomass / Predice rendimiento y créditos para cualquier biomasa.\n\nFree / Gratis 👇\n\n#biochar #CDR #carbonremoval`,
     },
 
     lca: {
@@ -4708,7 +4708,7 @@ const resources = {
         explorer: {
           name: "Explorer",
           description:
-            "Acceso completo al simulador interactivo de pirólisis. Predecí C%, H:Corg, rendimiento, BET, pH y créditos de CO₂e para cualquier biomasa — sin cuenta requerida.",
+            "Acceso completo al simulador interactivo de pirólisis. Predice C%, H:Corg, rendimiento, BET, pH y créditos de CO₂e para cualquier biomasa — sin cuenta requerida.",
           bestFor: "Quien está explorando el potencial de una biomasa antes de comprometerse con un proyecto.",
           outcome: "Una lectura técnica rápida de rendimiento, calidad y potencial de créditos de carbono.",
         },
@@ -4894,7 +4894,7 @@ const resources = {
           headline: "Predecir. Optimizar. Certificar.",
           description: "La única plataforma que combina simulación de pirólisis con estimación de créditos de carbono, ACV y herramientas de desarrollo de proyectos Puro.earth.",
           feature1title: "Simulador de Pirólisis",
-          feature1desc: "Predecí rendimiento, calidad del biochar y contenido de carbono para cualquier biomasa.",
+          feature1desc: "Predice rendimiento, calidad del biochar y contenido de carbono para cualquier biomasa.",
           feature2title: "Análisis de Biomasa con IA",
           feature2desc: "Análisis próximo instantáneo para cualquier materia prima — potenciado por IA.",
           feature3title: "Estimación de Créditos de Carbono",
@@ -4931,7 +4931,7 @@ const resources = {
       invalidShareUrl:
         "Eso no parece un link válido de LinkedIn o X. Pega la URL completa del post público.",
       shareTemplate:
-        `🌱 ${BRAND_NAME} — AI-powered pyrolysis simulator & CO₂e credit estimator / Simulador de pirólisis y créditos de carbono con IA.\n\nPredict yield, carbon & credits for any biomass / Predecí rendimiento y créditos para cualquier biomasa.\n\nFree / Gratis 👇\n\n#biochar #CDR #carbonremoval`,
+        `🌱 ${BRAND_NAME} — AI-powered pyrolysis simulator & CO₂e credit estimator / Simulador de pirólisis y créditos de carbono con IA.\n\nPredict yield, carbon & credits for any biomass / Predice rendimiento y créditos para cualquier biomasa.\n\nFree / Gratis 👇\n\n#biochar #CDR #carbonremoval`,
     },
 
     lca: {
@@ -5047,7 +5047,7 @@ const resources = {
       shareUnlockDesc: `Comparte ${BRAND_NAME} en LinkedIn o X y obtén 3 análisis de biomasa personalizados con IA.`,
       shareUnlockStep1: "Comparte en LinkedIn o X",
       shareUnlockStep2: "Pega la URL del post abajo",
-      shareUnlockStep3: "Recibí 3 análisis con IA al instante",
+      shareUnlockStep3: "Recibe 3 análisis con IA al instante",
       shareUnlockPasteLabel: "Pega la URL de tu post",
       shareUnlockPasteHint: "Aceptamos URLs de posts de LinkedIn y X/Twitter",
       shareUnlockSubmit: "Desbloquear Mis 3 Análisis",

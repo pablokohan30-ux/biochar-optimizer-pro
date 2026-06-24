@@ -84,13 +84,13 @@ export default function Demo() {
       <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <LogoLink variant="compact" iconType="flame" showSubtitle={false} />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher />
-            <Link href="/pricing">
+            <Link href="/pricing" className="hidden sm:inline-flex">
               <Button variant="ghost" size="sm">{t("common:nav.pricing")}</Button>
             </Link>
             <Link href="/app">
-              <Button size="sm">{t("common:nav.tryForFree")}</Button>
+              <Button size="sm" className="whitespace-nowrap">{t("common:nav.tryForFree")}</Button>
             </Link>
           </div>
         </div>

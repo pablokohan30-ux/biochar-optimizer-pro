@@ -641,7 +641,7 @@ export default function Home() {
                       {tr("newBiomassTitle", { defaultValue: "Nueva biomasa" })}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                      {tr("newBiomassHint", { defaultValue: "Subí tu análisis de laboratorio (PDF) y extraemos C/H/N/S/O, ash, humedad y condiciones de pirólisis automáticamente." })}
+                      {tr("newBiomassHint", { defaultValue: "Carga tu análisis de laboratorio (PDF) y extraemos C/H/N/S/O, ash, humedad y condiciones de pirólisis automáticamente." })}
                     </div>
                   </div>
                 </div>

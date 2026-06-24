@@ -206,7 +206,7 @@ const es: GuideContent = {
         <>
           <p>
             Si ya pediste análisis proximal + elemental a un lab, no hace falta cargar los valores a mano.
-            Subí el PDF y la IA (Gemini 2.5) extrae automáticamente:
+            Carga el PDF y la IA (Gemini 2.5) extrae automáticamente:
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Composición elemental: C, H, N, S, O, cenizas, humedad, volátiles, carbono fijo</li>
@@ -257,7 +257,7 @@ const es: GuideContent = {
               El BOP ID no cambia.
             </li>
             <li>
-              <strong>Compartí el proyecto.</strong> Cada proyecto tiene una página pública en <code>/verify/:bopId</code> con el
+              <strong>Comparte el proyecto.</strong> Cada proyecto tiene una página pública en <code>/verify/:bopId</code> con el
               nivel de detalle que tú elijas (privado / resumen / completo). Útil para compartir con compradores o verificadores sin darles
               acceso completo a tu cuenta.
             </li>
