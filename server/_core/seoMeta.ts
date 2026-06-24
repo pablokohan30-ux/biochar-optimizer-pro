@@ -92,7 +92,17 @@ const STATIC_OVERRIDES: Record<string, MetaOverride> = {
   "/demo": {
     title: `Live demo — Huila Coffee Husk project · ${BRAND_NAME}`,
     description:
-      "Explorá un proyecto real de biochar en Colombia: cáscara de café, pirólisis a 650 °C, 32.6 kt CO₂e/año. Score Puro.earth calculado en vivo. Sin registro.",
+      "Explora un proyecto real de biochar en Colombia: cáscara de café, pirólisis a 650 °C, 32.6 kt CO₂e/año. Score Puro.earth calculado en vivo. Sin registro.",
+  },
+  "/lca": {
+    title: `Calculadora LCA de biochar · ${BRAND_NAME}`,
+    description:
+      "Calcula el ciclo de vida completo de tu biochar — emisiones de transporte, energía, secado y pirólisis — para conocer el CO₂e neto del proyecto. Calibrado contra literatura peer-reviewed.",
+  },
+  "/batch": {
+    title: `Comparación batch de biomasas · ${BRAND_NAME}`,
+    description:
+      "Compara hasta 48 biomasas en paralelo a la misma temperatura y tiempo de residencia. Identifica el feedstock óptimo para tu proyecto en segundos. Exporta a CSV.",
   },
   "/pricing": {
     title: `Planes y precios · ${BRAND_NAME}`,
@@ -102,7 +112,7 @@ const STATIC_OVERRIDES: Record<string, MetaOverride> = {
   "/early-access": {
     title: `Early access demo · ${BRAND_NAME}`,
     description:
-      "Pedí acceso a la demo pública de BiocharPro y explorá simulación, trazabilidad, evidencia operativa y preparación comercial para proyectos reales de biochar.",
+      "Solicita acceso a la demo pública de BiocharPro y explora simulación, trazabilidad, evidencia operativa y preparación comercial para proyectos reales de biochar.",
     canonical: "https://biocharpro.io/early-access",
   },
   "/guide": {
@@ -151,7 +161,7 @@ const STATIC_OVERRIDES: Record<string, MetaOverride> = {
   "/product/methodologies": {
     title: `Metodologías de certificación cubiertas · ${BRAND_NAME}`,
     description:
-      "6 rutas cubiertas: 5 metodologías activas (Puro.earth, Isometric, EBC, Verra VM0044 y Rainbow) más Gold Standard en preparación. Compará umbrales, precios y timelines lado a lado.",
+      "6 rutas cubiertas: 5 metodologías activas (Puro.earth, Isometric, EBC, Verra VM0044 y Rainbow) más Gold Standard en preparación. Compara umbrales, precios y timelines lado a lado.",
   },
   "/product/project-package": {
     title: `Project package completo · ${BRAND_NAME}`,
@@ -192,17 +202,17 @@ const VERTICAL_OVERRIDES: Record<string, MetaOverride> = {
   agribusiness: {
     title: `Para agribusinesses · ${BRAND_NAME}`,
     description:
-      "¿Qué hacer con tus residuos agrícolas? Compará cáscaras, pajas y bagazos lado a lado para ver cuál produce el mejor biochar y los mejores créditos.",
+      "¿Qué hacer con tus residuos agrícolas? Compara cáscaras, pajas y bagazos lado a lado para ver cuál produce el mejor biochar y los mejores créditos.",
   },
   integrator: {
     title: `Para integradores y EPCs · ${BRAND_NAME}`,
     description:
-      "Cotizá, dimensioná y documentá proyectos de biochar con data calibrada. API REST para automatizar workflows con tu CRM.",
+      "Cotiza, dimensiona y documenta proyectos de biochar con data calibrada. API REST para automatizar workflows con tu CRM.",
   },
   researcher: {
     title: `Para investigadores · ${BRAND_NAME}`,
     description:
-      "Modelo empírico calibrado contra literatura peer-reviewed (CONICET / CINDECA). 53 biomasas modeladas. Exportá data en JSON.",
+      "Modelo empírico calibrado contra literatura peer-reviewed (CONICET / CINDECA). 53 biomasas modeladas. Exporta data en JSON.",
   },
 };
 
@@ -226,7 +236,19 @@ export function matchOverride(pathname: string): MetaOverride | null {
     return {
       title: `Verificar proyecto · ${BRAND_NAME}`,
       description:
-        "Confirmá que un proyecto de biochar está registrado en biocharpro.io. Muestra metodología objetivo, score de auto-checks y estimaciones anuales.",
+        "Confirma que un proyecto de biochar está registrado en biocharpro.io. Muestra metodología objetivo, score de auto-checks y estimaciones anuales.",
+    };
+  }
+
+  // /demo/:slug — per-demo override (slug becomes a readable label in the title)
+  const demoMatch = pathname.match(/^\/demo\/([a-z0-9-]+)\/?$/i);
+  if (demoMatch) {
+    const slug = demoMatch[1];
+    const readable = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return {
+      title: `Demo: ${readable} · ${BRAND_NAME}`,
+      description:
+        "Explora un proyecto demo de biochar end-to-end: simulación, evidencia operativa, score de auto-checks contra metodología objetivo y dossier listo para revisión.",
     };
   }
 

@@ -651,13 +651,19 @@ export default function AiBuilderProject() {
                       {doc?.error && (
                         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
                           <div className="font-medium mb-1">{tb("generationFailed", "Generation failed")}</div>
-                          <div className="text-xs">{doc.error}</div>
+                          <div className="text-xs">
+                            {tb("generationFailedHint", "We couldn't generate this document. Please retry — if it persists, the team has been notified.")}
+                          </div>
                           <button
                             onClick={() => retryMutation.mutate({ projectId, docId: docType.id, lang: i18n.language })}
                             className="mt-2 text-xs text-red-900 underline"
                           >
                             {tb("retryDoc", "Retry this document")}
                           </button>
+                          <details className="mt-2 text-[11px] text-red-900/70">
+                            <summary className="cursor-pointer">{tb("technicalDetails", "Technical details")}</summary>
+                            <code className="block mt-1 break-all">{doc.error}</code>
+                          </details>
                         </div>
                       )}
                       {doc && !doc.error && <DocRenderer doc={doc} />}

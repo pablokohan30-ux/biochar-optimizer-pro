@@ -418,6 +418,7 @@ const resources = {
         errMinCriteria: "Add at least 1 criterion.",
         errCriterionLabel: "Every criterion needs a label.",
         errCriterionDesc: "Every criterion needs a requirement description.",
+        errSaveFailed: "We couldn't save the methodology. Please retry — if it persists, contact support.",
       },
       stage34Onboarding: {
         eyebrow: "Expert pipeline",
@@ -591,6 +592,8 @@ const resources = {
         aiGeneratedBadge: "AI-Generated Project Package",
         waitingToGenerate: "Waiting to generate…",
         generationFailed: "Generation failed",
+        generationFailedHint: "We couldn't generate this document. Please retry — if it persists, the team has been notified.",
+        technicalDetails: "Technical details",
         retryDoc: "Retry this document",
         draftNote: "DRAFT — AI-generated. These documents are a starting draft and must be reviewed by qualified professionals before submission to any certifier or investor. Verify all numbers, legal references, and equipment specifications with local counsel and engineering partners.",
         openInPddBuilder: "Open in PDD Builder",
@@ -3498,6 +3501,7 @@ const resources = {
         errMinCriteria: "Agrega al menos 1 criterio.",
         errCriterionLabel: "Cada criterio necesita un label.",
         errCriterionDesc: "Cada criterio necesita una descripción del requisito.",
+        errSaveFailed: "No pudimos guardar la metodología. Por favor reintenta — si el error persiste, contacta a soporte.",
       },
       stage34Onboarding: {
         eyebrow: "Flujo Expert",
@@ -3684,6 +3688,8 @@ const resources = {
         aiGeneratedBadge: "Paquete de proyecto generado con IA",
         waitingToGenerate: "Esperando generación…",
         generationFailed: "Falló la generación",
+        generationFailedHint: "No pudimos generar este documento. Por favor reintenta — si el error persiste, el equipo fue notificado.",
+        technicalDetails: "Detalles técnicos",
         retryDoc: "Reintentar este documento",
         draftNote: "BORRADOR — generado con IA. Estos documentos son un punto de partida y deben ser revisados por profesionales calificados antes de cualquier envío a certificadora o inversor. Verifica todos los números, referencias legales y especificaciones de equipo con asesoría legal local y socios de ingeniería.",
         openInPddBuilder: "Abrir en el constructor de PDD",

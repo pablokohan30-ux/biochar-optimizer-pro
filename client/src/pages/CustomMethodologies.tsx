@@ -73,7 +73,10 @@ export default function CustomMethodologies() {
       setEditingId(null);
       resetEditor();
     },
-    onError: (e) => setErrorMessage(e.message),
+    onError: (e) => {
+      console.error("[customMethodology.create]", e);
+      setErrorMessage(tm("errSaveFailed", "We couldn't save the methodology. Please retry — if it persists, contact support."));
+    },
   });
   const updateMutation = trpc.customMethodology.update.useMutation({
     onSuccess: () => {
@@ -81,7 +84,10 @@ export default function CustomMethodologies() {
       setEditingId(null);
       resetEditor();
     },
-    onError: (e) => setErrorMessage(e.message),
+    onError: (e) => {
+      console.error("[customMethodology.update]", e);
+      setErrorMessage(tm("errSaveFailed", "We couldn't save the methodology. Please retry — if it persists, contact support."));
+    },
   });
   const deleteMutation = trpc.customMethodology.delete.useMutation({
     onSuccess: () => listQuery.refetch(),
