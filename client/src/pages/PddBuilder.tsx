@@ -330,18 +330,18 @@ export default function PddBuilder() {
 
       {showAiHandoffBanner && (
         <div className="container mx-auto px-4 pt-6">
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700 mb-1">
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/50 bg-indigo-50/60 dark:bg-indigo-950/30 px-4 py-4">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300 mb-1">
               {reusedExistingDraft
                 ? t("aiHandoffEyebrowReused", { defaultValue: "Borrador retomado desde AI Builder" })
                 : t("aiHandoffEyebrow", { defaultValue: "Handoff desde AI Builder" })}
             </div>
-            <h2 className="text-sm font-semibold text-foreground">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               {reusedExistingDraft
                 ? t("aiHandoffTitleReused", { defaultValue: "Volviste al mismo proyecto editable, no se creó uno nuevo" })
                 : t("aiHandoffTitle", { defaultValue: "Aquí ya estás editando el proyecto estándar, no un paquete aparte" })}
             </h2>
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+            <p className="text-sm text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">
               {reusedExistingDraft
                 ? t("aiHandoffBodyReused", { defaultValue: "Abrimos tu borrador editable existente y respetamos las respuestas guardadas en este navegador. El paquete AI sigue siendo referencia; este PDD es el espacio donde continúas el mismo proyecto." })
                 : t("aiHandoffBody", { defaultValue: "El AI Builder te dio un borrador rápido. En esta pantalla completas y corriges ese contenido en el PDD editable. Después seguirás trabajando este mismo proyecto en /projects para operación, evidencia y go-to-market." })}
@@ -355,7 +355,7 @@ export default function PddBuilder() {
             <div className="flex flex-wrap gap-2 mt-3">
               {sourceAiProjectId && (
                 <Link href={`/ai-builder/${sourceAiProjectId}`}>
-                  <button className="px-3 py-2 rounded-lg bg-white border border-indigo-200 text-sm font-medium text-indigo-700 hover:bg-indigo-100/60">
+                  <button className="px-3 py-2 rounded-lg bg-white dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700/60 text-sm font-medium text-indigo-700 dark:text-indigo-200 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/60">
                     {sourceAiProjectName
                       ? t("aiHandoffBackToAiNamed", { defaultValue: "Ver paquete AI: {{name}}", name: sourceAiProjectName })
                       : t("aiHandoffBackToAi", { defaultValue: "Ver paquete AI original" })}

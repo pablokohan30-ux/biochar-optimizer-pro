@@ -5760,7 +5760,7 @@ const resources = {
         readyHint:
           "Pega en tu terminal. Claude Code va a registrar biocharpro como MCP server y expone 4 tools (simulate, batch, list feedstocks, extract lab PDF) para cualquier sesión.",
         replaceHint:
-          "Reemplaza bop_YOUR_API_KEY con una de tus keys activas arriba. Si todavía no tienes ninguna, creala en la sección anterior — al crearla también vas a ver el mismo comando con tu key ya embebida.",
+          "Reemplaza bop_YOUR_API_KEY con una de tus keys activas arriba. Si todavía no tienes ninguna, créala en la sección anterior — al crearla también vas a ver el mismo comando con tu key ya embebida.",
         copyCmd: "Copiar comando",
         tryThese: "Una vez conectado, prueba estos prompts en Claude Code:",
         prompt1: "\"Simula pine sawdust a 650°C por 30 min usando biocharpro. Explicame el H:Corg.\"",
@@ -5773,7 +5773,7 @@ const resources = {
     },
 
     pdd: {
-      title: "Constructor de PDD",
+      title: "PDD Builder",
       subtitle: "Documento de Diseño de Proyecto para Remoción de Carbono con Biochar",
       nav: { projects: "Proyectos" },
       progress: "Progreso",
