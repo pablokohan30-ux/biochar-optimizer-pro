@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -9,46 +9,63 @@ import { trackPageView, identifyUser, resetAnalytics } from "./lib/analytics";
 import { setSentryUser, clearSentryUser } from "./lib/sentry";
 import { trpc } from "./lib/trpc";
 import { useTier } from "./hooks/useTier";
+
+// Critical-path: Landing + Login + NotFound stay in the main chunk so first
+// paint never blocks on a code-split fetch. Everything else is lazy() —
+// Vite emits a separate chunk per page and the browser only fetches the
+// one matching the current route.
 import Landing from "./pages/Landing";
-import Home from "./pages/Home";
-import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import ExecutiveSummary from "./pages/ExecutiveSummary";
-import SubmissionPrint from "./pages/SubmissionPrint";
-import LCAPage from "./pages/LCA";
-import BatchComparison from "./pages/BatchComparison";
-import ApiDocs from "./pages/ApiDocs";
-import PddBuilder from "./pages/PddBuilder";
-import AiBuilder from "./pages/AiBuilder";
-import AiBuilderProject from "./pages/AiBuilderProject";
-import AiBuilderPrint from "./pages/AiBuilderPrint";
-import AdminAiStats from "./pages/AdminAiStats";
-import AdminLaunchInbox from "./pages/AdminLaunchInbox";
-import Portfolio from "./pages/Portfolio";
-import SettingsBranding from "./pages/SettingsBranding";
-import CustomMethodologies from "./pages/CustomMethodologies";
-import ProjectEvidence from "./pages/ProjectEvidence";
-import ProjectOfftake from "./pages/ProjectOfftake";
-import ProjectCommunity from "./pages/ProjectCommunity";
-import ProjectBuyerReadiness from "./pages/ProjectBuyerReadiness";
-import ProjectAuditPackage from "./pages/ProjectAuditPackage";
-import ProjectBuyerMatch from "./pages/ProjectBuyerMatch";
-import ConfirmShipment from "./pages/ConfirmShipment";
-import Solution from "./pages/Solution";
-import About from "./pages/About";
-import Partners from "./pages/Partners";
-import Modules from "./pages/product/Modules";
-import Methodologies from "./pages/product/Methodologies";
-import ProjectPackage from "./pages/product/ProjectPackage";
-import Verify from "./pages/Verify";
-import Demo from "./pages/Demo";
-import EarlyAccess from "./pages/EarlyAccess";
-import Terms from "./pages/legal/Terms";
-import Privacy from "./pages/legal/Privacy";
-import Security from "./pages/legal/Security";
-import Guide from "./pages/Guide";
+
+const Home = lazy(() => import("./pages/Home"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const ExecutiveSummary = lazy(() => import("./pages/ExecutiveSummary"));
+const SubmissionPrint = lazy(() => import("./pages/SubmissionPrint"));
+const LCAPage = lazy(() => import("./pages/LCA"));
+const BatchComparison = lazy(() => import("./pages/BatchComparison"));
+const ApiDocs = lazy(() => import("./pages/ApiDocs"));
+const PddBuilder = lazy(() => import("./pages/PddBuilder"));
+const AiBuilder = lazy(() => import("./pages/AiBuilder"));
+const AiBuilderProject = lazy(() => import("./pages/AiBuilderProject"));
+const AiBuilderPrint = lazy(() => import("./pages/AiBuilderPrint"));
+const AdminAiStats = lazy(() => import("./pages/AdminAiStats"));
+const AdminLaunchInbox = lazy(() => import("./pages/AdminLaunchInbox"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const SettingsBranding = lazy(() => import("./pages/SettingsBranding"));
+const CustomMethodologies = lazy(() => import("./pages/CustomMethodologies"));
+const ProjectEvidence = lazy(() => import("./pages/ProjectEvidence"));
+const ProjectOfftake = lazy(() => import("./pages/ProjectOfftake"));
+const ProjectCommunity = lazy(() => import("./pages/ProjectCommunity"));
+const ProjectBuyerReadiness = lazy(() => import("./pages/ProjectBuyerReadiness"));
+const ProjectAuditPackage = lazy(() => import("./pages/ProjectAuditPackage"));
+const ProjectBuyerMatch = lazy(() => import("./pages/ProjectBuyerMatch"));
+const ConfirmShipment = lazy(() => import("./pages/ConfirmShipment"));
+const Solution = lazy(() => import("./pages/Solution"));
+const About = lazy(() => import("./pages/About"));
+const Partners = lazy(() => import("./pages/Partners"));
+const Modules = lazy(() => import("./pages/product/Modules"));
+const Methodologies = lazy(() => import("./pages/product/Methodologies"));
+const ProjectPackage = lazy(() => import("./pages/product/ProjectPackage"));
+const Verify = lazy(() => import("./pages/Verify"));
+const Demo = lazy(() => import("./pages/Demo"));
+const EarlyAccess = lazy(() => import("./pages/EarlyAccess"));
+const Terms = lazy(() => import("./pages/legal/Terms"));
+const Privacy = lazy(() => import("./pages/legal/Privacy"));
+const Security = lazy(() => import("./pages/legal/Security"));
+const Guide = lazy(() => import("./pages/Guide"));
+
+// Minimal fallback shown while a lazy chunk is loading. Intentionally
+// blank-ish: it's only visible for a few hundred ms on cold navigation
+// and a heavy skeleton would itself add JS to the critical path.
+function RouteLoading() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" aria-label="Loading…" />
+    </div>
+  );
+}
 
 /**
  * Scroll-to-top on route changes + hash-based anchor scrolling.
@@ -237,6 +254,7 @@ function Router() {
     <>
       <ScrollRestoration />
       <AnalyticsIdentity />
+      <Suspense fallback={<RouteLoading />}>
       <Switch>
         <Route path={"/"} component={Landing} />
         <Route path={"/app"} component={Home} />
@@ -283,6 +301,7 @@ function Router() {
         {/* Final fallback route */}
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </>
   );
 }

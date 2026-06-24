@@ -35,7 +35,30 @@ function serveStatic(app: express.Express) {
   // We want `/` to fall through to the SPA fallback below, which applies
   // per-route SEO meta overrides + injects site-wide JSON-LD. Without this,
   // the landing page would skip JSON-LD injection entirely.
-  app.use(express.static(distPath, { index: false }));
+  //
+  // Cache strategy:
+  //   - /assets/* — Vite emits content-hashed filenames (index-Nb8CHAD-.js).
+  //     These are safe to cache aggressively because any code change produces
+  //     a new filename. Cache for 1 year + immutable so browsers never
+  //     re-validate. Saves a network round-trip on every repeat visit.
+  //   - sitemap.xml / robots.txt — cache 1 day so crawlers don't hit origin
+  //     on every poll but content can still update within the day.
+  //   - Everything else (manifest, favicon, og-image) — short cache so we
+  //     can iterate without busting things, but enough to avoid hammering.
+  app.use(
+    express.static(distPath, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (/\/assets\//.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (/sitemap\.xml$|robots\.txt$/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=86400");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=3600");
+        }
+      },
+    }),
+  );
 
   // Load index.html once at startup. When an SPA route has a SEO override
   // configured (see seoMeta.ts) we substitute title + description + OG tags
