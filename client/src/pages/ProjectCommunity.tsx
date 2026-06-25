@@ -149,23 +149,23 @@ export default function ProjectCommunity() {
           </button>
         </div>
 
-        <section className={`rounded-xl border p-5 ${canGenerateReport ? "bg-card border-border" : "bg-amber-50/70 border-amber-200"}`}>
+        <section className={`rounded-xl border p-5 ${canGenerateReport ? "bg-card border-border" : "bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"}`}>
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canGenerateReport ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 border-amber-200 text-amber-700"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canGenerateReport ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/60 text-amber-700 dark:text-amber-300"}`}>
               {canGenerateReport ? <Users className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1">
+              <div className={`text-[10px] font-bold uppercase tracking-[0.18em] mb-1 ${canGenerateReport ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>
                 {tc("prepEyebrow", "Estado comunitario")}
               </div>
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className={`text-base font-semibold ${canGenerateReport ? "text-foreground" : "text-amber-900 dark:text-amber-100"}`}>
                 {canGenerateReport
                   ? tc("prepReadyTitle", "Ya tienes base suficiente para un borrador comunitario")
-                  : tc("prepEarlyTitle", "Todavia no hay base suficiente para pedir un reporte con IA")}
+                  : tc("prepEarlyTitle", "Todavía no hay base suficiente para pedir un reporte con IA")}
               </h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={`text-sm mt-1 ${canGenerateReport ? "text-muted-foreground" : "text-amber-800 dark:text-amber-200"}`}>
                 {canGenerateReport
-                  ? tc("prepReadyBody", "El reporte con IA ya puede resumir algo real. Aun asi, conviene revisarlo como borrador y no como evidencia final automatica.")
+                  ? tc("prepReadyBody", "El reporte con IA ya puede resumir algo real. Aún así, conviene revisarlo como borrador y no como evidencia final automática.")
                   : tc("prepEarlyBody", "Sin reuniones, reclamos, contrataciones o mediciones cargadas, un reporte de impacto sale ornamental. Primero conviene registrar hechos, luego resumirlos.")}
               </p>
             </div>

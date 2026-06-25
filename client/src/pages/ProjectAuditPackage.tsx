@@ -220,23 +220,23 @@ export default function ProjectAuditPackage() {
           <GuideLink anchor="como-operativo" label="Qué debería entrar en el paquete de auditoría" className="mt-2 inline-flex" />
         </div>
 
-        <section className={`rounded-xl border p-5 ${canBuildPackage ? "bg-card border-border" : "bg-amber-50/70 border-amber-200"}`}>
+        <section className={`rounded-xl border p-5 ${canBuildPackage ? "bg-card border-border" : "bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"}`}>
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canBuildPackage ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 border-amber-200 text-amber-700"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canBuildPackage ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/60 text-amber-700 dark:text-amber-300"}`}>
               {canBuildPackage ? <FileCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1">
+              <div className={`text-[10px] font-bold uppercase tracking-[0.18em] mb-1 ${canBuildPackage ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>
                 {tap("prepEyebrow", "Estado del paquete")}
               </div>
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className={`text-base font-semibold ${canBuildPackage ? "text-foreground" : "text-amber-900 dark:text-amber-100"}`}>
                 {canBuildPackage
                   ? tap("prepReadyTitle", "Ya hay base suficiente para armar un paquete útil")
                   : tap("prepEarlyTitle", "Todavía no conviene armar este paquete")}
               </h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={`text-sm mt-1 ${canBuildPackage ? "text-muted-foreground" : "text-amber-800 dark:text-amber-200"}`}>
                 {canBuildPackage
-                  ? tap("prepReadyBody", "El paquete ya puede consolidar algo real. Aun así, úsalo como salida de revisión y no como prueba automática de que el proyecto está listo para buyer o auditor.")
+                  ? tap("prepReadyBody", "El paquete ya puede consolidar algo real. Aún así, úsalo como salida de revisión y no como prueba automática de que el proyecto está listo para buyer o auditor.")
                   : tap("prepEarlyBody", "Si compilas un paquete de auditoría con el proyecto vacío, el resultado sale más decorativo que útil. Primero conviene cargar evidencia, envíos o registros comunitarios.")}
               </p>
             </div>

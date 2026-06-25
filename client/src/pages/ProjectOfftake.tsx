@@ -163,23 +163,23 @@ export default function ProjectOfftake() {
           </button>
         </div>
 
-        <section className={`rounded-xl border p-5 ${hasOperationalContext ? "bg-card border-border" : "bg-amber-50/70 border-amber-200"}`}>
+        <section className={`rounded-xl border p-5 ${hasOperationalContext ? "bg-card border-border" : "bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"}`}>
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${hasOperationalContext ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 border-amber-200 text-amber-700"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${hasOperationalContext ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/60 text-amber-700 dark:text-amber-300"}`}>
               {hasOperationalContext ? <Truck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1">
+              <div className={`text-[10px] font-bold uppercase tracking-[0.18em] mb-1 ${hasOperationalContext ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>
                 {to("prepEyebrow", "Estado de trazabilidad")}
               </div>
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className={`text-base font-semibold ${hasOperationalContext ? "text-foreground" : "text-amber-900 dark:text-amber-100"}`}>
                 {shipmentCount > 0
                   ? to("prepActiveTitle", "La trazabilidad ya está en marcha")
                   : hasOperationalContext
                     ? to("prepReadyTitle", "Ya tienes base operativa para empezar offtake")
                     : to("prepEarlyTitle", "Este módulo todavía arranca casi desde cero")}
               </h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={`text-sm mt-1 ${hasOperationalContext ? "text-muted-foreground" : "text-amber-800 dark:text-amber-200"}`}>
                 {shipmentCount > 0
                   ? to("prepActiveBody", "Buen momento para seguir ordenando confirmaciones, estados y destinos finales. Lo importante ahora es que cada envío cierre con evidencia de recepción o aplicación.")
                   : hasOperationalContext

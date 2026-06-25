@@ -356,7 +356,7 @@ export default function ProjectDetail() {
                 className="fixed inset-0 z-40"
                 onClick={() => setExportMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg min-w-[300px] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg w-[min(300px,calc(100vw-2rem))] overflow-hidden">
                 <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
                   {t("export.menuHeader", { defaultValue: "Submission package · pick certifier & format" })}
                 </div>
@@ -404,7 +404,7 @@ export default function ProjectDetail() {
       </button>
       <button
         onClick={handleDelete}
-        className="bg-destructive/10 hover:bg-destructive/20 text-destructive px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1"
+        className="hidden sm:flex bg-destructive/10 hover:bg-destructive/20 text-destructive px-2.5 py-1.5 rounded text-xs font-medium items-center gap-1"
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>

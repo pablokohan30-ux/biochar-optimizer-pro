@@ -173,21 +173,21 @@ export default function ProjectBuyerMatch() {
           )}
         </div>
 
-        <section className={`rounded-xl border p-5 ${canRunMatch ? "bg-card border-border" : "bg-amber-50/70 border-amber-200"}`}>
+        <section className={`rounded-xl border p-5 ${canRunMatch ? "bg-card border-border" : "bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"}`}>
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canRunMatch ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 border-amber-200 text-amber-700"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${canRunMatch ? "bg-indigo-600/10 border-indigo-200 text-indigo-600" : "bg-amber-100 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/60 text-amber-700 dark:text-amber-300"}`}>
               {canRunMatch ? <Target className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1">
+              <div className={`text-[10px] font-bold uppercase tracking-[0.18em] mb-1 ${canRunMatch ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"}`}>
                 {tbm("prepEyebrow", "Estado del proyecto")}
               </div>
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className={`text-base font-semibold ${canRunMatch ? "text-foreground" : "text-amber-900 dark:text-amber-100"}`}>
                 {canRunMatch
                   ? tbm("prepReadyTitle", "Ya tienes señales mínimas para priorizar compradores")
                   : tbm("prepBlockedTitle", "Todavía es temprano para priorizar compradores")}
               </h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={`text-sm mt-1 ${canRunMatch ? "text-muted-foreground" : "text-amber-800 dark:text-amber-200"}`}>
                 {canRunMatch
                   ? tbm("prepReadyBody", "El ranking ya puede apoyarse en algo más que el dossier: registros operativos, trazabilidad u operación comunitaria.")
                   : tbm("prepBlockedBody", "Sin evidencia, envíos ni registros comunitarios, el ranking queda demasiado apoyado en inferencias. Conviene cargar operación real antes de salir a vender esto como buyer-ready.")}
