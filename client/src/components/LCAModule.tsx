@@ -365,8 +365,8 @@ export default function LCAModule({
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:h-[calc(100vh-10rem)]">
       {/* LEFT — INPUTS (6 sections) — fixed header + scrollable form */}
       <div className="lg:col-span-3 lg:flex lg:flex-col lg:min-h-0">
-        <div className="flex items-center justify-between mb-2 lg:flex-shrink-0">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2 lg:flex-shrink-0">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold flex items-center gap-2">
               <Flame className="w-5 h-5 text-primary" />
               {t("header.title")}
@@ -376,11 +376,11 @@ export default function LCAModule({
             </p>
           </div>
           {!disabled && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => exportLCAToCSV(inputs, result)}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-green-700 dark:text-green-400 hover:bg-green-500/10 border border-green-500/30 rounded"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] text-green-700 dark:text-green-400 hover:bg-green-500/10 border border-green-500/30 rounded whitespace-nowrap"
                 title={t("buttons.exportCsvTooltip")}
               >
                 <FileSpreadsheet className="w-3 h-3" /> {t("buttons.exportCsv")}
@@ -388,7 +388,7 @@ export default function LCAModule({
               <button
                 type="button"
                 onClick={reset}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary rounded whitespace-nowrap"
                 title={t("buttons.resetTooltip")}
               >
                 <RotateCcw className="w-3 h-3" /> {t("buttons.reset")}

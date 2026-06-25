@@ -5704,7 +5704,7 @@ const resources = {
     },
 
     batch: {
-      title: "Comparación por Lotes",
+      title: "Comparar biomasas",
       nav: { simulator: "Simulador" },
       temperature: "Temperatura",
       residenceTime: "Tiempo de Residencia",

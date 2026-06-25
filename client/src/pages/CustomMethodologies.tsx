@@ -224,13 +224,13 @@ export default function CustomMethodologies() {
     <AppLayout>
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Scale className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-2xl font-semibold text-foreground">{tm("title", "Custom LCA Methodologies")}</h1>
                 <p className="text-sm text-muted-foreground">{tm("subtitle", "Define your own criteria — the AI Builder evaluates every project against them.")}</p>
               </div>
@@ -239,7 +239,7 @@ export default function CustomMethodologies() {
           {!isEditing && (
             <button
               onClick={openNew}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 whitespace-nowrap self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" /> {tm("new", "New methodology")}
             </button>
