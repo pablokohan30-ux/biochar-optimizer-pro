@@ -224,6 +224,18 @@ export default function AiBuilder() {
     }
   };
 
+  // Every guard sets an errorMessage and scrolls it into view so the user
+  // never sees "nothing happened" when the button is clicked. Also used by
+  // input onInvalid handlers to surface native constraint validation messages
+  // (fixes a real bug where step=1000 mismatches aborted the submit silently).
+  const surfaceError = (msg: string, focusId?: string) => {
+    setErrorMessage(msg);
+    requestAnimationFrame(() => {
+      document.getElementById("ai-builder-error")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (focusId) (document.getElementById(focusId) as HTMLInputElement | null)?.focus();
+    });
+  };
+
   // ─── Submit handler ───────────────────────────────────────────────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,17 +245,6 @@ export default function AiBuilder() {
       setShowUpgrade(true);
       return;
     }
-
-    // Every guard below sets an errorMessage and scrolls it into view so the
-    // user never sees "nothing happened" when the button is clicked.
-    const surfaceError = (msg: string, focusId?: string) => {
-      setErrorMessage(msg);
-      // Wait for the error banner to render, then scroll it into center.
-      requestAnimationFrame(() => {
-        document.getElementById("ai-builder-error")?.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (focusId) (document.getElementById(focusId) as HTMLInputElement | null)?.focus();
-      });
-    };
 
     if (!name.trim()) {
       surfaceError("Falta el nombre del proyecto (arriba de todo del formulario).", "ai-builder-name");
@@ -490,16 +491,27 @@ export default function AiBuilder() {
 
             {/* Capacity */}
             <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-1.5">{tb("capacity", "Annual biomass capacity (tn/year)")}</label>
+              <label htmlFor="ai-builder-capacity" className="block text-sm font-medium text-foreground/90 mb-1.5">
+                {tb("capacity", "Annual biomass capacity (tn/year)")} <span className="text-red-500">*</span>
+              </label>
               <input
+                id="ai-builder-capacity"
                 type="number"
                 value={capacityTnYear}
                 onChange={(e) => setCapacityTnYear(Number(e.target.value))}
                 min={1000}
                 max={1_000_000}
-                step={1000}
+                step={1}
                 className="w-full border border-input rounded-lg px-3 py-2 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
                 required
+                onInvalid={(e) => {
+                  // Surface the native constraint validation message ourselves,
+                  // otherwise the browser silently aborts the submit and the
+                  // user sees nothing. Fixes a real bug where entering a
+                  // non-round number (e.g. 66449) blocked the form silently.
+                  const el = e.currentTarget;
+                  surfaceError(el.validationMessage || "La capacidad ingresada no es válida.", "ai-builder-capacity");
+                }}
               />
               <p className="text-xs text-muted-foreground mt-1">{tb("capacityHint", "Common range: 20,000–150,000. Biochar output ≈ 30% of biomass.")}</p>
             </div>
