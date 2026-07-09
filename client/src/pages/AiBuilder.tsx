@@ -260,7 +260,7 @@ export default function AiBuilder() {
     if (biomassMode === "catalog") {
       const biomass = FEEDSTOCK_DB[biomassId];
       if (!biomass) {
-        surfaceError("Elegí una biomasa del catálogo antes de generar.");
+        surfaceError("Elige una biomasa del catálogo antes de generar.");
         return;
       }
       biomassPayload = {
@@ -275,7 +275,7 @@ export default function AiBuilder() {
     } else {
       // Lab PDF mode
       if (!labComposition || !labBiomassName) {
-        surfaceError("Subí un análisis de laboratorio en PDF y espera que termine la extracción antes de generar.");
+        surfaceError("Sube un análisis de laboratorio en PDF y espera que termine la extracción antes de generar.");
         return;
       }
       biomassPayload = {
