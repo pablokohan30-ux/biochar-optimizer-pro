@@ -234,8 +234,19 @@ export default function AiBuilder() {
       return;
     }
 
+    // Every guard below sets an errorMessage and scrolls it into view so the
+    // user never sees "nothing happened" when the button is clicked.
+    const surfaceError = (msg: string, focusId?: string) => {
+      setErrorMessage(msg);
+      // Wait for the error banner to render, then scroll it into center.
+      requestAnimationFrame(() => {
+        document.getElementById("ai-builder-error")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (focusId) (document.getElementById(focusId) as HTMLInputElement | null)?.focus();
+      });
+    };
+
     if (!name.trim()) {
-      setErrorMessage("El nombre del proyecto es obligatorio.");
+      surfaceError("Falta el nombre del proyecto (arriba de todo del formulario).", "ai-builder-name");
       return;
     }
 
@@ -249,7 +260,7 @@ export default function AiBuilder() {
     if (biomassMode === "catalog") {
       const biomass = FEEDSTOCK_DB[biomassId];
       if (!biomass) {
-        setErrorMessage("Please pick a biomass.");
+        surfaceError("Elegí una biomasa del catálogo antes de generar.");
         return;
       }
       biomassPayload = {
@@ -264,7 +275,7 @@ export default function AiBuilder() {
     } else {
       // Lab PDF mode
       if (!labComposition || !labBiomassName) {
-        setErrorMessage("Please upload a lab analysis PDF and wait for extraction to finish.");
+        surfaceError("Subí un análisis de laboratorio en PDF y espera que termine la extracción antes de generar.");
         return;
       }
       biomassPayload = {
@@ -353,15 +364,18 @@ export default function AiBuilder() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Project name */}
             <div>
-              <label className="block text-sm font-medium text-foreground/90 mb-1.5">{tb("projectName", "Project name")}</label>
+              <label htmlFor="ai-builder-name" className="block text-sm font-medium text-foreground/90 mb-1.5">
+                {tb("projectName", "Project name")} <span className="text-red-500">*</span>
+              </label>
               <input
+                id="ai-builder-name"
                 type="text"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={tb("projectNamePlaceholder", "e.g. North Patagonia Biochar Facility")}
                 maxLength={200}
                 className="w-full border border-input rounded-lg px-3 py-2 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                required
               />
             </div>
 
@@ -600,8 +614,12 @@ export default function AiBuilder() {
             </div>
 
             {errorMessage && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <div
+                id="ai-builder-error"
+                role="alert"
+                className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200 flex items-start gap-2"
+              >
+                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                 <div>{errorMessage}</div>
               </div>
             )}
