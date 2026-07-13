@@ -18,6 +18,7 @@ import {
   MessageCircle, Mail, ClipboardCheck, Users,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import AttachmentInput from "@/components/AttachmentInput";
 import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -395,8 +396,14 @@ function NewShipmentModal({ projectId, onClose }: { projectId: number; onClose: 
   const [status, setStatus] = useState<"draft" | "dispatched" | "in_transit" | "delivered">("dispatched");
   const [error, setError] = useState<string | null>(null);
 
+  // "Pivot into attach files mode after save" — same pattern the Evidence
+  // and Community modals use. Lets the operator drop the signed remito /
+  // albarán / dispatch photo against the shipment they just created without
+  // navigating away and losing the flow.
+  const [savedShipmentId, setSavedShipmentId] = useState<number | null>(null);
+
   const createMutation = trpc.offtake.create.useMutation({
-    onSuccess: () => onClose(),
+    onSuccess: (result) => setSavedShipmentId(result.id),
     onError: (e) => setError(e.message),
   });
 
@@ -508,13 +515,31 @@ function NewShipmentModal({ projectId, onClose }: { projectId: number; onClose: 
               className="w-full border border-input rounded px-3 py-2 text-sm resize-none" />
           </div>
 
+          {savedShipmentId != null && (
+            <div className="pt-3 mt-3 border-t border-border space-y-2">
+              <div className="text-xs font-semibold text-emerald-700">
+                {toModal("savedTitle", "✓ Envío creado")}
+              </div>
+              <AttachmentInput
+                relatedType="shipment"
+                relatedId={savedShipmentId}
+                label={toModal("attachmentsLabel", "Adjuntos (remito firmado, foto de despacho)")}
+              />
+            </div>
+          )}
+
           {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">{error}</div>}
         </div>
         <div className="p-5 border-t border-border flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">{toModal("cancel", "Cancelar")}</button>
-          <button onClick={handleSave} disabled={createMutation.isPending}
+          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">
+            {savedShipmentId != null ? toModal("close", "Cerrar") : toModal("cancel", "Cancelar")}
+          </button>
+          <button onClick={handleSave} disabled={createMutation.isPending || savedShipmentId != null}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-            <Save className="w-4 h-4" /> {createMutation.isPending ? toModal("modalCreating", "Creando...") : toModal("modalCreate", "Crear envío + generar link")}
+            <Save className="w-4 h-4" />
+            {savedShipmentId != null
+              ? toModal("saved", "Creado")
+              : createMutation.isPending ? toModal("modalCreating", "Creando...") : toModal("modalCreate", "Crear envío + generar link")}
           </button>
         </div>
       </div>

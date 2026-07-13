@@ -121,6 +121,14 @@ export default function ProjectAuditPackage() {
   const revokeMutation = trpc.auditPackage.revoke.useMutation({
     onSuccess: () => utils.auditPackage.list.invalidate({ projectId }),
   });
+  // The most recent AI-generated exec summary + totals, if any. Used to
+  // surface a "last summary generated <date>" banner so the operator can
+  // decide whether to rebuild or reuse without burning another Gemini call
+  // just to remember what the last narrative said.
+  const latestSummaryQuery = trpc.auditPackage.latestSummary.useQuery(
+    { projectId },
+    { enabled: isAuthenticated && hasExpert && Number.isFinite(projectId) },
+  );
 
   const brandingQuery = trpc.branding.get.useQuery(undefined, { enabled: isAuthenticated });
   const brand = brandingQuery.data;
@@ -369,6 +377,37 @@ export default function ProjectAuditPackage() {
             )}
           </div>
         </section>
+
+        {/* Last executive summary preview — shown when the operator hasn't
+            rebuilt in this session but the server has a persisted one from
+            a previous run. Saves a Gemini call when they only want to skim
+            what they last wrote before deciding to rebuild. */}
+        {!pkg && latestSummaryQuery.data?.output && (
+          <section className="mt-6 bg-card border border-indigo-200 dark:border-indigo-800/60 rounded-xl p-5">
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
+                {tap("lastSummaryEyebrow", "Último resumen generado")}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                {new Date(latestSummaryQuery.data.createdAt).toLocaleString(locale)} ·{" "}
+                {tap("lastSummaryTotals", "{{e}} evidencia · {{s}} envíos · {{c}} comunidad", {
+                  e: latestSummaryQuery.data.output.totals?.evidenceCount ?? 0,
+                  s: latestSummaryQuery.data.output.totals?.shipmentCount ?? 0,
+                  c: latestSummaryQuery.data.output.totals?.communityCount ?? 0,
+                })}
+              </div>
+            </div>
+            <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {latestSummaryQuery.data.output.executiveSummary}
+            </p>
+            <p className="text-[10px] text-muted-foreground italic mt-3">
+              {tap(
+                "lastSummaryHint",
+                "El resumen ejecutivo aparece acá para no gastar otra llamada a la IA sólo por refrescar la memoria. Volvé a armar el paquete arriba para actualizarlo.",
+              )}
+            </p>
+          </section>
+        )}
 
         {/* Paquetes previos — audit trail + shareable links + revoke */}
         {historyQuery.data && historyQuery.data.length > 0 && (

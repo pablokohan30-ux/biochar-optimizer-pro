@@ -20,6 +20,7 @@ import {
   AlertTriangle, ClipboardCheck, Truck,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import AttachmentInput from "@/components/AttachmentInput";
 import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -390,9 +391,14 @@ function AddRecordModal({ projectId, recordType, onClose }: { projectId: number;
   const [recordDate, setRecordDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [content, setContent] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
+  // Same "pivot into attach files mode after save" pattern the Evidence modal
+  // uses — see ProjectEvidence.tsx. Lets the operator drop a meeting act,
+  // signed grievance form, or invoice against the record they just created
+  // without navigating away.
+  const [savedRecordId, setSavedRecordId] = useState<number | null>(null);
 
   const createMutation = trpc.community.create.useMutation({
-    onSuccess: () => onClose(),
+    onSuccess: (result) => setSavedRecordId(result.id),
     onError: (e) => setError(e.message),
   });
 
@@ -428,13 +434,31 @@ function AddRecordModal({ projectId, recordType, onClose }: { projectId: number;
             <FormField key={f.name} field={f} value={content[f.name]} onChange={(v) => setContent({ ...content, [f.name]: v })} />
           ))}
 
+          {savedRecordId != null && (
+            <div className="pt-3 mt-3 border-t border-border space-y-2">
+              <div className="text-xs font-semibold text-emerald-700">
+                {tc("savedTitle", "✓ Registro guardado")}
+              </div>
+              <AttachmentInput
+                relatedType="community_record"
+                relatedId={savedRecordId}
+                label={tc("attachmentsLabel", "Archivos adjuntos (actas, invoices, fotos)")}
+              />
+            </div>
+          )}
+
           {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2"><AlertTriangle className="w-4 h-4 mt-0.5" /><div>{error}</div></div>}
         </div>
         <div className="p-5 border-t border-border flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">{tc("cancel", "Cancelar")}</button>
-          <button onClick={handleSave} disabled={createMutation.isPending}
+          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">
+            {savedRecordId != null ? tc("close", "Cerrar") : tc("cancel", "Cancelar")}
+          </button>
+          <button onClick={handleSave} disabled={createMutation.isPending || savedRecordId != null}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-            <Save className="w-4 h-4" /> {createMutation.isPending ? tc("saving", "Guardando...") : tc("save", "Guardar")}
+            <Save className="w-4 h-4" />
+            {savedRecordId != null
+              ? tc("saved", "Guardado")
+              : createMutation.isPending ? tc("saving", "Guardando...") : tc("save", "Guardar")}
           </button>
         </div>
       </div>
