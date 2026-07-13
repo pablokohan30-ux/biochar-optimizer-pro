@@ -2463,6 +2463,24 @@ const resources = {
       next: "Next",
       showHint: "Show guidance",
       hideHint: "Hide guidance",
+      table: {
+        addRow: "Add row",
+        removeRow: "Delete row",
+        empty: "No rows yet. Add the first one.",
+        rowNumber: "Row {{n}}",
+        legacyTitle: "Previous content",
+        legacyDismiss: "Dismiss",
+        legacyHint: "This question now uses a structured table. Copy your prior content into rows when ready.",
+      },
+      reference: {
+        show: "Show reference template",
+        hide: "Hide reference template",
+        loadRows: "Load {{n}} example rows",
+        confirmOverwrite: "Rows already loaded. Append the example rows below?",
+        confirmYes: "Append",
+        confirmCancel: "Cancel",
+        source: "Source",
+      },
       sections: {
         parties: {
           title: "A. Parties Involved",
@@ -5791,6 +5809,24 @@ const resources = {
       next: "Siguiente",
       showHint: "Mostrar guía",
       hideHint: "Ocultar guía",
+      table: {
+        addRow: "Añadir fila",
+        removeRow: "Eliminar fila",
+        empty: "Sin filas todavía. Añade la primera.",
+        rowNumber: "Fila {{n}}",
+        legacyTitle: "Contenido anterior",
+        legacyDismiss: "Ocultar",
+        legacyHint: "Esta pregunta ahora usa una tabla estructurada. Copia manualmente el contenido a las filas cuando estés listo.",
+      },
+      reference: {
+        show: "Ver plantilla de referencia",
+        hide: "Ocultar plantilla de referencia",
+        loadRows: "Cargar {{n}} filas de ejemplo",
+        confirmOverwrite: "Ya hay filas cargadas. ¿Añadir las de ejemplo abajo?",
+        confirmYes: "Añadir",
+        confirmCancel: "Cancelar",
+        source: "Fuente",
+      },
       sections: {
         parties: {
           title: "A. Partes Involucradas",

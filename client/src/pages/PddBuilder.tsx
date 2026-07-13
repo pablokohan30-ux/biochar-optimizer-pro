@@ -18,7 +18,18 @@ import UpgradeModal from "@/components/UpgradeModal";
 import AppLayout from "@/components/AppLayout";
 import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
-import { PDD_TEMPLATE, type PddQuestion } from "@/lib/pddTemplate";
+import {
+  PDD_TEMPLATE,
+  type PddQuestion,
+  isQuestionFilled,
+  tableToMarkdown,
+  parseTableRows,
+  isTableRowFilled,
+  columnLabelFallback,
+} from "@/lib/pddTemplate";
+import PddTableInput from "@/components/pdd/PddTableInput";
+import PddReferencePanel from "@/components/pdd/PddReferencePanel";
+import PddCompliancePanel from "@/components/pdd/PddCompliancePanel";
 import { trpc } from "@/lib/trpc";
 import { parseAiHandoffDescription, pddHandoffStorageKey } from "@/lib/aiHandoff";
 
@@ -33,7 +44,7 @@ function storageKey(projectId: string) {
 
 /** Count non-empty answers for a set of questions */
 function countFilled(questions: PddQuestion[], responses: Record<string, string>): number {
-  return questions.filter((q) => (responses[q.id] ?? "").trim().length > 0).length;
+  return questions.filter((q) => isQuestionFilled(q, responses[q.id] ?? "")).length;
 }
 
 /** Total questions across the entire template */
@@ -69,7 +80,7 @@ function useToast() {
 // ---------------------------------------------------------------------------
 
 export default function PddBuilder() {
-  const { t } = useTranslation("pdd");
+  const { t, i18n } = useTranslation("pdd");
   const params = useParams<{ projectId: string }>();
   const projectId = params.projectId ?? "";
   const projectIdNumber = Number(projectId);
@@ -220,7 +231,23 @@ export default function PddBuilder() {
       for (const question of section.questions) {
         const answer = (responses[question.id] ?? "").trim();
         lines.push(`### ${t(question.labelKey)}`, "");
-        lines.push(answer || t("unansweredPlaceholder", { defaultValue: "_Pending input_" }), "");
+
+        if (question.type === "table" && question.columns) {
+          const filledRows = parseTableRows(answer).filter(isTableRowFilled);
+          if (filledRows.length > 0) {
+            const headers = question.columns.map((c) =>
+              t(c.labelKey, { defaultValue: columnLabelFallback(c.id, i18n.language) }),
+            );
+            lines.push(tableToMarkdown(answer, question.columns, headers), "");
+          } else {
+            lines.push(
+              t("unansweredPlaceholder", { defaultValue: "_Pending input_" }),
+              "",
+            );
+          }
+        } else {
+          lines.push(answer || t("unansweredPlaceholder", { defaultValue: "_Pending input_" }), "");
+        }
       }
     }
 
@@ -494,7 +521,14 @@ export default function PddBuilder() {
         </aside>
 
         {/* ── Main content area ───────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 space-y-4">
+          <PddCompliancePanel
+            responses={responses}
+            onNavigate={(sectionId) => {
+              setActiveSection(sectionId);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Section header */}
             <div className="px-6 py-5 border-b border-border bg-secondary/20">
@@ -525,7 +559,7 @@ export default function PddBuilder() {
               {currentSection.questions.map((question) => {
                 const value = responses[question.id] ?? "";
                 const hintOpen = expandedHints[question.id] ?? false;
-                const isFilled = value.trim().length > 0;
+                const isFilled = isQuestionFilled(question, value);
                 const guidanceLabel = hintOpen
                   ? t("hideHint", { defaultValue: "Ocultar guía" })
                   : t("showHint", { defaultValue: "Mostrar guía" });
@@ -566,17 +600,38 @@ export default function PddBuilder() {
                       </div>
                     )}
 
-                    {/* Input */}
-                    <textarea
-                      id={`q-${question.id}`}
-                      rows={4}
-                      value={value}
-                      onChange={(e) => updateResponse(question.id, e.target.value)}
-                      placeholder={t("responsePlaceholder", {
-                        defaultValue: "Escribe tu respuesta aquí...",
-                      })}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50 resize-y"
-                    />
+                    {/* Reference template (bulleted checklist + optional example rows) */}
+                    {question.type === "table" && question.referenceKey && (
+                      <PddReferencePanel
+                        question={question}
+                        currentValue={value}
+                        onLoadRows={(rows) => {
+                          const existing = parseTableRows(value).filter(isTableRowFilled);
+                          const next = JSON.stringify([...existing, ...rows]);
+                          updateResponse(question.id, next);
+                        }}
+                      />
+                    )}
+
+                    {/* Input — table for structured questions, textarea otherwise */}
+                    {question.type === "table" ? (
+                      <PddTableInput
+                        question={question}
+                        value={value}
+                        onChange={(next) => updateResponse(question.id, next)}
+                      />
+                    ) : (
+                      <textarea
+                        id={`q-${question.id}`}
+                        rows={4}
+                        value={value}
+                        onChange={(e) => updateResponse(question.id, e.target.value)}
+                        placeholder={t("responsePlaceholder", {
+                          defaultValue: "Escribe tu respuesta aquí...",
+                        })}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50 resize-y"
+                      />
+                    )}
                   </div>
                 );
               })}
