@@ -2102,6 +2102,22 @@ const pddPreFill: DocDefinition = {
                   questionId: { type: "string" },
                   questionLabel: { type: "string" },
                   draftAnswer: { type: "string" },
+                  // For table-typed PDD questions (riskRegister, permittingStatus,
+                  // commercialPartners, certifications, capex, opex, emissionFactors,
+                  // preProcessing, pyrolysisUnits, postProcessing, ancillaryEquipment,
+                  // supplierWarranty, powerDistribution, motorControlCenters,
+                  // emergencyPower, qualityParameters, labAnalysis,
+                  // certificationStandards) return rows here — the PDD Builder
+                  // renders these as a structured table. Column ids must match
+                  // the schema documented at the end of the prompt. Leave empty
+                  // for prose (textarea) questions.
+                  structuredRows: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: { type: "string" },
+                    },
+                  },
                   confidence: { type: "string", enum: ["HIGH", "MEDIUM", "LOW"] },
                   requiresUserInput: { type: "boolean" },
                 },
@@ -2213,7 +2229,37 @@ K. Electrical & Quality Control (id: "electrical")
 For each answer:
 - draftAnswer: 40-120 words, specific, professional, and conservative
 - confidence: HIGH only if directly derivable from the project inputs or grounding data; otherwise use MEDIUM or LOW
-- requiresUserInput: true if user MUST provide real-world input (names, exact addresses, contract details)`,
+- requiresUserInput: true if user MUST provide real-world input (names, exact addresses, contract details)
+
+TABLE QUESTIONS — populate \`structuredRows\` (an array of objects) using the EXACT column ids below. Also keep \`draftAnswer\` as a one-sentence caption (~20 words). If a table question has no rows to seed, leave \`structuredRows\` empty and use \`draftAnswer\` to describe the gap.
+
+- commercialPartners (A):
+  columns: role (feedstock-supplier|biochar-offtaker|credit-buyer|epc|financier|other), entity, status (exploring|loi|signed|under-negotiation), notes
+- permittingStatus (B): permit, authority, status (not-started|in-progress|submitted|approved|rejected), expectedDate, notes
+  Return ~6 rows covering EIA, industrial park entry, water & wastewater, electricity grid, construction, operational permit.
+- riskRegister (B): type (financial|management|social|political|regulatory|natural|reversal|quantitative|commercial|site-control|technology|other), description, mitigation, level (low|medium|high), supportingDoc
+  Return ALL 11 canonical risk types, one row each.
+- certifications (D): standard (FSC|PEFC|SBP|ISCC|REDcert|other), certificateNumber, scope, validUntil, verifier
+  If biomass is forestry/wood → seed with FSC template row. Otherwise pick the correct standard.
+- capex (F): item, phase (phase-1|phase-2|both), costUsd, notes
+- opex (F): item, annualUsd, assumptions
+- emissionFactors (H): source, value, unit, reference
+  Seed at least 3 rows (grid electricity + fuel/transport + IPCC constant).
+- preProcessing (J): item, makeModel, capacity, powerKw, notes
+- pyrolysisUnits (J): unitId, makeModel, capacityKgh, tempC, residenceMin, powerKw, status (quoted|ordered|delivered|installed|commissioned)
+  Use ONLY manufacturer names from the equipment grounding data.
+- postProcessing (J): item, makeModel, throughput, notes
+- ancillaryEquipment (J): item, function, capacity, notes
+- supplierWarranty (J): supplier, equipment, warrantyYears, scope
+- powerDistribution (K): equipmentId, voltage, ratingKw, cableSize, breaker, notes
+- motorControlCenters (K): mccId, description, feeders, notes
+- emergencyPower (K): source (diesel-generator|ups|battery|grid-backup|other), capacityKva, autonomyH, criticalLoads
+- qualityParameters (K): parameter, target, testMethod, frequency
+  Seed at least 4 rows (C%, H:Corg, ash, moisture, plus heavy metals if relevant).
+- labAnalysis (K): analysis, labProvider, frequency, costUsd
+- certificationStandards (K): standard (puro-earth|isometric|verra-vm0044|ebc|gold-standard|iso|other), applicability, status (not-started|in-progress|endorsed|certified), nextVerification
+
+All other questions (textareas) — leave \`structuredRows\` empty and put the full response in \`draftAnswer\` as prose.`,
   }),
 };
 

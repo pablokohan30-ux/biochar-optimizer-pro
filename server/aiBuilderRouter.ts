@@ -44,6 +44,61 @@ import { hasTierAccessForUser, isLocalAdminBypass } from "./_core/access";
 const GEMINI_INPUT_COST_PER_M_USD = 0.075;
 const GEMINI_OUTPUT_COST_PER_M_USD = 0.30;
 
+/**
+ * Flattens the `pdd-pre-fill` doc content produced by the AI Project Builder
+ * into the shape the PDD Builder localStorage entry expects
+ * (`Record<questionId, string>`).
+ *
+ * Table-typed PDD questions arrive as `structuredRows: Array<{col: value}>` —
+ * we JSON.stringify them so the PDD Builder's `PddTableInput` picks them up
+ * as pre-loaded rows. Prose questions fall back to `draftAnswer`.
+ *
+ * Exported for unit testing.
+ */
+export function flattenPddPreFillContent(rawJson: string): Record<string, string> {
+  const flat: Record<string, string> = {};
+  let parsed: {
+    workstreams?: Array<{
+      id?: string;
+      answers?: Array<{
+        questionId: string;
+        draftAnswer?: string;
+        structuredRows?: Array<Record<string, unknown>>;
+      }>;
+    }>;
+  };
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return flat;
+  }
+  for (const ws of parsed.workstreams ?? []) {
+    for (const a of ws.answers ?? []) {
+      if (!a.questionId) continue;
+      if (Array.isArray(a.structuredRows) && a.structuredRows.length > 0) {
+        const cleaned = a.structuredRows
+          .filter((r): r is Record<string, unknown> => !!r && typeof r === "object" && !Array.isArray(r))
+          .map((r) => {
+            const row: Record<string, string> = {};
+            for (const [k, v] of Object.entries(r)) {
+              row[k] = v == null ? "" : String(v);
+            }
+            return row;
+          })
+          .filter((r) => Object.values(r).some((v) => v.trim().length > 0));
+        if (cleaned.length > 0) {
+          flat[a.questionId] = JSON.stringify(cleaned);
+          continue;
+        }
+      }
+      if (typeof a.draftAnswer === "string") {
+        flat[a.questionId] = a.draftAnswer;
+      }
+    }
+  }
+  return flat;
+}
+
 function estimateCostUsd(promptTokens: number, completionTokens: number): number {
   return (
     (promptTokens / 1_000_000) * GEMINI_INPUT_COST_PER_M_USD +
@@ -801,16 +856,7 @@ export const aiBuilderRouter = router({
         const docs = ai.generatedDocs ? JSON.parse(ai.generatedDocs) as Record<string, { content?: string }> : {};
         const pddDoc = docs["pdd-pre-fill"];
         if (pddDoc?.content) {
-          const parsed = JSON.parse(pddDoc.content) as {
-            workstreams?: Array<{ id?: string; answers?: Array<{ questionId: string; draftAnswer: string }> }>;
-          };
-          for (const ws of parsed.workstreams ?? []) {
-            for (const a of ws.answers ?? []) {
-              if (a.questionId && typeof a.draftAnswer === "string") {
-                flatAnswers[a.questionId] = a.draftAnswer;
-              }
-            }
-          }
+          flatAnswers = flattenPddPreFillContent(pddDoc.content);
         }
       } catch (err) {
         console.warn("[aiBuilder] Failed to parse pdd-pre-fill:", err);
