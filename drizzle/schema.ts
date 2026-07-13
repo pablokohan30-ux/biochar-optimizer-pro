@@ -377,3 +377,45 @@ export const attachments = sqliteTable("attachments", {
 
 export type Attachment = typeof attachments.$inferSelect;
 export type InsertAttachment = typeof attachments.$inferInsert;
+
+// ─── Persisted Audit Packages (Stage 4 audit trail) ───────────────────────
+//
+// Each row is a frozen snapshot of the audit package the operator generated
+// on a specific date for a specific VVB / corporate buyer. The purpose is
+// twofold:
+//   1. Audit trail — VVBs sometimes ask "what exactly did you send me on
+//      2026-04-12?"; without persistence there's no way to answer.
+//   2. Shareable read-only URL — the operator sends /audit/<shareToken> to
+//      the auditor instead of a PDF attachment. Same unguessable-token
+//      pattern the shipment confirmation URLs already use.
+//
+// `snapshotJson` contains the entire package as it was rendered
+// (executiveSummary, totals, evidence[], shipments[], community[], project
+// meta, period, buyerName). Consumers of the public route render from this
+// blob only — they never hit the operational tables so a revoked or
+// expired package can't leak fresh data.
+export const auditPackages = sqliteTable("auditPackages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  projectId: integer("projectId").notNull(),
+  // Human-readable package id (also stamped on the PDF): AUDIT-<projId>-<b36>
+  packageId: text("packageId").notNull(),
+  // Unguessable random URL slug — 32 base64url chars.
+  shareToken: text("shareToken").notNull().unique(),
+  buyerName: text("buyerName"),
+  periodStart: integer("periodStart", { mode: "timestamp" }).notNull(),
+  periodEnd: integer("periodEnd", { mode: "timestamp" }).notNull(),
+  // Full JSON snapshot — see above. ~50-500 KB typical.
+  snapshotJson: text("snapshotJson").notNull(),
+  // Denormalised counts for the list view; avoids parsing snapshotJson.
+  evidenceCount: integer("evidenceCount").notNull().default(0),
+  shipmentCount: integer("shipmentCount").notNull().default(0),
+  communityCount: integer("communityCount").notNull().default(0),
+  // Owner may revoke to invalidate the public URL. Public route returns 404
+  // for any package with `revokedAt` set.
+  revokedAt: integer("revokedAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type AuditPackage = typeof auditPackages.$inferSelect;
+export type InsertAuditPackage = typeof auditPackages.$inferInsert;

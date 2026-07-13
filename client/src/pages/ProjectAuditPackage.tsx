@@ -112,6 +112,15 @@ export default function ProjectAuditPackage() {
   const [buyerName, setBuyerName] = useState("");
   const [pkg, setPkg] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const utils = trpc.useUtils();
+  const historyQuery = trpc.auditPackage.list.useQuery(
+    { projectId },
+    { enabled: isAuthenticated && hasExpert && Number.isFinite(projectId) },
+  );
+  const revokeMutation = trpc.auditPackage.revoke.useMutation({
+    onSuccess: () => utils.auditPackage.list.invalidate({ projectId }),
+  });
 
   const brandingQuery = trpc.branding.get.useQuery(undefined, { enabled: isAuthenticated });
   const brand = brandingQuery.data;
@@ -124,6 +133,7 @@ export default function ProjectAuditPackage() {
     onSuccess: (data) => {
       setPkg(data);
       setError(null);
+      utils.auditPackage.list.invalidate({ projectId });
     },
     onError: (e) => {
       setError(e.message);
@@ -333,6 +343,25 @@ export default function ProjectAuditPackage() {
                 <Printer className="w-4 h-4" /> {tap("print", "Imprimir / guardar PDF")}
               </button>
             )}
+            {pkg?.shareToken && (
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/audit/${pkg.shareToken}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  } catch {
+                    window.prompt(tap("shareLinkPrompt", "Copiá este link:"), url);
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700"
+              >
+                {shareCopied
+                  ? tap("shareCopied", "¡Link copiado!")
+                  : tap("copyShareLink", "Copiar link para el VVB")}
+              </button>
+            )}
             {pkg && (
               <span className="text-xs text-muted-foreground">
                 {tap("packageIdLabel", "ID del paquete:")} <span className="font-mono">{pkg.packageId}</span> · {tap("generatedLabel", "Generado")} {new Date(pkg.generatedAtMs).toLocaleString(locale)}
@@ -340,6 +369,81 @@ export default function ProjectAuditPackage() {
             )}
           </div>
         </section>
+
+        {/* Paquetes previos — audit trail + shareable links + revoke */}
+        {historyQuery.data && historyQuery.data.length > 0 && (
+          <section className="mt-6 bg-card border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">
+              {tap("historyTitle", "Paquetes generados")}
+            </h3>
+            <ul className="divide-y divide-border">
+              {historyQuery.data.map((row: {
+                id: number;
+                packageId: string;
+                shareToken: string;
+                buyerName: string | null;
+                periodStartMs: number;
+                periodEndMs: number;
+                evidenceCount: number;
+                shipmentCount: number;
+                communityCount: number;
+                revoked: boolean;
+                createdAtMs: number;
+              }) => {
+                const shareUrl = `${window.location.origin}/audit/${row.shareToken}`;
+                return (
+                  <li key={row.id} className="py-2.5 flex items-center gap-3 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-mono truncate">{row.packageId}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {new Date(row.createdAtMs).toLocaleDateString()} ·{" "}
+                        {row.buyerName ?? tap("noBuyer", "(sin comprador)")} · e={row.evidenceCount} s={row.shipmentCount} c={row.communityCount}
+                      </div>
+                    </div>
+                    {row.revoked ? (
+                      <span className="text-[10px] px-2 py-0.5 bg-red-500/10 text-red-500 rounded font-semibold uppercase tracking-wider">
+                        {tap("revoked", "Revocado")}
+                      </span>
+                    ) : (
+                      <>
+                        <a
+                          href={shareUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:text-primary/80 underline"
+                        >
+                          {tap("openShare", "Abrir link")}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try { await navigator.clipboard.writeText(shareUrl); }
+                            catch { window.prompt(tap("shareLinkPrompt", "Copiá este link:"), shareUrl); }
+                          }}
+                          className="text-xs text-muted-foreground hover:text-primary"
+                        >
+                          {tap("copyLink", "Copiar")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (revokeMutation.isPending) return;
+                            if (confirm(tap("revokeConfirm", "Revocar este link para siempre?"))) {
+                              revokeMutation.mutate({ id: row.id });
+                            }
+                          }}
+                          className="text-xs text-muted-foreground hover:text-red-500"
+                        >
+                          {tap("revokeAction", "Revocar")}
+                        </button>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </div>
 
       {/* Print content — visible on screen AND print */}

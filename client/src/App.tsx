@@ -42,6 +42,7 @@ const ProjectBuyerReadiness = lazy(() => import("./pages/ProjectBuyerReadiness")
 const ProjectAuditPackage = lazy(() => import("./pages/ProjectAuditPackage"));
 const ProjectBuyerMatch = lazy(() => import("./pages/ProjectBuyerMatch"));
 const ConfirmShipment = lazy(() => import("./pages/ConfirmShipment"));
+const PublicAuditPackage = lazy(() => import("./pages/PublicAuditPackage"));
 const Solution = lazy(() => import("./pages/Solution"));
 const About = lazy(() => import("./pages/About"));
 const Partners = lazy(() => import("./pages/Partners"));
@@ -269,6 +270,7 @@ function Router() {
         <Route path={"/projects/:id/audit-package"} component={ProjectAuditPackage} />
         <Route path={"/projects/:id/buyer-match"} component={ProjectBuyerMatch} />
         <Route path={"/confirm/:token"} component={ConfirmShipment} />
+        <Route path={"/audit/:token"} component={PublicAuditPackage} />
         <Route path={"/projects/:id/summary"} component={ExecutiveSummary} />
         <Route path={"/projects/:id/submission/:methodologyId"} component={SubmissionPrint} />
         <Route path={"/lca"} component={LCAPage} />

@@ -12,16 +12,23 @@
  * Tier gate: Expert (admins bypass).
  */
 
+import crypto from "node:crypto";
 import { z } from "zod";
-import { eq, and, gte, lte } from "drizzle-orm";
-import { protectedProcedure, router } from "./_core/trpc";
+import { eq, and, gte, lte, desc, isNull } from "drizzle-orm";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { requireDb } from "./db";
 import {
-  projects, operationalEvidence, biocharShipments, communityRecords,
+  projects, operationalEvidence, biocharShipments, communityRecords, auditPackages,
 } from "../drizzle/schema";
 import { invokeLLM, buildLangDirective } from "./_core/llm";
 import { logAiCall, getLatestAiRunOutput } from "./_core/aiCallLog";
 import { requireTierAccess } from "./_core/access";
+
+/** Unguessable random URL slug — 32 base64url chars — for shareable audit
+ *  package links (same pattern as shipment confirmation tokens). */
+function generateShareToken(): string {
+  return crypto.randomBytes(24).toString("base64url");
+}
 
 function requireExpert(user: { role: string; subscriptionTier: string | null; subscriptionStatus: string | null }) {
   requireTierAccess(user, "expert", "UPGRADE_REQUIRED: Audit Package export requires Expert tier.");
@@ -295,21 +302,57 @@ Be specific. Every number you cite must be in the data above. If a category is z
       });
 
       const packageId = `AUDIT-${project.id}-${Date.now().toString(36).toUpperCase()}`;
+      const generatedAtMs = Date.now();
+      const shareToken = generateShareToken();
+      const projectSnapshot = {
+        id: project.id,
+        name: project.name,
+        country: project.country,
+        location: project.location,
+        bopId: project.bopId,
+      };
+      const period = {
+        startMs: input.periodStartMs,
+        endMs: input.periodEndMs,
+      };
+
+      // Persist the frozen snapshot so the operator can share the /audit/:token
+      // URL with a VVB / corporate buyer, revisit their own history, or revoke
+      // the link later. The public route serves *only* this blob — never the
+      // live operational tables — so a snapshot stays valid even if the user
+      // edits or deletes underlying rows.
+      const snapshot = {
+        packageId,
+        generatedAtMs,
+        project: projectSnapshot,
+        period,
+        buyerName: input.buyerName ?? null,
+        executiveSummary,
+        totals: dataForAI.totals,
+        evidence,
+        shipments,
+        community,
+      };
+      db.insert(auditPackages).values({
+        userId: ctx.user.id,
+        projectId: input.projectId,
+        packageId,
+        shareToken,
+        buyerName: input.buyerName ?? null,
+        periodStart,
+        periodEnd,
+        snapshotJson: JSON.stringify(snapshot),
+        evidenceCount: evidence.length,
+        shipmentCount: shipments.length,
+        communityCount: community.length,
+      }).run();
 
       return {
         packageId,
-        generatedAtMs: Date.now(),
-        project: {
-          id: project.id,
-          name: project.name,
-          country: project.country,
-          location: project.location,
-          bopId: project.bopId,
-        },
-        period: {
-          startMs: input.periodStartMs,
-          endMs: input.periodEndMs,
-        },
+        shareToken,
+        generatedAtMs,
+        project: projectSnapshot,
+        period,
         buyerName: input.buyerName ?? null,
         executiveSummary,
         totals: dataForAI.totals,
@@ -317,6 +360,135 @@ Be specific. Every number you cite must be in the data above. If a category is z
         shipments,
         community,
         tokenUsage: execSummaryTokens,
+      };
+    }),
+
+  /**
+   * List packages the operator has generated for a project — newest first.
+   * Used to render a "generated packages" table with share links + revoke
+   * buttons. Snapshot JSON is NOT included here to keep the response small;
+   * consumers call getMine(id) or getPublic(token) when they need the body.
+   */
+  list: protectedProcedure
+    .input(z.object({ projectId: z.number().int() }))
+    .query(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      assertOwnsProject(ctx.user.id, input.projectId);
+      const db = requireDb();
+      const rows = db
+        .select({
+          id: auditPackages.id,
+          packageId: auditPackages.packageId,
+          shareToken: auditPackages.shareToken,
+          buyerName: auditPackages.buyerName,
+          periodStart: auditPackages.periodStart,
+          periodEnd: auditPackages.periodEnd,
+          evidenceCount: auditPackages.evidenceCount,
+          shipmentCount: auditPackages.shipmentCount,
+          communityCount: auditPackages.communityCount,
+          revokedAt: auditPackages.revokedAt,
+          createdAt: auditPackages.createdAt,
+        })
+        .from(auditPackages)
+        .where(and(
+          eq(auditPackages.userId, ctx.user.id),
+          eq(auditPackages.projectId, input.projectId),
+        ))
+        .orderBy(desc(auditPackages.createdAt))
+        .all();
+      return rows.map((r) => ({
+        id: r.id,
+        packageId: r.packageId,
+        shareToken: r.shareToken,
+        buyerName: r.buyerName,
+        periodStartMs: r.periodStart ? new Date(r.periodStart).getTime() : 0,
+        periodEndMs: r.periodEnd ? new Date(r.periodEnd).getTime() : 0,
+        evidenceCount: r.evidenceCount,
+        shipmentCount: r.shipmentCount,
+        communityCount: r.communityCount,
+        revoked: !!r.revokedAt,
+        createdAtMs: r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      }));
+    }),
+
+  /**
+   * Owner-only fetch: read the full snapshot back from history (e.g. to
+   * re-open a previously generated package in the print view without
+   * regenerating anything).
+   */
+  getMine: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .query(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      const db = requireDb();
+      const rows = db
+        .select()
+        .from(auditPackages)
+        .where(and(eq(auditPackages.id, input.id), eq(auditPackages.userId, ctx.user.id)))
+        .limit(1)
+        .all();
+      if (rows.length === 0) throw new Error("Audit package not found");
+      const row = rows[0];
+      let snapshot: unknown = null;
+      try { snapshot = JSON.parse(row.snapshotJson); } catch {}
+      return {
+        id: row.id,
+        packageId: row.packageId,
+        shareToken: row.shareToken,
+        buyerName: row.buyerName,
+        snapshot,
+        revoked: !!row.revokedAt,
+        createdAtMs: row.createdAt ? new Date(row.createdAt).getTime() : 0,
+      };
+    }),
+
+  /**
+   * Revoke a package's public URL. Idempotent — revoking again is a no-op.
+   * Does not delete the row so the operator keeps the audit trail entry.
+   */
+  revoke: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      const db = requireDb();
+      const rows = db
+        .select()
+        .from(auditPackages)
+        .where(and(eq(auditPackages.id, input.id), eq(auditPackages.userId, ctx.user.id)))
+        .limit(1)
+        .all();
+      if (rows.length === 0) throw new Error("Audit package not found");
+      db.update(auditPackages)
+        .set({ revokedAt: new Date() })
+        .where(eq(auditPackages.id, input.id))
+        .run();
+      return { success: true as const };
+    }),
+
+  /**
+   * Public (no auth) — resolves a shareToken to the frozen snapshot.
+   * Returns 404 for unknown tokens, revoked packages, or malformed IDs so
+   * a VVB link that got leaked past a revocation cannot leak stale data.
+   */
+  getPublic: publicProcedure
+    .input(z.object({ token: z.string().min(4).max(120) }))
+    .query(({ input }) => {
+      const db = requireDb();
+      const rows = db
+        .select()
+        .from(auditPackages)
+        .where(and(eq(auditPackages.shareToken, input.token), isNull(auditPackages.revokedAt)))
+        .limit(1)
+        .all();
+      if (rows.length === 0) return null;
+      const row = rows[0];
+      let snapshot: unknown = null;
+      try { snapshot = JSON.parse(row.snapshotJson); } catch {}
+      return {
+        packageId: row.packageId,
+        buyerName: row.buyerName,
+        snapshot,
+        createdAtMs: row.createdAt ? new Date(row.createdAt).getTime() : 0,
       };
     }),
 

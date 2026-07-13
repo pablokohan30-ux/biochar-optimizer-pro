@@ -242,6 +242,24 @@ export function getDb() {
           createdAt INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_attachments_owner ON attachments(userId, relatedType, relatedId);
+        CREATE TABLE IF NOT EXISTS auditPackages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          projectId INTEGER NOT NULL,
+          packageId TEXT NOT NULL,
+          shareToken TEXT NOT NULL UNIQUE,
+          buyerName TEXT,
+          periodStart INTEGER NOT NULL,
+          periodEnd INTEGER NOT NULL,
+          snapshotJson TEXT NOT NULL,
+          evidenceCount INTEGER NOT NULL DEFAULT 0,
+          shipmentCount INTEGER NOT NULL DEFAULT 0,
+          communityCount INTEGER NOT NULL DEFAULT 0,
+          revokedAt INTEGER,
+          createdAt INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_audit_packages_owner ON auditPackages(userId, projectId, createdAt DESC);
+        CREATE INDEX IF NOT EXISTS idx_audit_packages_token ON auditPackages(shareToken);
       `);
 
       // Migrations: SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS — catch "duplicate column" error.
