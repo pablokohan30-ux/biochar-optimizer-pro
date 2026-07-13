@@ -230,6 +230,18 @@ export function getDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_ai_call_log_feature ON aiCallLog(feature, createdAt DESC);
         CREATE INDEX IF NOT EXISTS idx_ai_call_log_user ON aiCallLog(userId, createdAt DESC);
+        CREATE TABLE IF NOT EXISTS attachments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          relatedType TEXT NOT NULL,
+          relatedId INTEGER NOT NULL,
+          filename TEXT NOT NULL,
+          contentType TEXT NOT NULL,
+          sizeBytes INTEGER NOT NULL,
+          storageKey TEXT NOT NULL,
+          createdAt INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_attachments_owner ON attachments(userId, relatedType, relatedId);
       `);
 
       // Migrations: SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS — catch "duplicate column" error.

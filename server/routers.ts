@@ -25,6 +25,7 @@ import { communityRouter } from "./communityRouter";
 import { buyerReadinessRouter } from "./buyerReadinessRouter";
 import { auditPackageRouter } from "./auditPackageRouter";
 import { buyerMatchRouter } from "./buyerMatchRouter";
+import { attachmentsRouter } from "./attachmentsRouter";
 import { launchRouter } from "./launchRouter";
 import { BRAND_NAME } from "../client/src/lib/brand";
 import { isCorporateEmail } from "../shared/corporateEmail";
@@ -118,6 +119,7 @@ export const appRouter = router({
   buyerReadiness: buyerReadinessRouter,
   auditPackage: auditPackageRouter,
   buyerMatch: buyerMatchRouter,
+  attachments: attachmentsRouter,
   launch: launchRouter,
 
   auth: router({

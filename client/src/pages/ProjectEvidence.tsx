@@ -21,6 +21,7 @@ import {
   Sprout,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import AttachmentInput from "@/components/AttachmentInput";
 import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -297,8 +298,13 @@ function AddEntryModal({ projectId, dataType, onClose }: { projectId: number; da
   const [periodStart, setPeriodStart] = useState<string>(() => new Date().toISOString().slice(0, 16));
   const [content, setContent] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
+  // After a successful create we stash the new row's id and pivot the modal
+  // into "attach files" mode so the operator can drop the lab PDF / FSC cert
+  // / signed remito against the record they just saved without navigating
+  // away and re-opening it in edit mode.
+  const [savedEntryId, setSavedEntryId] = useState<number | null>(null);
   const createMutation = trpc.evidence.create.useMutation({
-    onSuccess: () => { onClose(); },
+    onSuccess: (result) => { setSavedEntryId(result.id); },
     onError: (e) => setError(e.message),
   });
 
@@ -344,19 +350,32 @@ function AddEntryModal({ projectId, dataType, onClose }: { projectId: number; da
             <FormField key={f.name} field={f} value={content[f.name]} onChange={(v) => setContent({ ...content, [f.name]: v })} />
           ))}
 
+          {savedEntryId != null && (
+            <div className="pt-3 mt-3 border-t border-border space-y-2">
+              <div className="text-xs font-semibold text-emerald-700">
+                {te("savedTitle", "✓ Registro guardado")}
+              </div>
+              <AttachmentInput
+                relatedType="evidence"
+                relatedId={savedEntryId}
+                label={te("attachmentsLabel", "Archivos adjuntos (PDFs de lab, certificados, actas)")}
+              />
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">{error}</div>
           )}
         </div>
         <div className="p-5 border-t border-border flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">{te("cancel", "Cancelar")}</button>
+          <button onClick={onClose} className="px-4 py-2 bg-card border border-input text-foreground/90 text-sm rounded-lg hover:bg-muted/40">{savedEntryId != null ? te("close", "Cerrar") : te("cancel", "Cancelar")}</button>
           <button
             onClick={handleSave}
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || savedEntryId != null}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            {createMutation.isPending ? te("saving", "Guardando...") : te("save", "Guardar registro")}
+            {savedEntryId != null ? te("saved", "Guardado") : createMutation.isPending ? te("saving", "Guardando...") : te("save", "Guardar registro")}
           </button>
         </div>
       </div>

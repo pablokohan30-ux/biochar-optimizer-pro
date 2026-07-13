@@ -338,3 +338,37 @@ export const aiCallLog = sqliteTable("aiCallLog", {
 
 export type AiCallLog = typeof aiCallLog.$inferSelect;
 export type InsertAiCallLog = typeof aiCallLog.$inferInsert;
+
+// ─── File attachments (cross-cutting for Expert operational features) ─────
+//
+// One row per uploaded file. Each file is associated with an owner user AND
+// a specific record (evidence entry, shipment, community record, etc.) via
+// the (relatedType, relatedId) pair. Files live on disk under
+// /app/data/attachments/<userId>/<storageKey>; the storageKey is
+// generated server-side so a user cannot craft a path traversal.
+//
+// Access control is enforced at the router level: only the owner user can
+// list/download/delete their attachments. Callers pass (relatedType,
+// relatedId) to scope the list — but ownership is checked on userId, not
+// on the referenced record's ownership, to keep the router self-contained.
+export const attachments = sqliteTable("attachments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  // Which record this file backs. Enum-ish for validation but stored as
+  // plain text so downstream features can add new categories without a
+  // schema migration.
+  relatedType: text("relatedType").notNull(),
+  // Numeric ID of the record in its home table. NOT a foreign key — the
+  // home table may be evidence, shipments, community records, etc.
+  relatedId: integer("relatedId").notNull(),
+  filename: text("filename").notNull(),      // original user-supplied name
+  contentType: text("contentType").notNull(), // MIME
+  sizeBytes: integer("sizeBytes").notNull(),
+  // Server-side filesystem path, RELATIVE to the attachments root.
+  // Contains a random UUID → cannot be crafted by user input.
+  storageKey: text("storageKey").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type Attachment = typeof attachments.$inferSelect;
+export type InsertAttachment = typeof attachments.$inferInsert;

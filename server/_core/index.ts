@@ -177,6 +177,43 @@ async function startServer() {
     res.status(200).json({ ok: true, ts: Date.now() });
   });
 
+  // Attachment download endpoint — served OUTSIDE tRPC because browsers can't
+  // stream a file body through a tRPC response. Uses the same session cookie
+  // auth as tRPC via sdk.authenticateRequest.
+  app.get("/api/attachments/:id/download", async (req, res, next) => {
+    try {
+      const { sdk } = await import("./sdk");
+      const user = await sdk.authenticateRequest(req);
+      if (!user) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+      const attachmentId = Number(req.params.id);
+      if (!Number.isFinite(attachmentId) || attachmentId <= 0) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+      }
+      const { getAttachmentForDownload } = await import("../attachmentsRouter");
+      const att = getAttachmentForDownload(user.id, attachmentId);
+      if (!att) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      res.setHeader("Content-Type", att.contentType);
+      res.setHeader("Content-Length", att.sizeBytes.toString());
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${att.filename.replace(/"/g, "'")}"`,
+      );
+      // Small enough for the disk read to be fine; if we ever store big
+      // videos we should stream instead.
+      const fs = await import("node:fs");
+      res.status(200).send(fs.readFileSync(att.absPath));
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
