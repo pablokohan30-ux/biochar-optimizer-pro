@@ -16,11 +16,12 @@ import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   Globe, FolderOpen, Sparkles, Factory, TrendingUp, Lock, MapPin,
-  ExternalLink, Filter,
+  ExternalLink, Filter, Download, Info,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import PageLoader from "@/components/PageLoader";
 import UpgradeModal from "@/components/UpgradeModal";
+import PortfolioMap, { type PortfolioMapMarker } from "@/components/PortfolioMap";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTier } from "@/hooks/useTier";
 import { trpc } from "@/lib/trpc";
@@ -94,11 +95,61 @@ export default function Portfolio() {
     return true;
   });
 
+  const mapMarkers: PortfolioMapMarker[] = filteredSites
+    .filter((s) => typeof s.latitude === "number" && typeof s.longitude === "number")
+    .map((s) => ({
+      id: `${s.source}-${s.id}`,
+      latitude: s.latitude as number,
+      longitude: s.longitude as number,
+      name: s.name,
+      country: s.country,
+      capacityTnYear: s.capacityTnYear,
+      status: s.status,
+      linkHref: s.linkHref,
+    }));
+
+  const sitesWithoutCoords = filteredSites.length - mapMarkers.length;
+
   const countryList = Object.keys(byCountry).sort();
   const statusList = Object.keys(byStatus).sort();
   const statusEntries = Object.entries(byStatus)
     .map(([status, count]) => [tp(`status_${status}`, status), count] as [string, number])
     .sort((a, b) => b[1] - a[1]);
+
+  const exportCsv = () => {
+    const headers = [
+      "source", "name", "country", "location",
+      "capacity_tn_yr", "biochar_tn_yr_est", "cdr_tCO2e_yr_est",
+      "methodology", "status", "latitude", "longitude", "link",
+    ];
+    const rows = filteredSites.map((s) => [
+      s.source,
+      s.name,
+      s.country ?? "",
+      s.location ?? "",
+      s.capacityTnYear ?? "",
+      s.biocharTnYear,
+      s.cdrTCo2ePerYear,
+      s.methodology ?? "",
+      s.status,
+      s.latitude ?? "",
+      s.longitude ?? "",
+      s.linkHref ?? "",
+    ]);
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    anchor.download = `biocharpro-portfolio-${stamp}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <AppLayout>
@@ -135,12 +186,14 @@ export default function Portfolio() {
             label={tp("kpiBiochar", "Biochar output")}
             value={`${Math.round(totals.biocharTnYear / 1000).toLocaleString()}k`}
             hint={tp("kpiBiocharHint", "tn/año estimadas")}
+            estimated
           />
           <KpiCard
             icon={<Globe className="w-4 h-4" />}
             label={tp("kpiCdr", "CDR credits")}
             value={`${Math.round(totals.cdrTCo2ePerYear / 1000).toLocaleString()}k`}
             hint={tp("kpiCdrHint", "tCO₂e/año estimadas")}
+            estimated
           />
         </div>
 
@@ -160,13 +213,34 @@ export default function Portfolio() {
           />
         </div>
 
+        {/* Sites map — only when at least one filtered site has coordinates */}
+        {mapMarkers.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-foreground">
+                {tp("mapTitle", "Mapa de sitios")}{" "}
+                <span className="text-sm text-muted-foreground font-normal">
+                  ({mapMarkers.length})
+                </span>
+              </h2>
+              {sitesWithoutCoords > 0 && (
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Info className="w-3 h-3" />
+                  {tp("mapMissingCoords", `${sitesWithoutCoords} sitio(s) sin lat/lon no se muestran`)}
+                </div>
+              )}
+            </div>
+            <PortfolioMap markers={mapMarkers} className="h-[380px]" />
+          </section>
+        )}
+
         {/* Filters + site table */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h2 className="text-lg font-semibold text-foreground">
               {tp("sitesTitle", "Sites")} <span className="text-sm text-muted-foreground font-normal">({filteredSites.length} / {sites.length})</span>
             </h2>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
               <Filter className="w-3.5 h-3.5 text-muted-foreground/70" />
               <select
                 value={filterCountry}
@@ -188,6 +262,15 @@ export default function Portfolio() {
                   <option key={s} value={s}>{tp(`status_${s}`, s)}</option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={exportCsv}
+                disabled={filteredSites.length === 0}
+                className="flex items-center gap-1 border border-input rounded px-2 py-1 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {tp("exportCsv", "Export CSV")}
+              </button>
             </div>
           </div>
 
@@ -276,12 +359,29 @@ export default function Portfolio() {
   );
 }
 
-function KpiCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint?: string }) {
+function KpiCard({
+  icon, label, value, hint, estimated,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  /** True → append a small "est." pill so users know this is derived, not measured. */
+  estimated?: boolean;
+}) {
   return (
     <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground mb-2">
         {icon}
-        {label}
+        <span className="flex-1 truncate">{label}</span>
+        {estimated && (
+          <span
+            className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold normal-case tracking-normal"
+            title="Estimated from typical biochar yields — not the project's own LCA number."
+          >
+            est.
+          </span>
+        )}
       </div>
       <div className="text-2xl font-semibold text-foreground">{value}</div>
       {hint && <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>}
