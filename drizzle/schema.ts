@@ -333,6 +333,11 @@ export const aiCallLog = sqliteTable("aiCallLog", {
   errorMsg: text("errorMsg"),
   // Free-form JSON — anything feature-specific worth keeping.
   metadata: text("metadata"),
+  // The parsed LLM output (JSON-stringified). Only populated when the caller
+  // wants to persist the payload so the UI can re-hydrate the last run when
+  // the user reopens the page. Cheap to keep — a buyer-match response is
+  // ~2 KB, a readiness report ~5 KB.
+  output: text("output"),
   createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 

@@ -73,6 +73,31 @@ export default function ProjectBuyerMatch() {
     onError: (e) => { setError(e.message); setResult(null); },
   });
 
+  // Hydrate the last persisted ranking so reopening the page shows the
+  // previous run rather than an empty state that would push the operator
+  // to burn another Gemini call for the same answer.
+  const latestQuery = trpc.buyerMatch.latest.useQuery(
+    { projectId },
+    { enabled: isAuthenticated && hasExpert && Number.isFinite(projectId) },
+  );
+  useEffect(() => {
+    if (result != null) return;
+    const latest = latestQuery.data;
+    if (!latest?.output) return;
+    // Shape it the way `recommend` returns so the render tree can stay the same.
+    setResult({
+      result: latest.output,
+      tokenUsage: {
+        prompt: latest.promptTokens,
+        completion: latest.completionTokens,
+      },
+      dataPoints: latest.metadata ?? {},
+      hydratedFromRun: {
+        createdAtMs: latest.createdAt,
+      },
+    });
+  }, [latestQuery.data, result]);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login");
   }, [authLoading, isAuthenticated, navigate]);

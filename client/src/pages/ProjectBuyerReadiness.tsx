@@ -83,6 +83,38 @@ export default function ProjectBuyerReadiness() {
   const buyersQuery = trpc.buyerReadiness.buyers.useQuery(undefined, { enabled: isAuthenticated && hasExpert });
   const checkMutation = trpc.buyerReadiness.check.useMutation();
 
+  // Hydrate the last persisted report for the buyer the operator activates.
+  // Skips when we already have a fresh (or previously-hydrated) report for
+  // that buyer in local state so a fresh `check` never gets clobbered.
+  const latestQuery = trpc.buyerReadiness.latest.useQuery(
+    { projectId, buyerId: activeBuyer ?? "" },
+    {
+      enabled:
+        isAuthenticated &&
+        hasExpert &&
+        Number.isFinite(projectId) &&
+        !!activeBuyer &&
+        !reports[activeBuyer as BuyerId],
+    },
+  );
+  useEffect(() => {
+    if (!activeBuyer) return;
+    const latest = latestQuery.data;
+    if (!latest?.output) return;
+    if (reports[activeBuyer]) return;
+    setReports((prev) => ({
+      ...prev,
+      [activeBuyer]: {
+        ...(latest.output as Record<string, unknown>),
+        _meta: {
+          tokenUsage: { prompt: latest.promptTokens, completion: latest.completionTokens },
+          dataPoints: latest.metadata ?? {},
+          hydratedAtMs: latest.createdAt,
+        },
+      },
+    }));
+  }, [latestQuery.data, activeBuyer, reports]);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login");
   }, [authLoading, isAuthenticated, navigate]);

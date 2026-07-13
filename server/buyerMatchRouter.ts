@@ -19,7 +19,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 import { requireDb } from "./db";
 import { projects, operationalEvidence, biocharShipments, communityRecords } from "../drizzle/schema";
 import { invokeLLM, buildLangDirective } from "./_core/llm";
-import { logAiCall } from "./_core/aiCallLog";
+import { logAiCall, getLatestAiRunOutput } from "./_core/aiCallLog";
 import { BUYERS } from "./buyerReadinessRouter";
 import { requireTierAccess } from "./_core/access";
 
@@ -247,6 +247,9 @@ Be rigorous. Don't rank buyers optimistically just because the user has Expert t
           communityCount: communityRows.length,
           topBuyerId: parsed?.ranking?.[0]?.buyerId ?? null,
         },
+        // Persist so the UI can re-hydrate on page reload instead of
+        // burning another LLM call.
+        output: parsed,
       });
 
       return {
@@ -261,5 +264,22 @@ Be rigorous. Don't rank buyers optimistically just because the user has Expert t
           community: communityRows.length,
         },
       };
+    }),
+
+  /**
+   * Return the last persisted `recommend` output for the project so the
+   * page hydrates the operator's most recent buyer ranking on load instead
+   * of showing an empty state and forcing another Gemini call.
+   */
+  latest: protectedProcedure
+    .input(z.object({ projectId: z.number().int() }))
+    .query(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      assertOwnsProject(ctx.user.id, input.projectId);
+      return getLatestAiRunOutput({
+        userId: ctx.user.id,
+        feature: "buyer_match",
+        projectId: input.projectId,
+      });
     }),
 });

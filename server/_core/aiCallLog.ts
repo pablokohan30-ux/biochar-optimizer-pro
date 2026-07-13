@@ -14,6 +14,7 @@
  * here — nothing else needs to change.
  */
 
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { requireDb } from "../db";
 import { aiCallLog } from "../../drizzle/schema";
 
@@ -38,6 +39,9 @@ export type LogAiCallInput = {
   status?: "ok" | "error";
   errorMsg?: string | null;
   metadata?: Record<string, unknown> | null;
+  /** Full parsed LLM response. Persist when the UI wants to re-hydrate the
+   *  last run. Serialize as JSON string if not already a string. */
+  output?: unknown;
 };
 
 /**
@@ -51,6 +55,10 @@ export function logAiCall(input: LogAiCallInput): void {
     const prompt = input.promptTokens ?? 0;
     const completion = input.completionTokens ?? 0;
     const costUsd = estimateCostUsd(prompt, completion);
+    let outputStr: string | null = null;
+    if (input.output !== undefined && input.output !== null) {
+      outputStr = typeof input.output === "string" ? input.output : JSON.stringify(input.output);
+    }
     db.insert(aiCallLog).values({
       userId: input.userId ?? null,
       feature: input.feature,
@@ -61,8 +69,80 @@ export function logAiCall(input: LogAiCallInput): void {
       status: input.status ?? "ok",
       errorMsg: input.errorMsg ?? null,
       metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+      output: outputStr,
     }).run();
   } catch (err) {
     console.warn("[aiCallLog] insert failed (non-fatal):", err);
+  }
+}
+
+export type LatestAiRun<T> = {
+  output: T;
+  createdAt: number;
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  metadata: Record<string, unknown> | null;
+} | null;
+
+/**
+ * Look up the most recent successful run for (user, feature, project?) that
+ * persisted an output. Returns null when nothing is on record — the caller
+ * treats that as "user hasn't run this yet."
+ *
+ * Type-parameterised so buyer-readiness / buyer-match / audit-summary each
+ * get their own return shape without an unsafe cast at the call site.
+ */
+export function getLatestAiRunOutput<T = unknown>(params: {
+  userId: number;
+  feature: string;
+  projectId?: number | null;
+}): LatestAiRun<T> {
+  try {
+    const db = requireDb();
+    const filters = [
+      eq(aiCallLog.userId, params.userId),
+      eq(aiCallLog.feature, params.feature),
+      eq(aiCallLog.status, "ok"),
+      isNotNull(aiCallLog.output),
+    ];
+    if (params.projectId != null) {
+      filters.push(eq(aiCallLog.projectId, params.projectId));
+    }
+    const rows = db
+      .select()
+      .from(aiCallLog)
+      .where(and(...filters))
+      .orderBy(desc(aiCallLog.createdAt))
+      .limit(1)
+      .all();
+    if (rows.length === 0) return null;
+    const row = rows[0];
+    let parsed: T | null = null;
+    try {
+      parsed = row.output ? (JSON.parse(row.output) as T) : null;
+    } catch {
+      return null;
+    }
+    if (parsed === null) return null;
+    let metadata: Record<string, unknown> | null = null;
+    if (row.metadata) {
+      try {
+        metadata = JSON.parse(row.metadata) as Record<string, unknown>;
+      } catch {
+        metadata = null;
+      }
+    }
+    return {
+      output: parsed,
+      createdAt: row.createdAt ? new Date(row.createdAt).getTime() : 0,
+      promptTokens: row.promptTokens ?? 0,
+      completionTokens: row.completionTokens ?? 0,
+      costUsd: row.costUsd ?? 0,
+      metadata,
+    };
+  } catch (err) {
+    console.warn("[aiCallLog] getLatest failed (non-fatal):", err);
+    return null;
   }
 }

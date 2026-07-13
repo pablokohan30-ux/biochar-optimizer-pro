@@ -14,11 +14,11 @@
  */
 
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { protectedProcedure, router } from "./_core/trpc";
 import { requireDb } from "./db";
 import {
-  projects, operationalEvidence, biocharShipments, communityRecords,
+  projects, operationalEvidence, biocharShipments, communityRecords, aiCallLog,
 } from "../drizzle/schema";
 import { invokeLLM, buildLangDirective } from "./_core/llm";
 import { logAiCall } from "./_core/aiCallLog";
@@ -361,6 +361,7 @@ Return JSON with this exact structure:
           communityCount: communityRows.length,
           overallReadinessPct: parsed?.overallReadinessPct ?? null,
         },
+        output: parsed,
       });
 
       return {
@@ -375,6 +376,57 @@ Return JSON with this exact structure:
           communityCount: communityRows.length,
         },
       };
+    }),
+
+  /**
+   * Return the last persisted readiness report for a given (project, buyer)
+   * pair. Filters by buyerId inside the metadata JSON so switching between
+   * buyers doesn't hydrate the wrong report.
+   */
+  latest: protectedProcedure
+    .input(z.object({ projectId: z.number().int(), buyerId: z.string().min(1).max(60) }))
+    .query(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      assertOwnsProject(ctx.user.id, input.projectId);
+      const db = requireDb();
+      // Iterate the last 30 runs; buyer_readiness runs are rare per operator,
+      // so a bounded scan is fine and avoids the SQLite JSON functions we
+      // don't have available here.
+      const rows = db
+        .select()
+        .from(aiCallLog)
+        .where(
+          and(
+            eq(aiCallLog.userId, ctx.user.id),
+            eq(aiCallLog.feature, "buyer_readiness"),
+            eq(aiCallLog.projectId, input.projectId),
+            eq(aiCallLog.status, "ok"),
+          ),
+        )
+        .orderBy(desc(aiCallLog.createdAt))
+        .limit(30)
+        .all();
+      for (const row of rows) {
+        if (!row.output || !row.metadata) continue;
+        let meta: Record<string, unknown>;
+        try {
+          meta = JSON.parse(row.metadata);
+        } catch { continue; }
+        if (meta.buyerId !== input.buyerId) continue;
+        let parsed: Record<string, unknown>;
+        try {
+          parsed = JSON.parse(row.output);
+        } catch { continue; }
+        return {
+          output: parsed,
+          createdAt: row.createdAt ? new Date(row.createdAt).getTime() : 0,
+          promptTokens: row.promptTokens ?? 0,
+          completionTokens: row.completionTokens ?? 0,
+          costUsd: row.costUsd ?? 0,
+          metadata: meta,
+        };
+      }
+      return null;
     }),
 });
 

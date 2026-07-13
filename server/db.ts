@@ -264,6 +264,10 @@ export function getDb() {
         // Nullable so it stays 100% optional; only shown in ProjectDetail
         // when the user has at least one custom methodology defined.
         { col: "projects.customMethodologyId", sql: "ALTER TABLE projects ADD COLUMN customMethodologyId INTEGER" },
+        // Persisted LLM output — lets UIs (buyer readiness, buyer match, audit
+        // exec summary) re-hydrate the last run when the operator reopens the
+        // page instead of re-charging Gemini for the same answer.
+        { col: "aiCallLog.output", sql: "ALTER TABLE aiCallLog ADD COLUMN output TEXT" },
       ];
       for (const m of migrations) {
         try {

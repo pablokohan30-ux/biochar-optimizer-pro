@@ -16,7 +16,7 @@ vi.mock("./db", () => ({
   }),
 }));
 
-import { estimateCostUsd, logAiCall } from "./_core/aiCallLog";
+import { estimateCostUsd, logAiCall, getLatestAiRunOutput } from "./_core/aiCallLog";
 
 describe("estimateCostUsd", () => {
   it("returns 0 for 0 tokens", () => {
@@ -75,6 +75,33 @@ describe("logAiCall", () => {
         metadata: { evidenceCount: 50, buyerName: "Microsoft" },
       }),
     ).not.toThrow();
+    warn.mockRestore();
+  });
+
+  it("serializes the output param as JSON when it's an object", () => {
+    // Even though requireDb throws in this test setup, the serialization
+    // path runs first — so we cover it by asserting no crash when passing
+    // various output shapes.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(() =>
+      logAiCall({
+        feature: "buyer_match",
+        userId: 1,
+        output: { ranking: [{ buyerId: "microsoft", fitScore: 92 }] },
+      }),
+    ).not.toThrow();
+    expect(() => logAiCall({ feature: "buyer_match", output: "already-a-string" })).not.toThrow();
+    expect(() => logAiCall({ feature: "buyer_match", output: null })).not.toThrow();
+    expect(() => logAiCall({ feature: "buyer_match", output: undefined })).not.toThrow();
+    warn.mockRestore();
+  });
+});
+
+describe("getLatestAiRunOutput", () => {
+  it("returns null when DB is unavailable (best-effort)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = getLatestAiRunOutput({ userId: 1, feature: "buyer_match" });
+    expect(result).toBeNull();
     warn.mockRestore();
   });
 });

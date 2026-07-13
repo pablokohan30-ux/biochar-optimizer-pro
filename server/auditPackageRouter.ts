@@ -20,7 +20,7 @@ import {
   projects, operationalEvidence, biocharShipments, communityRecords,
 } from "../drizzle/schema";
 import { invokeLLM, buildLangDirective } from "./_core/llm";
-import { logAiCall } from "./_core/aiCallLog";
+import { logAiCall, getLatestAiRunOutput } from "./_core/aiCallLog";
 import { requireTierAccess } from "./_core/access";
 
 function requireExpert(user: { role: string; subscriptionTier: string | null; subscriptionStatus: string | null }) {
@@ -291,6 +291,7 @@ Be specific. Every number you cite must be in the data above. If a category is z
           communityCount: community.length,
           buyerName: input.buyerName ?? null,
         },
+        output: { executiveSummary, totals: { evidenceCount: evidence.length, shipmentCount: shipments.length, communityCount: community.length } },
       });
 
       const packageId = `AUDIT-${project.id}-${Date.now().toString(36).toUpperCase()}`;
@@ -317,5 +318,26 @@ Be specific. Every number you cite must be in the data above. If a category is z
         community,
         tokenUsage: execSummaryTokens,
       };
+    }),
+
+  /**
+   * Return the last persisted executive summary + totals for this project.
+   * The full underlying evidence/shipments/community rows are always fetched
+   * live from their own tables — this only avoids re-running Gemini on the
+   * narrative summary when the operator reopens the page.
+   */
+  latestSummary: protectedProcedure
+    .input(z.object({ projectId: z.number().int() }))
+    .query(({ ctx, input }) => {
+      requireExpert(ctx.user);
+      assertOwnsProject(ctx.user.id, input.projectId);
+      return getLatestAiRunOutput<{
+        executiveSummary: string;
+        totals: { evidenceCount: number; shipmentCount: number; communityCount: number };
+      }>({
+        userId: ctx.user.id,
+        feature: "audit_package.exec_summary",
+        projectId: input.projectId,
+      });
     }),
 });
