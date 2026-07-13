@@ -92,6 +92,8 @@ export const projects = sqliteTable("projects", {
   // checks the user has ticked for this project. Previously lived only in
   // localStorage — this makes it sync across devices for paying users.
   manualChecks: text("manualChecks"),
+  // Optional link to a user-owned custom LCA methodology (Expert tier).
+  customMethodologyId: integer("customMethodologyId"),
   createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });

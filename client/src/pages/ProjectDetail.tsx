@@ -11,6 +11,7 @@ import ProjectMap from "@/components/ProjectMap";
 import RegionalAnalysis from "@/components/RegionalAnalysis";
 import MethodologyAssessment, { type ManualState } from "@/components/MethodologyAssessment";
 import MethodologyComparison from "@/components/MethodologyComparison";
+import CustomMethodologyPanel from "@/components/CustomMethodologyPanel";
 import SubmissionGuideButton from "@/components/SubmissionGuide";
 import GuideLink from "@/components/GuideLink";
 import PageLoader from "@/components/PageLoader";
@@ -875,6 +876,24 @@ export default function ProjectDetail() {
           manualStates={manualStates}
           onManualStatesChange={handleManualStatesChange}
         />
+
+        {/* Expert tier — user-defined methodology framework applied to this project. */}
+        {hasAccess("expert") && (
+          <div className="mt-4">
+            <CustomMethodologyPanel
+              projectId={project.id}
+              linkedMethodologyId={project.customMethodologyId ?? null}
+              manualStates={manualStates}
+              onLinkChange={(customMethodologyId) => {
+                updateMutation.mutate({
+                  id: project.id,
+                  data: { customMethodologyId },
+                });
+              }}
+              onManualStatesChange={handleManualStatesChange}
+            />
+          </div>
+        )}
 
         {/* Cross-methodology comparison — killer feature for Engineer+ */}
         <MethodologyComparison

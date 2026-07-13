@@ -248,6 +248,10 @@ export function getDb() {
         // Manual pre-assessment check states, JSON-encoded. Swaps out the old
         // localStorage-only persistence so state syncs across devices.
         { col: "projects.manualChecks", sql: "ALTER TABLE projects ADD COLUMN manualChecks TEXT" },
+        // Optional link to a user-owned custom LCA methodology (Expert tier).
+        // Nullable so it stays 100% optional; only shown in ProjectDetail
+        // when the user has at least one custom methodology defined.
+        { col: "projects.customMethodologyId", sql: "ALTER TABLE projects ADD COLUMN customMethodologyId INTEGER" },
       ];
       for (const m of migrations) {
         try {

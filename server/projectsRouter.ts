@@ -47,6 +47,7 @@ const projectInput = z.object({
   status: z.enum(["draft", "submitted", "approved", "rejected"]).optional(),
   publicVisibility: z.enum(["private", "summary", "full"]).optional(),
   publicMethodology: z.string().max(50).optional().nullable(),
+  customMethodologyId: z.number().int().nullable().optional(),
 });
 
 function requireAnalyst(tier: string | null | undefined, status: string | null | undefined) {
