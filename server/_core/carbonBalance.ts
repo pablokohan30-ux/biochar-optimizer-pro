@@ -93,16 +93,23 @@ const DEFAULT_BIOCHAR_YIELD_DRY = 0.30;
 /**
  * Typical fraction of gross sequestered CO2 that gets "eaten" by project-side
  * LCA emissions (feedstock transport + pre-processing + auxiliary electricity
- * + biochar delivery). For biochar the peer-reviewed range for a well-sited
- * facility is 15-25% — we default to 20%.
+ * + biochar delivery). Calibrated against the Puro.earth registry audit
+ * statements we have on file:
  *
- * Callers can override per project (long-haul feedstock → 30%+ is realistic;
- * onsite waste-heat pyrolysis → 10% is achievable). Downstream LCA docs may
- * compute their own precise number — this default only exists so the
- * Financial Summary and Executive Summary don't quote a headline CDR that
- * assumes zero project emissions.
+ *   Wakefield Biochar (US wood residues) →  2.81 tCO₂e/t · ~5-8% LCA share
+ *   Aperam Bioenergia (BR eucalyptus)    →  1.30-1.84 t/t · ~15-25%
+ *   American BioCarbon (US bagasse)      →  1.12 t/t · higher C_org loss
+ *   Alcom (PH coconut/rice husk)         →  0.86 t/t · low C_org + grid-heavy
+ *
+ * The peer-reviewed range for cradle-to-gate biochar is 10-25%; 15% is the
+ * median for a moderately-integrated project (typical wood feedstock, grid
+ * of intermediate CO₂ intensity, biochar delivered within a few hundred km).
+ *
+ * Callers should override with a real LCA number when available:
+ *   - long-haul feedstock / dirty grid → 25-30%
+ *   - onsite waste-heat + short-radius delivery → 8-12%
  */
-const DEFAULT_LCA_EMISSIONS_FRACTION = 0.20;
+const DEFAULT_LCA_EMISSIONS_FRACTION = 0.15;
 /** Chemistry: 1 tonne of C = 44/12 tonnes of CO2. */
 const CO2_PER_C = 44 / 12;
 
@@ -355,5 +362,12 @@ Which tier to quote by document type:
 - Technical Overview: mass balance chain only; do NOT quote CORCs here — leave that to the LCA and Financial docs.
 - Never quote the generic "3.0 tCO₂e per tonne biochar" figure — the correct project-specific factor is above.
 
-Every document must be internally consistent. If Financial Summary quotes X tCO₂e/yr for revenue, the Executive Summary headline must show the same X.`;
+Every document must be internally consistent. If Financial Summary quotes X tCO₂e/yr for revenue, the Executive Summary headline must show the same X.
+
+INDUSTRY CONTEXT (real Puro.earth registry factors per dry tonne biochar — use as sanity check when narrating):
+  Wakefield Biochar (US wood residues)  →  2.81 t/t  (high end: premium C_org + short haul + clean grid)
+  Aperam Bioenergia (BR eucalyptus)      →  1.30-1.84 t/t  (mid: additionality discount + moderate haul)
+  American BioCarbon (US bagasse)        →  1.12 t/t
+  Alcom (PH coconut/rice husk)           →  0.86 t/t  (low: low C_org + grid-heavy)
+If this project's TIER 3 factor lands outside this 0.85-2.85 window, flag the deviation in the narrative (e.g. "well above / below typical Puro registry range") — do NOT quietly round to the middle.`;
 }

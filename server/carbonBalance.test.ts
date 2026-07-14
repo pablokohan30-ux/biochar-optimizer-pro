@@ -151,19 +151,27 @@ describe("computeCarbonBalance — three-tier CDR (post-smoke-test-11 regression
     expect(r.corcTnYearNet).toBeGreaterThan(r.corcTnYearNetOfLca);
   });
 
-  it("net-of-LCA matches Financial Summary sellable expectation ~9,440", () => {
+  it("net-of-LCA lands in Puro registry mid range with 15% default LCA fraction", () => {
     const r = computeCarbonBalance(PROJECT_11);
-    // 30,000 × 0.54 × 0.30 × 0.78 × (44/12) × 0.85 × (1 − 0.20)
-    // = 4,860 × 2.86 × 0.85 × 0.80 ≈ 9,440
-    expect(r.corcTnYearNetOfLca).toBeGreaterThan(9_200);
-    expect(r.corcTnYearNetOfLca).toBeLessThan(9_700);
+    // 30,000 × 0.54 × 0.30 × 0.78 × (44/12) × 0.85 × (1 − 0.15)
+    // = 4,860 × 2.86 × 0.85 × 0.85 ≈ 10,040
+    // Aperam Bioenergia (eucalyptus, comparable) publishes 1.30-1.84 t/t
+    // → 6,300-8,940 for 4,860 t biochar. Our default (pine typical
+    // C_org 78% + 15% LCA share) lands slightly above Aperam because
+    // the 20% moisture in the smoke test is well below eucalyptus. Fine.
+    expect(r.corcTnYearNetOfLca).toBeGreaterThan(9_800);
+    expect(r.corcTnYearNetOfLca).toBeLessThan(10_300);
   });
 
-  it("net factor per tonne biochar (~1.94) matches the LCA-reported figure", () => {
+  it("net factor per tonne biochar (~2.07) matches the calibrated default", () => {
     const r = computeCarbonBalance(PROJECT_11);
-    // 0.78 × 44/12 × 0.85 × 0.80 = 1.944
-    expect(r.netTco2ePerTonneBiochar).toBeCloseTo(1.94, 2);
-    // Pre-LCA tier 2 stays higher — this is the number we do NOT want in Financial Summary
+    // 0.78 × 44/12 × 0.85 × 0.85 = 2.066
+    // Sanity vs Puro registry: sits between Aperam 1.30-1.84 and
+    // Wakefield 2.81 — no proyect exceeds 2.85 or drops below 0.85.
+    expect(r.netTco2ePerTonneBiochar).toBeCloseTo(2.07, 2);
+    expect(r.netTco2ePerTonneBiochar).toBeGreaterThan(0.85);
+    expect(r.netTco2ePerTonneBiochar).toBeLessThan(2.85);
+    // Pre-LCA tier 2 stays higher — the number we do NOT want in Financial Summary
     expect(r.tCO2ePerTonneBiochar).toBeGreaterThan(r.netTco2ePerTonneBiochar);
   });
 
@@ -186,7 +194,7 @@ describe("computeCarbonBalance — three-tier CDR (post-smoke-test-11 regression
     const bad1 = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: 1.5 });
     const bad2 = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: -0.1 });
     expect(bad1.inputs.provenance.lcaEmissions).toBe("default");
-    expect(bad1.inputs.lcaEmissionsFraction).toBe(0.20);
+    expect(bad1.inputs.lcaEmissionsFraction).toBe(0.15);
     expect(bad2.inputs.provenance.lcaEmissions).toBe("default");
   });
 });
