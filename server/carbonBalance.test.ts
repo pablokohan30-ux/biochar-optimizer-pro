@@ -133,6 +133,64 @@ describe("computeCarbonBalance — inputs & fallbacks", () => {
   });
 });
 
+describe("computeCarbonBalance — three-tier CDR (post-smoke-test-11 regression)", () => {
+  // Project 11 smoke test surfaced: LCA reported ~9,235 tCO₂e/yr net-of-LCA
+  // while Financial Summary quoted 11,800 (using tier 2). Same biochar,
+  // 28% gap in revenue/TIR. Lock down the tier separation.
+  const PROJECT_11 = {
+    capacityTnYearWet: 30_000,
+    moisturePct: 46,
+    feedstockId: "pine_sawdust",
+    biomassName: "Pine Sawdust (Pinus spp.)",
+    methodology: "puro-earth",
+  };
+
+  it("returns three distinct tiers gross → post-permanence → net-of-LCA", () => {
+    const r = computeCarbonBalance(PROJECT_11);
+    expect(r.corcTnYearGross).toBeGreaterThan(r.corcTnYearNet);
+    expect(r.corcTnYearNet).toBeGreaterThan(r.corcTnYearNetOfLca);
+  });
+
+  it("net-of-LCA matches Financial Summary sellable expectation ~9,440", () => {
+    const r = computeCarbonBalance(PROJECT_11);
+    // 30,000 × 0.54 × 0.30 × 0.78 × (44/12) × 0.85 × (1 − 0.20)
+    // = 4,860 × 2.86 × 0.85 × 0.80 ≈ 9,440
+    expect(r.corcTnYearNetOfLca).toBeGreaterThan(9_200);
+    expect(r.corcTnYearNetOfLca).toBeLessThan(9_700);
+  });
+
+  it("net factor per tonne biochar (~1.94) matches the LCA-reported figure", () => {
+    const r = computeCarbonBalance(PROJECT_11);
+    // 0.78 × 44/12 × 0.85 × 0.80 = 1.944
+    expect(r.netTco2ePerTonneBiochar).toBeCloseTo(1.94, 2);
+    // Pre-LCA tier 2 stays higher — this is the number we do NOT want in Financial Summary
+    expect(r.tCO2ePerTonneBiochar).toBeGreaterThan(r.netTco2ePerTonneBiochar);
+  });
+
+  it("respects an explicit LCA emissions override (long-haul project)", () => {
+    const clean = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: 0.10 });
+    const dirty = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: 0.30 });
+    expect(clean.corcTnYearNetOfLca).toBeGreaterThan(dirty.corcTnYearNetOfLca);
+    expect(clean.inputs.provenance.lcaEmissions).toBe("input");
+  });
+
+  it("grounding block spells out all three tiers and which one goes where", () => {
+    const r = computeCarbonBalance(PROJECT_11);
+    expect(r.groundingBlock).toMatch(/THREE TIERS/);
+    expect(r.groundingBlock).toMatch(/Financial Summary.*TIER 3/);
+    expect(r.groundingBlock).toMatch(/Executive Summary.*TIER 3/);
+    expect(r.groundingBlock).toMatch(/internally consistent/);
+  });
+
+  it("rejects an LCA fraction ≥ 1 or negative and falls back to default", () => {
+    const bad1 = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: 1.5 });
+    const bad2 = computeCarbonBalance({ ...PROJECT_11, lcaEmissionsFraction: -0.1 });
+    expect(bad1.inputs.provenance.lcaEmissions).toBe("default");
+    expect(bad1.inputs.lcaEmissionsFraction).toBe(0.20);
+    expect(bad2.inputs.provenance.lcaEmissions).toBe("default");
+  });
+});
+
 describe("deriveLabPermanence", () => {
   it("returns undefined when H:Corg is missing so caller falls back", () => {
     expect(deriveLabPermanence(null, "puro-earth")).toBeUndefined();

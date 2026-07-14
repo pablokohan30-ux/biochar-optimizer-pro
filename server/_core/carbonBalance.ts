@@ -90,6 +90,19 @@ export function deriveLabPermanence(
 const DEFAULT_C_ORG_PCT = 75;    // safe fallback for unknown biomass
 const DEFAULT_MOISTURE_PCT = 15; // typical dried feedstock
 const DEFAULT_BIOCHAR_YIELD_DRY = 0.30;
+/**
+ * Typical fraction of gross sequestered CO2 that gets "eaten" by project-side
+ * LCA emissions (feedstock transport + pre-processing + auxiliary electricity
+ * + biochar delivery). For biochar the peer-reviewed range for a well-sited
+ * facility is 15-25% — we default to 20%.
+ *
+ * Callers can override per project (long-haul feedstock → 30%+ is realistic;
+ * onsite waste-heat pyrolysis → 10% is achievable). Downstream LCA docs may
+ * compute their own precise number — this default only exists so the
+ * Financial Summary and Executive Summary don't quote a headline CDR that
+ * assumes zero project emissions.
+ */
+const DEFAULT_LCA_EMISSIONS_FRACTION = 0.20;
 /** Chemistry: 1 tonne of C = 44/12 tonnes of CO2. */
 const CO2_PER_C = 44 / 12;
 
@@ -116,6 +129,10 @@ export interface CarbonBalanceInput {
    *  fuzzy matching on the biomass name. */
   feedstockId?: string;
   biomassName?: string;
+  /** Fraction (0..1) of gross CDR that gets consumed by project LCA
+   *  emissions (transport + pre-processing + aux electricity + delivery).
+   *  Default 0.20; override with a real LCA number when available. */
+  lcaEmissionsFraction?: number;
 }
 
 export interface CarbonBalanceResult {
@@ -126,28 +143,41 @@ export interface CarbonBalanceResult {
     cOrgPct: number;
     biocharYieldDry: number;
     permanenceFactor: number;
+    lcaEmissionsFraction: number;
     /** Where each number came from — "input" (user/lab) or "default" (fallback). */
     provenance: {
       moisture: "input" | "default";
       cOrg: "input" | "typical" | "default";
       biocharYield: "input" | "default";
       permanence: "input" | "methodology" | "default";
+      lcaEmissions: "input" | "default";
     };
   };
   /** Dry biomass tonnes/year (wet × (1 - moisture/100)). */
   dryBiomassTnYear: number;
   /** Biochar tonnes/year (dry biomass × yield). */
   biocharTnYear: number;
-  /** CORCs before any project-emissions netting (gross claimable). */
+  /** Tier 1 — CO2 sequestered before any discount. Chemistry-only:
+   *  biochar × C_org × 44/12. Not sellable, just the physics ceiling. */
   corcTnYearGross: number;
-  /** CORCs after applying the methodology permanence factor.
-   *  Project-level LCA emissions (feedstock transport, aux electricity,
-   *  drying fuel, etc.) still need to be netted downstream. */
+  /** Tier 2 — after methodology permanence discount, BEFORE project-side
+   *  LCA emissions are netted. Do NOT quote this as the sellable CORC —
+   *  it still needs the LCA emissions subtraction. */
   corcTnYearNet: number;
-  /** Effective tCO2e per tonne of biochar produced for this project.
-   *  This is what the AI should quote as "carbon credit factor" instead
-   *  of the generic 3.0 t/t figure. */
+  /** Tier 3 — the number the operator can actually sell: post-permanence
+   *  AND net of project LCA emissions (feedstock transport, pre-processing,
+   *  aux electricity, biochar delivery). This is what feeds revenue and
+   *  what the Financial Summary / Executive Summary must quote. If a
+   *  downstream LCA computes a precise number, prefer that; otherwise
+   *  this default (20% LCA-emissions haircut) is the honest headline. */
+  corcTnYearNetOfLca: number;
+  /** Effective tCO2e per tonne biochar POST-permanence, PRE-LCA-emissions.
+   *  Kept for backwards compatibility; new callers should use
+   *  netTco2ePerTonneBiochar. */
   tCO2ePerTonneBiochar: number;
+  /** Effective tCO2e per tonne biochar AFTER both permanence and LCA
+   *  emissions. This is the "real" per-tonne factor for pricing and TIR. */
+  netTco2ePerTonneBiochar: number;
   /** Human-readable summary block the AI prompts embed verbatim. */
   groundingBlock: string;
 }
@@ -215,22 +245,46 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
     permanenceProvenance = "default";
   }
 
+  // ─── LCA emissions fraction (project-side haircut) ────────────────────
+  let lcaEmissionsFraction: number;
+  let lcaEmissionsProvenance: "input" | "default";
+  if (
+    input.lcaEmissionsFraction != null &&
+    input.lcaEmissionsFraction >= 0 &&
+    input.lcaEmissionsFraction < 1
+  ) {
+    lcaEmissionsFraction = input.lcaEmissionsFraction;
+    lcaEmissionsProvenance = "input";
+  } else {
+    lcaEmissionsFraction = DEFAULT_LCA_EMISSIONS_FRACTION;
+    lcaEmissionsProvenance = "default";
+  }
+
   // ─── Mass balance ─────────────────────────────────────────────────────
   const dryBiomassTnYear = wetTnYear * (1 - moisturePct / 100);
   const biocharTnYear = dryBiomassTnYear * biocharYieldDry;
 
-  // Gross CORCs before permanence discount — this is the pure stoichiometric
-  // upper bound (1 t C in biochar = 44/12 t CO2 sequestered).
+  // Tier 1 — chemistry-only ceiling. Physics upper bound, not sellable.
   const corcTnYearGross = biocharTnYear * (cOrgPct / 100) * CO2_PER_C;
+  // Tier 2 — after methodology permanence discount, BEFORE LCA emissions.
+  // Don't quote this as sellable — that's tier 3.
   const corcTnYearNet = corcTnYearGross * permanenceFactor;
+  // Tier 3 — sellable / bankable CORCs. Post-permanence AND net of
+  // project-side LCA emissions. THIS is what Financial Summary uses.
+  const corcTnYearNetOfLca = corcTnYearNet * (1 - lcaEmissionsFraction);
+
   const tCO2ePerTonneBiochar = biocharTnYear > 0
     ? corcTnYearNet / biocharTnYear
+    : 0;
+  const netTco2ePerTonneBiochar = biocharTnYear > 0
+    ? corcTnYearNetOfLca / biocharTnYear
     : 0;
 
   const groundingBlock = buildGroundingBlock({
     wetTnYear, moisturePct, dryBiomassTnYear, biocharYieldDry, biocharTnYear,
-    cOrgPct, permanenceFactor, corcTnYearGross, corcTnYearNet,
-    tCO2ePerTonneBiochar, cOrgProvenance, permanenceProvenance, moistureProvenance,
+    cOrgPct, permanenceFactor, corcTnYearGross, corcTnYearNet, corcTnYearNetOfLca,
+    tCO2ePerTonneBiochar, netTco2ePerTonneBiochar, lcaEmissionsFraction,
+    cOrgProvenance, permanenceProvenance, moistureProvenance, lcaEmissionsProvenance,
   });
 
   return {
@@ -240,18 +294,22 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
       cOrgPct,
       biocharYieldDry,
       permanenceFactor,
+      lcaEmissionsFraction,
       provenance: {
         moisture: moistureProvenance,
         cOrg: cOrgProvenance,
         biocharYield: yieldProvenance,
         permanence: permanenceProvenance,
+        lcaEmissions: lcaEmissionsProvenance,
       },
     },
     dryBiomassTnYear,
     biocharTnYear,
     corcTnYearGross,
     corcTnYearNet,
+    corcTnYearNetOfLca,
     tCO2ePerTonneBiochar,
+    netTco2ePerTonneBiochar,
     groundingBlock,
   };
 }
@@ -271,8 +329,11 @@ function buildGroundingBlock(g: {
   wetTnYear: number; moisturePct: number; dryBiomassTnYear: number;
   biocharYieldDry: number; biocharTnYear: number; cOrgPct: number;
   permanenceFactor: number; corcTnYearGross: number; corcTnYearNet: number;
-  tCO2ePerTonneBiochar: number;
+  corcTnYearNetOfLca: number;
+  tCO2ePerTonneBiochar: number; netTco2ePerTonneBiochar: number;
+  lcaEmissionsFraction: number;
   cOrgProvenance: string; permanenceProvenance: string; moistureProvenance: string;
+  lcaEmissionsProvenance: string;
 }): string {
   const yieldPct = (g.biocharYieldDry * 100).toFixed(0);
   return `CARBON BALANCE (computed deterministically in code — DO NOT recalculate; use these numbers verbatim in every document):
@@ -282,10 +343,17 @@ function buildGroundingBlock(g: {
 - Biochar yield: ${yieldPct}% of DRY biomass (NOT wet)
 - Biochar output: ${fmt(g.biocharTnYear)} tn/yr = dry biomass × ${yieldPct}%
 - Biochar organic carbon: ${g.cOrgPct.toFixed(1)}% (source: ${g.cOrgProvenance})
-- Gross CO₂ sequestered: ${fmt(g.corcTnYearGross)} tCO₂e/yr = biochar × C_org × (44/12)
-- Permanence factor: ${(g.permanenceFactor * 100).toFixed(0)}% (source: ${g.permanenceProvenance})
-- Net CORCs claimable: ${fmt(g.corcTnYearNet)} tCO₂e/yr (before subtracting project LCA emissions)
-- Effective factor: ${g.tCO2ePerTonneBiochar.toFixed(2)} tCO₂e per tonne biochar (NOT the generic 3.0 figure)
 
-If any document needs to reference biochar output, CO₂ credits or the carbon factor, quote these numbers exactly. Do not multiply, round, or re-derive them.`;
+THREE TIERS of CO₂ removal — quote the right one for each context:
+  1. Gross sequestered (physics ceiling): ${fmt(g.corcTnYearGross)} tCO₂e/yr = biochar × C_org × (44/12). Not sellable — theoretical.
+  2. Post-permanence: ${fmt(g.corcTnYearNet)} tCO₂e/yr = gross × ${(g.permanenceFactor * 100).toFixed(0)}% permanence (source: ${g.permanenceProvenance}). NOT yet net of project LCA emissions.
+  3. Net-of-LCA (SELLABLE — headline number): ${fmt(g.corcTnYearNetOfLca)} tCO₂e/yr = post-permanence × (1 − ${(g.lcaEmissionsFraction * 100).toFixed(0)}% LCA emissions haircut, source: ${g.lcaEmissionsProvenance}).
+
+Which tier to quote by document type:
+- Executive Summary, Financial Summary (revenue/TIR/NPV), Masterplan headline: quote TIER 3 (${fmt(g.corcTnYearNetOfLca)} tCO₂e/yr, factor ${g.netTco2ePerTonneBiochar.toFixed(2)} tCO₂e/t biochar). This is what actually feeds credit sales.
+- LCA report: reproduce the full chain gross → post-permanence → net-of-LCA. If the LCA computes a more precise project-side emissions number, USE THAT and note it may differ from the ${(g.lcaEmissionsFraction * 100).toFixed(0)}% default.
+- Technical Overview: mass balance chain only; do NOT quote CORCs here — leave that to the LCA and Financial docs.
+- Never quote the generic "3.0 tCO₂e per tonne biochar" figure — the correct project-specific factor is above.
+
+Every document must be internally consistent. If Financial Summary quotes X tCO₂e/yr for revenue, the Executive Summary headline must show the same X.`;
 }

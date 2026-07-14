@@ -1451,13 +1451,13 @@ Stage | Inputs | Outputs
 - Biochar delivery (diesel × EF)
 - **Total facility fossil-derived emissions (tCO2e/year)** — show calculation
 
-7. Gross Carbon Removal — use the CARBON BALANCE grounding block:
-- Gross CORCs: ${Math.round(input.carbonBalance?.corcTnYearGross ?? 0).toLocaleString()} tCO₂e/yr (computed as biochar × C_org × 44/12 using the project's actual C_org, not the generic 3.0 t/t factor)
-- Permanence factor applied: ${((input.carbonBalance?.inputs.permanenceFactor ?? 0.85) * 100).toFixed(0)}% (source: ${input.carbonBalance?.inputs.provenance.permanence ?? "methodology default"})
-- Net CORCs before project emissions: ${Math.round(input.carbonBalance?.corcTnYearNet ?? 0).toLocaleString()} tCO₂e/yr
+7. Carbon Removal — reproduce all three tiers from the CARBON BALANCE grounding block:
+- Gross CORCs (tier 1): ${Math.round(input.carbonBalance?.corcTnYearGross ?? 0).toLocaleString()} tCO₂e/yr = biochar × C_org × 44/12
+- Post-permanence (tier 2): ${Math.round(input.carbonBalance?.corcTnYearNet ?? 0).toLocaleString()} tCO₂e/yr = gross × ${((input.carbonBalance?.inputs.permanenceFactor ?? 0.85) * 100).toFixed(0)}% permanence (source: ${input.carbonBalance?.inputs.provenance.permanence ?? "methodology default"})
+- Net-of-LCA (tier 3, SELLABLE): ${Math.round(input.carbonBalance?.corcTnYearNetOfLca ?? 0).toLocaleString()} tCO₂e/yr = post-permanence × (1 − ${((input.carbonBalance?.inputs.lcaEmissionsFraction ?? 0.20) * 100).toFixed(0)}% LCA emissions haircut)
 
-8. **Net Carbon Removal (annual) = Gross Removal − Fossil Emissions**
-Express as tCO2e/year total AND tCO2e per tonne biochar produced.
+8. **Net Carbon Removal for revenue = tier 3 (net-of-LCA) above = ${Math.round(input.carbonBalance?.corcTnYearNetOfLca ?? 0).toLocaleString()} tCO₂e/yr**
+Express as tCO2e/year total AND tCO2e per tonne biochar produced. If your fossil emissions section calculated a more precise number, use that instead — it should land within a few percent of the tier-3 headline.
 
 9. Sensitivity Analysis (table):
 | Parameter | Base Case | -20% | +20% | Impact on Net Removal |
@@ -1587,7 +1587,7 @@ ${input.carbonBalance?.groundingBlock ?? ""}
 
 revenueStack at steady-state Year 3:
 - biocharAnnualTonnes: ${Math.round(input.carbonBalance?.biocharTnYear ?? input.capacityTnYear * 0.30)} (use this number exactly — it accounts for moisture-corrected dry biomass)
-- carbonCreditsAnnualTco2e: ${Math.round(input.carbonBalance?.corcTnYearNet ?? input.capacityTnYear * 0.30 * 3 * 0.85)} (use this number exactly — derived from real C_org and methodology permanence)
+- carbonCreditsAnnualTco2e: ${Math.round(input.carbonBalance?.corcTnYearNetOfLca ?? input.capacityTnYear * 0.30 * 3 * 0.85 * 0.80)} (use TIER 3 from the CARBON BALANCE — this is the sellable, net-of-LCA-emissions figure. Do NOT use the post-permanence tier 2 number; that would double-count sequestration by ignoring project transport/electricity/drying emissions and inflate revenue/TIR)
 - carbonCreditPriceUsdPerTon: use a conservative placeholder within 120-160 and state that it is not a committed commercial term
 - carbonCreditAnnualRevenueUsd: calculate
 - biocharPriceUsdPerTonne: use a conservative placeholder within 80-140 depending on end use and state that pricing remains to be validated commercially
