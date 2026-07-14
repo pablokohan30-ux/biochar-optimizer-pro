@@ -27,31 +27,53 @@ jobs:
       - name: Install Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # Retry up to 3 times to survive transient Fly.io host issues (e.g.
-      # `governor policy blocked start: mem_overcommit_exceeded` when the
-      # physical host is saturated when we try to boot a new VM). Backoff
-      # 30s then 60s between attempts — total worst-case extra wait is
-      # ~1.5 min if the first two attempts fail. The build stage is cached
-      # after the first attempt so subsequent tries only re-run the deploy
-      # step, which is where the flake happens.
+      # Retry up to 4 times with escalating backoff to survive Fly.io host
+      # issues. Two distinct failure modes we've hit:
+      #   1. `mem_overcommit_exceeded` — physical host saturated, usually
+      #      clears in a couple of minutes.
+      #   2. `lease currently held by Fly.io system` — Fly grabs the machine
+      #      lease for maintenance and holds it up to ~30 min.
+      # Backoff 60s → 5min → 10min covers both. Worst-case extra wait if
+      # every retry fails: ~16 min. The build stage is cached remotely, so
+      # retries only re-run the deploy step where the flake happens.
       - name: Deploy (rolling, build remote on Fly, with retries)
         run: |
           set -u
-          for attempt in 1 2 3; do
-            echo "::group::Attempt $attempt of 3"
+          MAX_ATTEMPTS=4
+          BACKOFFS=(0 60 300 600)
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "::group::Attempt $attempt of $MAX_ATTEMPTS"
             if flyctl deploy --remote-only --strategy rolling; then
               echo "::endgroup::"
               echo "Deploy succeeded on attempt $attempt"
               exit 0
             fi
             echo "::endgroup::"
-            if [ "$attempt" -lt 3 ]; then
-              sleep_time=$((attempt * 30))
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              sleep_time=${BACKOFFS[$attempt]}
               echo "Attempt $attempt failed. Sleeping ${sleep_time}s before retry..."
               sleep "$sleep_time"
             fi
           done
-          echo "All 3 attempts failed"
+          echo "All $MAX_ATTEMPTS attempts failed — dumping diagnostics before exit"
           exit 1
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # Dump Fly state on failure so future investigations don't need to
+      # log into flyctl manually. Recent releases show whether the image
+      # got pushed; status shows what the machine is doing right now.
+      - name: Dump Fly diagnostics on failure
+        if: failure()
+        run: |
+          echo "::group::Recent releases"
+          flyctl releases -a biochar-optimizer-pro | head -20 || true
+          echo "::endgroup::"
+          echo "::group::App status"
+          flyctl status -a biochar-optimizer-pro || true
+          echo "::endgroup::"
+          echo "::group::Recent app logs"
+          flyctl logs -a biochar-optimizer-pro --no-tail 2>&1 | tail -100 || true
+          echo "::endgroup::"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
