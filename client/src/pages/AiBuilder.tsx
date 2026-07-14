@@ -125,6 +125,12 @@ export default function AiBuilder() {
   const [overrideBiocharYieldPct, setOverrideBiocharYieldPct] = useState<number | null>(null);
   const [overrideBiocharCOrgPct, setOverrideBiocharCOrgPct] = useState<number | null>(null);
   const [overridePermanencePct, setOverridePermanencePct] = useState<number | null>(null);
+  // Moisture as an explicit override (5th field). Catalog + lab PDF already
+  // supply moisture, but operators with oven-dried feedstock (say sawdust
+  // at 8-12% vs the catalog's 46%) need to correct it without uploading a
+  // full lab — moisture is exactly the input that caused the ~2× CDR
+  // overreport bug so it earns a first-class override slot.
+  const [overrideMoisturePct, setOverrideMoisturePct] = useState<number | null>(null);
   const [labComposition, setLabComposition] = useState<
     | { C: number; H: number; O: number; N: number; S: number; ash: number; moisture: number }
     | null
@@ -378,6 +384,7 @@ export default function AiBuilder() {
       lcaEmissionsPct: overrideLcaEmissionsPct ?? undefined,
       biocharYieldPct: overrideBiocharYieldPct ?? undefined,
       permanencePct: overridePermanencePct ?? undefined,
+      moistureOverridePct: overrideMoisturePct ?? undefined,
     });
   };
 
@@ -602,9 +609,20 @@ export default function AiBuilder() {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
+                    <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideMoistureLabel", "Humedad (%)")}</label>
+                    <input
+                      type="number" min="0" max="80" step="0.01"
+                      placeholder="—"
+                      value={overrideMoisturePct ?? ""}
+                      onChange={(e) => setOverrideMoisturePct(e.target.value === "" ? null : Number(e.target.value))}
+                      className="w-full border border-input rounded px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{tb("overrideMoistureHint", "Si el catálogo/lab no refleja tu biomasa. Aserrín secado: 8-15%. Verde: 40-55%.")}</p>
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideLcaLabel", "LCA emissions (%)")}</label>
                     <input
-                      type="number" min="0" max="80" step="0.1"
+                      type="number" min="0" max="80" step="0.01"
                       placeholder="15"
                       value={overrideLcaEmissionsPct ?? ""}
                       onChange={(e) => setOverrideLcaEmissionsPct(e.target.value === "" ? null : Number(e.target.value))}
@@ -615,7 +633,7 @@ export default function AiBuilder() {
                   <div>
                     <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideYieldLabel", "Biochar yield (% base seca)")}</label>
                     <input
-                      type="number" min="10" max="60" step="0.1"
+                      type="number" min="10" max="60" step="0.01"
                       placeholder="30"
                       value={overrideBiocharYieldPct ?? ""}
                       onChange={(e) => setOverrideBiocharYieldPct(e.target.value === "" ? null : Number(e.target.value))}
@@ -626,7 +644,7 @@ export default function AiBuilder() {
                   <div>
                     <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideCOrgLabel", "Biochar C_org (%)")}</label>
                     <input
-                      type="number" min="30" max="99" step="0.1"
+                      type="number" min="30" max="99" step="0.01"
                       placeholder="—"
                       value={overrideBiocharCOrgPct ?? ""}
                       onChange={(e) => setOverrideBiocharCOrgPct(e.target.value === "" ? null : Number(e.target.value))}
@@ -637,7 +655,7 @@ export default function AiBuilder() {
                   <div>
                     <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overridePermanenceLabel", "Permanence (%)")}</label>
                     <input
-                      type="number" min="30" max="100" step="0.1"
+                      type="number" min="30" max="100" step="0.01"
                       placeholder="85"
                       value={overridePermanencePct ?? ""}
                       onChange={(e) => setOverridePermanencePct(e.target.value === "" ? null : Number(e.target.value))}

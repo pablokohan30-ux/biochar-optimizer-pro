@@ -498,6 +498,9 @@ export default function AiBuilderProject() {
                     />
                   </div>
                   <StatusBadge status={project.status} />
+                  {(project as { readinessLevel?: string }).readinessLevel && (
+                    <ReadinessBadge readinessLevel={(project as { readinessLevel?: string }).readinessLevel!} />
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
                   {completedCount > 0 && (
@@ -1159,4 +1162,33 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "complete") return <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-200"><CheckCircle2 className="w-3 h-3" /> {tb("statusComplete", "Complete")}</span>;
   if (status === "error") return <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 bg-red-50 text-red-700 text-xs rounded border border-red-200"><AlertTriangle className="w-3 h-3" /> {tb("statusError", "Error")}</span>;
   return <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded border border-indigo-200"><Clock className="w-3 h-3 animate-pulse" /> {tb("statusGenerating", "Generating")}</span>;
+}
+
+/** Rolled-up carbon-balance readiness badge. Green when every critical
+ *  input came from the operator (submittable); amber otherwise. Shows
+ *  next to the status pill so an investor sees the state before opening
+ *  the docs. */
+function ReadinessBadge({ readinessLevel }: { readinessLevel: string }) {
+  const { t } = useTranslation("common");
+  const tb = (k: string, fallback: string) => t(`aiBuilder.${k}`, { defaultValue: fallback });
+  if (readinessLevel === "submittable") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-200"
+        title={tb("readinessSubmittableTitle", "Todos los parámetros críticos (humedad, C_org, permanencia, LCA) fueron medidos u overrideados por el operador. Dossier submittable a VVB sujeto a verificación.")}
+      >
+        <CheckCircle2 className="w-3 h-3" />
+        {tb("readinessSubmittable", "Submittable a VVB")}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded border border-amber-200"
+      title={tb("readinessEstimateTitle", "Este paquete usa defaults de la industria para al menos un parámetro crítico. Cargá lab PDF o llená los overrides avanzados para elevar el estado a Submittable.")}
+    >
+      <AlertTriangle className="w-3 h-3" />
+      {tb("readinessEstimate", "Estimate — requiere validación")}
+    </span>
+  );
 }

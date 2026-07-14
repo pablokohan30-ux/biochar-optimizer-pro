@@ -286,6 +286,8 @@ export function getDb() {
         // exec summary) re-hydrate the last run when the operator reopens the
         // page instead of re-charging Gemini for the same answer.
         { col: "aiCallLog.output", sql: "ALTER TABLE aiCallLog ADD COLUMN output TEXT" },
+        // Carbon-balance readiness rollup on AI Builder projects.
+        { col: "aiGeneratedProjects.readinessLevel", sql: "ALTER TABLE aiGeneratedProjects ADD COLUMN readinessLevel TEXT DEFAULT 'estimate'" },
       ];
       for (const m of migrations) {
         try {

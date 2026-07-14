@@ -331,6 +331,10 @@ export const aiBuilderRouter = router({
         lcaEmissionsPct: z.number().min(0).max(80).optional(),
         biocharYieldPct: z.number().min(10).max(60).optional(),
         permanencePct: z.number().min(30).max(100).optional(),
+        // Explicit moisture override, priority over lab/composition. Same
+        // reasoning as the other overrides — needed for oven-dried feedstocks
+        // whose catalog moisture is misleading.
+        moistureOverridePct: z.number().min(0).max(80).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -376,6 +380,25 @@ export const aiBuilderRouter = router({
         };
       }
 
+      // Compute the carbon balance BEFORE the INSERT so we can persist
+      // the readiness rollup on the project row from the start (UI reads
+      // it for the badge without touching the docs blob).
+      const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
+      const permanenceFromOverride = input.permanencePct != null
+        ? input.permanencePct / 100
+        : deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology);
+      const carbonBalance = computeCarbonBalance({
+        capacityTnYearWet: input.capacityTnYear,
+        moisturePct: input.moistureOverridePct ?? input.biomassComposition?.moisture,
+        cOrgPct: input.biocharCOrgPct,
+        permanenceFactor: permanenceFromOverride,
+        methodology: input.targetMethodology,
+        feedstockId: input.biomassId ?? undefined,
+        biomassName: input.biomassName,
+        biocharYieldDry: input.biocharYieldPct != null ? input.biocharYieldPct / 100 : undefined,
+        lcaEmissionsFraction: input.lcaEmissionsPct != null ? input.lcaEmissionsPct / 100 : undefined,
+      });
+
       // Insert the project row in "pending" state.
       const now = new Date();
       const result = db
@@ -397,11 +420,12 @@ export const aiBuilderRouter = router({
             // Same trick for the advanced overrides — retry doc rebuilds
             // the carbon balance from these instead of falling back to
             // industry defaults.
-            overrides: (input.lcaEmissionsPct != null || input.biocharYieldPct != null || input.permanencePct != null)
+            overrides: (input.lcaEmissionsPct != null || input.biocharYieldPct != null || input.permanencePct != null || input.moistureOverridePct != null)
               ? {
                   lcaEmissionsPct: input.lcaEmissionsPct ?? null,
                   biocharYieldPct: input.biocharYieldPct ?? null,
                   permanencePct: input.permanencePct ?? null,
+                  moistureOverridePct: input.moistureOverridePct ?? null,
                 }
               : null,
           }),
@@ -411,6 +435,9 @@ export const aiBuilderRouter = router({
           offtakerType: input.offtakerType,
           targetMethodology: input.targetMethodology ?? null,
           status: "pending",
+          // Persist the readiness rollup so the UI badge doesn't need to
+          // re-run computeCarbonBalance on every list render.
+          readinessLevel: carbonBalance.readinessLevel,
           createdAt: now,
           updatedAt: now,
         })
@@ -420,27 +447,7 @@ export const aiBuilderRouter = router({
 
       // Kick off background generation. We intentionally do NOT await this —
       // the user gets the project ID back immediately and the UI polls for
-      // progress.
-      // Compute the carbon mass balance ONCE, deterministically, so every
-      // generated document embeds the same numbers as a fixed grounding
-      // block. See _core/carbonBalance.ts for the bug this closes.
-      const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
-      // Explicit user overrides beat lab-derived values which beat lookups.
-      const permanenceFromOverride = input.permanencePct != null
-        ? input.permanencePct / 100
-        : deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology);
-      const carbonBalance = computeCarbonBalance({
-        capacityTnYearWet: input.capacityTnYear,
-        moisturePct: input.biomassComposition?.moisture,
-        cOrgPct: input.biocharCOrgPct,
-        permanenceFactor: permanenceFromOverride,
-        methodology: input.targetMethodology,
-        feedstockId: input.biomassId ?? undefined,
-        biomassName: input.biomassName,
-        biocharYieldDry: input.biocharYieldPct != null ? input.biocharYieldPct / 100 : undefined,
-        lcaEmissionsFraction: input.lcaEmissionsPct != null ? input.lcaEmissionsPct / 100 : undefined,
-      });
-
+      // progress. carbonBalance already computed above the INSERT.
       const projectInput: ProjectInput = {
         projectName: input.name,
         biomass: {
@@ -1015,7 +1022,7 @@ export const aiBuilderRouter = router({
         composition?: any;
         source?: string;
         labBiochar?: { cOrgPct?: number | null; hCorgMolar?: number | null } | null;
-        overrides?: { lcaEmissionsPct?: number | null; biocharYieldPct?: number | null; permanencePct?: number | null } | null;
+        overrides?: { lcaEmissionsPct?: number | null; biocharYieldPct?: number | null; permanencePct?: number | null; moistureOverridePct?: number | null } | null;
       } = {};
       try {
         if (row.biomassData) biomassData = JSON.parse(row.biomassData);
@@ -1033,7 +1040,7 @@ export const aiBuilderRouter = router({
         : deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology);
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: row.capacityTnYear,
-        moisturePct: biomassData.composition?.moisture,
+        moisturePct: overrides?.moistureOverridePct ?? biomassData.composition?.moisture,
         cOrgPct: labBiochar?.cOrgPct ?? undefined,
         permanenceFactor: permanenceFromOverride,
         methodology: row.targetMethodology ?? undefined,

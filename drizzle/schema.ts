@@ -130,6 +130,11 @@ export const aiGeneratedProjects = sqliteTable("aiGeneratedProjects", {
   // LLM cost tracking — sum of tokens across all docs in this project.
   totalPromptTokens: integer("totalPromptTokens").default(0),
   totalCompletionTokens: integer("totalCompletionTokens").default(0),
+  // Carbon-balance readiness rollup — "submittable" when every critical
+  // input came from the operator (lab or explicit override), "estimate"
+  // otherwise. UI reads this to show the green/amber badge on the
+  // project card instead of forcing users to hunt for it in the docs.
+  readinessLevel: text("readinessLevel", { enum: ["estimate", "submittable"] }).default("estimate"),
   createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });

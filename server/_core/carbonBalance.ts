@@ -185,6 +185,17 @@ export interface CarbonBalanceResult {
   /** Effective tCO2e per tonne biochar AFTER both permanence and LCA
    *  emissions. This is the "real" per-tonne factor for pricing and TIR. */
   netTco2ePerTonneBiochar: number;
+  /** Rolled-up readiness signal for the whole balance. `submittable` means
+   *  every critical input came from the operator (lab or explicit override);
+   *  `estimate` means at least one input is a family typical or the
+   *  helper default. The AiBuilderProject UI reads this to pick between
+   *  a green "submittable" badge and an amber "estimate" one, and the
+   *  Financial Summary prompt uses it to decide whether to append
+   *  "(est.)" to every CDR figure. */
+  readinessLevel: "submittable" | "estimate";
+  /** Structured provenance rows for the "trazabilidad" table the AI
+   *  emits at the top of every doc. One row per critical parameter. */
+  provenanceTable: Array<{ parameter: string; value: string; source: "measured" | "catalog" | "typical" | "default" | "methodology" }>;
   /** Human-readable summary block the AI prompts embed verbatim. */
   groundingBlock: string;
 }
@@ -287,11 +298,31 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
     ? corcTnYearNetOfLca / biocharTnYear
     : 0;
 
+  // Readiness = every critical input measured (input) OR user override.
+  // Yield stays "default" for most operators; not treating it as
+  // submittable-blocking because 30% is peer-reviewed and rarely wrong
+  // by more than a few points. The four blockers are moisture, C_org,
+  // permanence, and LCA emissions — those are the ones a VVB actually
+  // audits per project.
+  const criticalMeasured = [moistureProvenance, cOrgProvenance, permanenceProvenance, lcaEmissionsProvenance]
+    .every((p) => p === "input");
+  const readinessLevel: "submittable" | "estimate" = criticalMeasured ? "submittable" : "estimate";
+
+  const provenanceTable: CarbonBalanceResult["provenanceTable"] = [
+    { parameter: "Biomasa procesada (wet)", value: `${fmt(wetTnYear)} tn/año`, source: "measured" },
+    { parameter: "Humedad", value: `${moisturePct.toFixed(2)}%`, source: mapProvenance(moistureProvenance) },
+    { parameter: "Biochar C_org", value: `${cOrgPct.toFixed(2)}%`, source: mapProvenance(cOrgProvenance) },
+    { parameter: "Biochar yield (dry basis)", value: `${(biocharYieldDry * 100).toFixed(1)}%`, source: mapProvenance(yieldProvenance) },
+    { parameter: "Permanence factor", value: `${(permanenceFactor * 100).toFixed(1)}%`, source: mapProvenance(permanenceProvenance) },
+    { parameter: "LCA emissions haircut", value: `${(lcaEmissionsFraction * 100).toFixed(1)}%`, source: mapProvenance(lcaEmissionsProvenance) },
+  ];
+
   const groundingBlock = buildGroundingBlock({
     wetTnYear, moisturePct, dryBiomassTnYear, biocharYieldDry, biocharTnYear,
     cOrgPct, permanenceFactor, corcTnYearGross, corcTnYearNet, corcTnYearNetOfLca,
     tCO2ePerTonneBiochar, netTco2ePerTonneBiochar, lcaEmissionsFraction,
     cOrgProvenance, permanenceProvenance, moistureProvenance, lcaEmissionsProvenance,
+    readinessLevel, provenanceTable,
   });
 
   return {
@@ -317,6 +348,8 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
     corcTnYearNetOfLca,
     tCO2ePerTonneBiochar,
     netTco2ePerTonneBiochar,
+    readinessLevel,
+    provenanceTable,
     groundingBlock,
   };
 }
@@ -330,6 +363,19 @@ function clampPct(v: number | undefined): number | null {
 
 function fmt(n: number, digits = 0): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: digits });
+}
+
+/** Maps the internal provenance token to the trazabilidad-table
+ *  vocabulary — keeps the UI/prompt view stable even if we rename
+ *  the internal enum later. */
+function mapProvenance(p: string): "measured" | "catalog" | "typical" | "default" | "methodology" {
+  switch (p) {
+    case "input": return "measured";
+    case "typical": return "typical";
+    case "methodology": return "methodology";
+    case "default": return "default";
+    default: return "default";
+  }
 }
 
 /** Human-readable qualifier appended to any number whose provenance is
@@ -387,6 +433,8 @@ function buildGroundingBlock(g: {
   lcaEmissionsFraction: number;
   cOrgProvenance: string; permanenceProvenance: string; moistureProvenance: string;
   lcaEmissionsProvenance: string;
+  readinessLevel: "submittable" | "estimate";
+  provenanceTable: Array<{ parameter: string; value: string; source: string }>;
 }): string {
   const yieldPct = (g.biocharYieldDry * 100).toFixed(0);
   const anyEstimates = hasAnyEstimates(g);
@@ -419,5 +467,18 @@ INDUSTRY CONTEXT (real Puro.earth registry factors per dry tonne biochar — use
   Aperam Bioenergia (BR eucalyptus)      →  1.30-1.84 t/t  (mid: additionality discount + moderate haul)
   American BioCarbon (US bagasse)        →  1.12 t/t
   Alcom (PH coconut/rice husk)           →  0.86 t/t  (low: low C_org + grid-heavy)
-If this project's TIER 3 factor lands outside this 0.85-2.85 window, flag the deviation in the narrative (e.g. "well above / below typical Puro registry range") — do NOT quietly round to the middle.`;
+If this project's TIER 3 factor lands outside this 0.85-2.85 window, flag the deviation in the narrative (e.g. "well above / below typical Puro registry range") — do NOT quietly round to the middle.
+
+MANDATORY: RENDER THIS TRACEABILITY TABLE AT THE TOP OF THE EXECUTIVE SUMMARY VERBATIM
+(VVBs ask for exactly this — parameter, value, and where it came from — as the very first thing they read):
+
+| Parámetro | Valor | Origen |
+|---|---|---|
+${g.provenanceTable.map((row) => `| ${row.parameter} | ${row.value} | ${row.source} |`).join("\n")}
+| Readiness level | ${g.readinessLevel === "submittable" ? "✓ SUBMITTABLE" : "⚠ ESTIMATE — requires validation"} | computed |
+
+FINANCIAL / EXECUTIVE COPY RULE — since readinessLevel is "${g.readinessLevel}":
+${g.readinessLevel === "submittable"
+    ? '  Every CDR figure may be quoted straight ("X tCO₂e/yr"). Add a small green pill/badge "SUBMITTABLE" next to the headline KPI in the Financial Summary card so an investor sees at a glance that the number is measurement-backed.'
+    : '  Every CDR figure in the Financial Summary (KPI cards, revenue tables, TIR/NPV inputs) MUST carry a visible "(est.)" or "(estimado)" suffix. Do NOT show a raw number in the KPI card — either "10,040 tCO₂e/yr (est.)" or "10,040 tCO₂e/yr · estimado, ver disclaimer arriba". A VVB will see this pass through to the investor and reject the dossier if the estimate is presented as a hard commitment.'}`;
 }
