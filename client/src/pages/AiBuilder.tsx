@@ -89,6 +89,7 @@ export default function AiBuilder() {
   const [targetMethodology, setTargetMethodology] = useState<string>("puro-earth");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isSpanish = (i18n.language ?? "").toLowerCase().startsWith("es");
 
   // Custom methodologies dropdown — only Expert users have them, and they
   // may have 0. The standard methodologies are always available.
@@ -145,13 +146,55 @@ export default function AiBuilder() {
   });
 
   const createMutation = trpc.aiBuilder.create.useMutation({
+    // Auto-retry twice on transient errors (network drop, 5xx, server
+    // rolling-deploy blackout). Prod deploys can take 30-90s between the
+    // machine draining and the new one accepting traffic; without this
+    // the first user request during that window silently drops.
+    retry: (failureCount, err) => {
+      if (failureCount >= 2) return false;
+      const msg = String(err?.message ?? "").toLowerCase();
+      const transient =
+        msg.includes("fetch") ||
+        msg.includes("network") ||
+        msg.includes("timeout") ||
+        msg.includes("aborted") ||
+        msg.includes("502") ||
+        msg.includes("503") ||
+        msg.includes("504");
+      return transient;
+    },
+    retryDelay: (attempt) => Math.min(3_000 * 2 ** attempt, 12_000),
     onSuccess: (data) => {
       setSubmitting(false);
+      // Belt-and-suspenders: an empty projectId would leave the user on a
+      // dead route ("/ai-builder/undefined") with no error — surface it as
+      // an error instead. Should never happen given the server contract,
+      // but the whole reason we're here is a bug where the UI trusted a
+      // response that never came.
+      if (!data || typeof data.projectId !== "number") {
+        setErrorMessage(
+          isSpanish
+            ? "El servidor respondió sin ID de proyecto. Probá de nuevo en unos segundos."
+            : "The server responded without a project ID. Please try again in a few seconds.",
+        );
+        return;
+      }
       navigate(`/ai-builder/${data.projectId}`);
     },
     onError: (err) => {
       setSubmitting(false);
-      setErrorMessage(err.message);
+      const msg = String(err?.message ?? "");
+      const isNetwork =
+        /fetch|network|timeout|abort|502|503|504/i.test(msg);
+      if (isNetwork) {
+        setErrorMessage(
+          isSpanish
+            ? "No pudimos alcanzar el servidor (posible deploy en curso o red inestable). Reintentamos dos veces automáticamente; probá una vez más en unos segundos."
+            : "We couldn't reach the server (possible in-flight deploy or unstable network). We retried twice automatically; try once more in a few seconds.",
+        );
+      } else {
+        setErrorMessage(msg);
+      }
     },
   });
 
