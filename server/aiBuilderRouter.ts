@@ -304,7 +304,7 @@ export const aiBuilderRouter = router({
             moisture: z.number(),
           })
           .optional(),
-        biomassSource: z.string().max(200).optional(),
+        biomassSource: z.string().max(500).optional(),
         capacityTnYear: z.number().min(1000).max(1_000_000),
         country: z.string().length(2), // ISO-2
         location: z.string().max(200).optional(),
@@ -387,9 +387,23 @@ export const aiBuilderRouter = router({
       const permanenceFromOverride = input.permanencePct != null
         ? input.permanencePct / 100
         : deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology);
+      // Track where moisture came from so the trazabilidad table doesn't
+      // mis-label a catalog value as "measured". Priority:
+      //   1. operator override (Overrides panel)                 → "override"
+      //   2. feedstock composition (catalog / lab upload preset) → "catalog"
+      //   3. nothing → helper falls back to default
+      const moistureFromCatalog = input.biomassComposition?.moisture;
+      const moistureValue = input.moistureOverridePct ?? moistureFromCatalog;
+      const moistureSource: "override" | "catalog" | undefined =
+        input.moistureOverridePct != null
+          ? "override"
+          : moistureFromCatalog != null
+            ? "catalog"
+            : undefined;
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: input.capacityTnYear,
-        moisturePct: input.moistureOverridePct ?? input.biomassComposition?.moisture,
+        moisturePct: moistureValue,
+        moistureSource,
         cOrgPct: input.biocharCOrgPct,
         permanenceFactor: permanenceFromOverride,
         methodology: input.targetMethodology,
@@ -1038,9 +1052,18 @@ export const aiBuilderRouter = router({
       const permanenceFromOverride = overrides?.permanencePct != null
         ? overrides.permanencePct / 100
         : deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology);
+      const retryMoistureFromCatalog = biomassData.composition?.moisture;
+      const retryMoistureValue = overrides?.moistureOverridePct ?? retryMoistureFromCatalog;
+      const retryMoistureSource: "override" | "catalog" | undefined =
+        overrides?.moistureOverridePct != null
+          ? "override"
+          : retryMoistureFromCatalog != null
+            ? "catalog"
+            : undefined;
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: row.capacityTnYear,
-        moisturePct: overrides?.moistureOverridePct ?? biomassData.composition?.moisture,
+        moisturePct: retryMoistureValue,
+        moistureSource: retryMoistureSource,
         cOrgPct: labBiochar?.cOrgPct ?? undefined,
         permanenceFactor: permanenceFromOverride,
         methodology: row.targetMethodology ?? undefined,

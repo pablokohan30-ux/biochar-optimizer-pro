@@ -119,6 +119,15 @@ export interface CarbonBalanceInput {
   /** Biomass moisture % on wet basis. If the lab measured it, use that;
    *  otherwise callers should pass the typical drying target. Range 0-100. */
   moisturePct?: number;
+  /** Where `moisturePct` came from. Callers MUST set this when they
+   *  actually know, so the trazabilidad table doesn't lie to VVBs.
+   *   - "override": operator entered the value in the Overrides panel or
+   *     the lab report measured it. Renders as "measured" in the table.
+   *   - "catalog":  value taken from a feedstock preset (48-feedstock
+   *     library or similar). Renders as "catalog" — NOT "measured".
+   *  Omit for backwards compat: falls back to "override" when moisturePct
+   *  is present. */
+  moistureSource?: "override" | "catalog";
   /** Biochar organic carbon content, %. From the lab if available; otherwise
    *  we look it up in TYPICAL_C_ORG_PCT by feedstock id or use the fallback. */
   cOrgPct?: number;
@@ -151,9 +160,12 @@ export interface CarbonBalanceResult {
     biocharYieldDry: number;
     permanenceFactor: number;
     lcaEmissionsFraction: number;
-    /** Where each number came from — "input" (user/lab) or "default" (fallback). */
+    /** Where each number came from. "input" = operator override or lab
+     *  measurement; "catalog" = feedstock preset (moisture only); "typical"
+     *  = feedstock-family lookup (C_org); "methodology" = tier default
+     *  (permanence); "default" = last-resort fallback. */
     provenance: {
-      moisture: "input" | "default";
+      moisture: "input" | "catalog" | "default";
       cOrg: "input" | "typical" | "default";
       biocharYield: "input" | "default";
       permanence: "input" | "methodology" | "default";
@@ -195,7 +207,11 @@ export interface CarbonBalanceResult {
   readinessLevel: "submittable" | "estimate";
   /** Structured provenance rows for the "trazabilidad" table the AI
    *  emits at the top of every doc. One row per critical parameter. */
-  provenanceTable: Array<{ parameter: string; value: string; source: "measured" | "catalog" | "typical" | "default" | "methodology" }>;
+  provenanceTable: Array<{
+    parameter: string;
+    value: string;
+    source: "measured" | "catalog" | "typical" | "default" | "methodology";
+  }>;
   /** Human-readable summary block the AI prompts embed verbatim. */
   groundingBlock: string;
 }
@@ -222,7 +238,9 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
   // ─── Moisture ─────────────────────────────────────────────────────────
   const moistureInput = clampPct(input.moisturePct);
   const moisturePct = moistureInput ?? DEFAULT_MOISTURE_PCT;
-  const moistureProvenance: "input" | "default" = moistureInput != null ? "input" : "default";
+  const moistureProvenance: "input" | "catalog" | "default" = moistureInput == null
+    ? "default"
+    : (input.moistureSource === "catalog" ? "catalog" : "input");
 
   // ─── Biochar yield ────────────────────────────────────────────────────
   const yieldInput = input.biocharYieldDry;
@@ -309,8 +327,8 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
   const readinessLevel: "submittable" | "estimate" = criticalMeasured ? "submittable" : "estimate";
 
   const provenanceTable: CarbonBalanceResult["provenanceTable"] = [
-    { parameter: "Biomasa procesada (wet)", value: `${fmt(wetTnYear)} tn/año`, source: "measured" },
-    { parameter: "Humedad", value: `${moisturePct.toFixed(2)}%`, source: mapProvenance(moistureProvenance) },
+    { parameter: "Biomass processed (wet)", value: `${fmt(wetTnYear)} t/yr`, source: "measured" },
+    { parameter: "Moisture", value: `${moisturePct.toFixed(2)}%`, source: mapProvenance(moistureProvenance) },
     { parameter: "Biochar C_org", value: `${cOrgPct.toFixed(2)}%`, source: mapProvenance(cOrgProvenance) },
     { parameter: "Biochar yield (dry basis)", value: `${(biocharYieldDry * 100).toFixed(1)}%`, source: mapProvenance(yieldProvenance) },
     { parameter: "Permanence factor", value: `${(permanenceFactor * 100).toFixed(1)}%`, source: mapProvenance(permanenceProvenance) },
@@ -371,6 +389,7 @@ function fmt(n: number, digits = 0): string {
 function mapProvenance(p: string): "measured" | "catalog" | "typical" | "default" | "methodology" {
   switch (p) {
     case "input": return "measured";
+    case "catalog": return "catalog";
     case "typical": return "typical";
     case "methodology": return "methodology";
     case "default": return "default";
@@ -472,7 +491,7 @@ If this project's TIER 3 factor lands outside this 0.85-2.85 window, flag the de
 MANDATORY: RENDER THIS TRACEABILITY TABLE AT THE TOP OF THE EXECUTIVE SUMMARY VERBATIM
 (VVBs ask for exactly this — parameter, value, and where it came from — as the very first thing they read):
 
-| Parámetro | Valor | Origen |
+| Parameter | Value | Source |
 |---|---|---|
 ${g.provenanceTable.map((row) => `| ${row.parameter} | ${row.value} | ${row.source} |`).join("\n")}
 | Readiness level | ${g.readinessLevel === "submittable" ? "✓ SUBMITTABLE" : "⚠ ESTIMATE — requires validation"} | computed |

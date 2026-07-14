@@ -252,6 +252,40 @@ describe("computeCarbonBalance — provenance visible in grounding block", () =>
     expect(r.inputs.provenance.permanence).toBe("input");
     expect(r.inputs.provenance.cOrg).toBe("input");
   });
+
+  it("labels a catalog moisture as 'catalog' in the trazabilidad table (not 'measured')", () => {
+    // Pablo's smoke test on project 15: humedad came from the feedstock
+    // preset (46% for pine sawdust) yet the trazabilidad table said
+    // "measured" — a VVB will reject a dossier that claims a catalog
+    // value as a lab measurement.
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 46,
+      moistureSource: "catalog",
+      methodology: "puro-earth",
+    });
+    expect(r.inputs.provenance.moisture).toBe("catalog");
+    const moistureRow = r.provenanceTable.find((row) => row.parameter === "Moisture");
+    expect(moistureRow?.source).toBe("catalog");
+  });
+
+  it("labels an operator-override moisture as 'measured' (input)", () => {
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 12,
+      moistureSource: "override",
+      methodology: "puro-earth",
+    });
+    expect(r.inputs.provenance.moisture).toBe("input");
+    const moistureRow = r.provenanceTable.find((row) => row.parameter === "Moisture");
+    expect(moistureRow?.source).toBe("measured");
+  });
+
+  it("emits English column headers so the table matches the rest of the doc", () => {
+    const r = computeCarbonBalance({ capacityTnYearWet: 30_000, methodology: "puro-earth" });
+    expect(r.groundingBlock).toContain("| Parameter | Value | Source |");
+    expect(r.groundingBlock).not.toContain("| Parámetro | Valor | Origen |");
+  });
 });
 
 describe("deriveLabPermanence", () => {

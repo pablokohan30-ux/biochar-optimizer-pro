@@ -47,6 +47,36 @@ function MarkdownBlock({ content }: { content: string }) {
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-muted text-foreground text-xs rounded font-mono">$1</code>');
 
+    // Tables: `| col1 | col2 |` followed by `|---|---|` separator becomes a
+    // real <table>. Otherwise the LLM's traceability table renders as raw
+    // pipes and VVBs see markdown ASCII in the exec summary. The Print
+    // version already does this — keep the two parsers in sync.
+    const preTableLines = out.split("\n");
+    const postTable: string[] = [];
+    let idx = 0;
+    while (idx < preTableLines.length) {
+      const line = preTableLines[idx];
+      const nextLine = idx + 1 < preTableLines.length ? preTableLines[idx + 1] : "";
+      if (/^\|.+\|$/.test(line.trim()) && /^\|[\s\-:|]+\|$/.test(nextLine.trim())) {
+        const headers = line.trim().slice(1, -1).split("|").map((s) => s.trim());
+        idx += 2;
+        const rows: string[][] = [];
+        while (idx < preTableLines.length && /^\|.+\|$/.test(preTableLines[idx].trim())) {
+          rows.push(preTableLines[idx].trim().slice(1, -1).split("|").map((s) => s.trim()));
+          idx++;
+        }
+        postTable.push('<div class="border border-border rounded-lg overflow-x-auto my-3">');
+        postTable.push('<table class="w-full text-xs">');
+        postTable.push('<thead class="bg-muted/40 text-muted-foreground"><tr>' + headers.map((h) => `<th class="text-left px-3 py-2 font-medium">${h}</th>`).join("") + '</tr></thead>');
+        postTable.push('<tbody class="divide-y divide-border/60">' + rows.map((r) => '<tr>' + r.map((c) => `<td class="px-3 py-2 align-top">${c}</td>`).join("") + '</tr>').join("") + '</tbody>');
+        postTable.push('</table></div>');
+        continue;
+      }
+      postTable.push(line);
+      idx++;
+    }
+    out = postTable.join("\n");
+
     // Lists: convert "- " at line start to bullet items grouped
     const lines = out.split("\n");
     const rebuilt: string[] = [];
@@ -1168,7 +1198,7 @@ function StatusBadge({ status }: { status: string }) {
  *  input came from the operator (submittable); amber otherwise. Shows
  *  next to the status pill so an investor sees the state before opening
  *  the docs. */
-function ReadinessBadge({ readinessLevel }: { readinessLevel: string }) {
+export function ReadinessBadge({ readinessLevel }: { readinessLevel: string }) {
   const { t } = useTranslation("common");
   const tb = (k: string, fallback: string) => t(`aiBuilder.${k}`, { defaultValue: fallback });
   if (readinessLevel === "submittable") {

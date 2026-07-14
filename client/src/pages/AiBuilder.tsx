@@ -25,6 +25,7 @@ import { trpc } from "@/lib/trpc";
 import { FEEDSTOCK_DB } from "@/lib/biocharModel";
 import { getFeedstockName } from "@/lib/feedstockI18n";
 import { ENGINEER_MONTHLY_USD } from "@/lib/pricingCatalog";
+import { ReadinessBadge } from "./AiBuilderProject";
 
 // ISO-2 countries we explicitly support in the grounding data.
 // Others can be entered but the AI will flag approximations.
@@ -346,11 +347,17 @@ export default function AiBuilder() {
         surfaceError("Sube un análisis de laboratorio en PDF y espera que termine la extracción antes de generar.");
         return;
       }
+      // Truncate to the schema max (500) so a chatty PDF description
+      // from Gemini doesn't 400-out the whole create. The schema was 200
+      // before Sprint 14 and rejected a 262-char source silently — kill
+      // that footgun from both ends.
+      const rawSource = labBiomassSource || "Lab analysis PDF upload";
+      const safeSource = rawSource.length > 500 ? rawSource.slice(0, 497) + "…" : rawSource;
       biomassPayload = {
         biomassId: "custom-lab",
         biomassName: labBiomassName,
         biomassComposition: labComposition,
-        biomassSource: labBiomassSource || "Lab analysis PDF upload",
+        biomassSource: safeSource,
       };
     }
 
@@ -817,6 +824,9 @@ export default function AiBuilder() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={p.status} />
+                      {p.status === "complete" && (p as { readinessLevel?: string }).readinessLevel && (
+                        <ReadinessBadge readinessLevel={(p as { readinessLevel?: string }).readinessLevel!} />
+                      )}
                       <button
                         onClick={(e) => {
                           e.preventDefault();
