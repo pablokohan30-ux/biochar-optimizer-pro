@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeCarbonBalance } from "./_core/carbonBalance";
+import { computeCarbonBalance, deriveLabPermanence } from "./_core/carbonBalance";
 
 /**
  * Regression tests for the AI Project Builder mass-balance bug reported
@@ -119,5 +119,45 @@ describe("computeCarbonBalance — inputs & fallbacks", () => {
     expect(pine.tCO2ePerTonneBiochar).toBeGreaterThan(rice.tCO2ePerTonneBiochar);
     expect(pine.inputs.cOrgPct).toBe(78);
     expect(rice.inputs.cOrgPct).toBe(55);
+  });
+
+  it("uses measured biochar C_org from the lab over the feedstock lookup", () => {
+    // Lab measured 82% on this batch — higher than pine typical 78
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 10_000,
+      feedstockId: "pine_sawdust",
+      cOrgPct: 82,
+    });
+    expect(r.inputs.cOrgPct).toBe(82);
+    expect(r.inputs.provenance.cOrg).toBe("input");
+  });
+});
+
+describe("deriveLabPermanence", () => {
+  it("returns undefined when H:Corg is missing so caller falls back", () => {
+    expect(deriveLabPermanence(null, "puro-earth")).toBeUndefined();
+    expect(deriveLabPermanence(undefined, "puro-earth")).toBeUndefined();
+    expect(deriveLabPermanence(0, "puro-earth")).toBeUndefined();
+  });
+
+  it("rejects H:Corg > 0.7 with a steep permanence discount", () => {
+    // Anything above 0.7 wouldn't certify as biochar under Puro/EBC/Verra
+    const p = deriveLabPermanence(0.75, "puro-earth");
+    expect(p).toBe(0.60);
+  });
+
+  it("gives premium permanence (0.90) for H:Corg ≤ 0.4 on Puro/EBC", () => {
+    expect(deriveLabPermanence(0.35, "puro-earth")).toBe(0.90);
+    expect(deriveLabPermanence(0.4, "ebc")).toBe(0.90);
+  });
+
+  it("gives standard permanence (0.85) for H:Corg between 0.4 and 0.7", () => {
+    expect(deriveLabPermanence(0.5, "puro-earth")).toBe(0.85);
+    expect(deriveLabPermanence(0.7, "verra-vm0044")).toBe(0.85);
+  });
+
+  it("Isometric 1000-yr tier: 0.95 when H:Corg ≤ 0.4, 0.85 otherwise", () => {
+    expect(deriveLabPermanence(0.3, "isometric")).toBe(0.95);
+    expect(deriveLabPermanence(0.5, "isometric")).toBe(0.85);
   });
 });

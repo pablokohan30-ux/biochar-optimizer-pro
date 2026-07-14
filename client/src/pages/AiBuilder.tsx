@@ -112,6 +112,11 @@ export default function AiBuilder() {
   const [labExtracting, setLabExtracting] = useState(false);
   const [labBiomassName, setLabBiomassName] = useState<string>("");
   const [labBiomassSource, setLabBiomassSource] = useState<string>("");
+  // Measured biochar-side data from the lab PDF. When present, these flow
+  // into the deterministic carbon balance on the server so C_org and
+  // permanence come from the actual batch instead of feedstock defaults.
+  const [labBiocharCOrgPct, setLabBiocharCOrgPct] = useState<number | null>(null);
+  const [labBiocharHCorgMolar, setLabBiocharHCorgMolar] = useState<number | null>(null);
   const [labComposition, setLabComposition] = useState<
     | { C: number; H: number; O: number; N: number; S: number; ash: number; moisture: number }
     | null
@@ -244,6 +249,7 @@ export default function AiBuilder() {
       });
 
       const bm = result?.biomass ?? {};
+      const bc = (result as { biochar?: { C?: number | null; HCorgMolar?: number | null } })?.biochar ?? {};
       setLabBiomassName(result?.biomassName ?? file.name.replace(/\.pdf$/i, ""));
       setLabBiomassSource(result?.source ?? "Lab analysis upload");
       setLabComposition({
@@ -255,6 +261,10 @@ export default function AiBuilder() {
         ash: bm.ash ?? 0,
         moisture: bm.moisture ?? 0,
       });
+      // Biochar-side measurements — used to override the feedstock C_org
+      // lookup and to tighten the permanence factor via H:Corg tiering.
+      setLabBiocharCOrgPct(typeof bc.C === "number" && bc.C > 0 ? bc.C : null);
+      setLabBiocharHCorgMolar(typeof bc.HCorgMolar === "number" && bc.HCorgMolar > 0 ? bc.HCorgMolar : null);
     } catch (err: any) {
       const msg = err?.message ?? String(err);
       if (msg.startsWith("UPGRADE_REQUIRED")) {
@@ -350,6 +360,11 @@ export default function AiBuilder() {
       targetMethodology: publicMethodology,
       customMethodologyId,
       lang: i18n.language,
+      // Lab-measured biochar figures — server uses these to bypass the
+      // feedstock-family C_org lookup and refine permanence via H:Corg
+      // when the operator uploaded a real lab report.
+      biocharCOrgPct: biomassMode === "labPdf" && labBiocharCOrgPct != null ? labBiocharCOrgPct : undefined,
+      biocharHCorgMolar: biomassMode === "labPdf" && labBiocharHCorgMolar != null ? labBiocharHCorgMolar : undefined,
     });
   };
 

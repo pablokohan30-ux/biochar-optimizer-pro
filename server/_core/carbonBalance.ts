@@ -58,6 +58,35 @@ const DEFAULT_PERMANENCE_BY_METHODOLOGY: Record<string, number> = {
 };
 
 const DEFAULT_PERMANENCE = 0.85;
+
+/**
+ * Given a lab-measured H:Corg molar ratio + selected methodology, derive
+ * the permanence factor. Returns undefined when the lab didn't measure
+ * H:Corg so the caller falls back to the methodology default.
+ *
+ * Ratios come from the certifiers' published tiers:
+ *   - Puro.earth / EBC / Verra VM0044: H:Corg ≤ 0.7 required, ≤ 0.4 = premium tier
+ *   - Isometric: ≤ 0.4 unlocks 1000-yr durability (higher permanence),
+ *                0.4-0.7 = 100-yr, > 0.7 = rejected
+ *
+ * We stay conservative — a bad lab reading shouldn't push permanence
+ * higher than the methodology default; only *lower* it when H:Corg is
+ * marginal, or raise it modestly when the lab proves premium tier.
+ */
+export function deriveLabPermanence(
+  hCorgMolar: number | null | undefined,
+  methodology: string | null | undefined,
+): number | undefined {
+  if (hCorgMolar == null || !Number.isFinite(hCorgMolar) || hCorgMolar <= 0) return undefined;
+  // Reject values that would be certified as non-biochar
+  if (hCorgMolar > 0.7) return 0.60; // steep discount — user has to know
+  if (methodology === "isometric") {
+    // Isometric tiers: ≤ 0.4 → 1000-yr, > 0.4 → 100-yr
+    return hCorgMolar <= 0.4 ? 0.95 : 0.85;
+  }
+  // Puro / EBC / Verra / GS: premium (0.9) for ≤ 0.4, standard (0.85) otherwise
+  return hCorgMolar <= 0.4 ? 0.90 : 0.85;
+}
 const DEFAULT_C_ORG_PCT = 75;    // safe fallback for unknown biomass
 const DEFAULT_MOISTURE_PCT = 15; // typical dried feedstock
 const DEFAULT_BIOCHAR_YIELD_DRY = 0.30;

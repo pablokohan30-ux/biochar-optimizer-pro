@@ -318,6 +318,12 @@ export const aiBuilderRouter = router({
         // Output language for the 17 docs ("en" | "es"). Falls back to "en"
         // if undefined.
         lang: z.string().optional(),
+        // Lab-measured biochar figures. When present these override the
+        // feedstock-family C_org lookup in computeCarbonBalance and drive
+        // permanence via H:Corg tiers. Only populated when the operator
+        // uploaded a real lab report; otherwise the helper falls back.
+        biocharCOrgPct: z.number().min(0).max(100).optional(),
+        biocharHCorgMolar: z.number().min(0).max(2).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -375,6 +381,12 @@ export const aiBuilderRouter = router({
             name: input.biomassName,
             composition: input.biomassComposition ?? null,
             source: input.biomassSource ?? null,
+            // Persist lab-measured biochar figures inside biomassData so
+            // retryDoc can rebuild the carbon balance without needing a
+            // schema migration. Only set when a lab PDF was uploaded.
+            labBiochar: input.biocharCOrgPct != null || input.biocharHCorgMolar != null
+              ? { cOrgPct: input.biocharCOrgPct ?? null, hCorgMolar: input.biocharHCorgMolar ?? null }
+              : null,
           }),
           capacityTnYear: input.capacityTnYear,
           country: input.country.toUpperCase(),
@@ -395,15 +407,15 @@ export const aiBuilderRouter = router({
       // Compute the carbon mass balance ONCE, deterministically, so every
       // generated document embeds the same numbers as a fixed grounding
       // block. See _core/carbonBalance.ts for the bug this closes.
-      const { computeCarbonBalance } = await import("./_core/carbonBalance");
+      const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: input.capacityTnYear,
         moisturePct: input.biomassComposition?.moisture,
-        // C_org is on the biochar side, not on biomass. If a lab PDF was
-        // uploaded upstream, extractLabAnalysis writes it into a separate
-        // biochar block — not currently threaded through this endpoint,
-        // so we let the helper fall back to the feedstock lookup.
-        cOrgPct: undefined,
+        // If a lab PDF was uploaded and it measured biochar C_org, use that
+        // instead of the feedstock-family default. Same for H:Corg → tighter
+        // permanence factor via deriveLabPermanence().
+        cOrgPct: input.biocharCOrgPct,
+        permanenceFactor: deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology),
         methodology: input.targetMethodology,
         feedstockId: input.biomassId ?? undefined,
         biomassName: input.biomassName,
@@ -978,18 +990,27 @@ export const aiBuilderRouter = router({
       const docDef = getDocDefinition(input.docId);
       if (!docDef) throw new Error("Unknown doc type");
 
-      let biomassData: { name?: string; composition?: any; source?: string } = {};
+      let biomassData: {
+        name?: string;
+        composition?: any;
+        source?: string;
+        labBiochar?: { cOrgPct?: number | null; hCorgMolar?: number | null } | null;
+      } = {};
       try {
         if (row.biomassData) biomassData = JSON.parse(row.biomassData);
       } catch {}
 
       // Recompute the carbon balance on retry so a doc that got regenerated
       // after we shipped the mass-balance fix is consistent with siblings.
-      const { computeCarbonBalance } = await import("./_core/carbonBalance");
+      // Include the lab-measured biochar figures persisted at create time
+      // so retried docs match what the original create emitted.
+      const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
+      const labBiochar = biomassData.labBiochar ?? null;
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: row.capacityTnYear,
         moisturePct: biomassData.composition?.moisture,
-        cOrgPct: undefined,
+        cOrgPct: labBiochar?.cOrgPct ?? undefined,
+        permanenceFactor: deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology),
         methodology: row.targetMethodology ?? undefined,
         feedstockId: row.biomassId ?? undefined,
         biomassName: biomassData.name,
