@@ -513,7 +513,7 @@ export default function AiBuilder() {
                   surfaceError(el.validationMessage || "La capacidad ingresada no es válida.", "ai-builder-capacity");
                 }}
               />
-              <p className="text-xs text-muted-foreground mt-1">{tb("capacityHint", "Common range: 20,000–150,000. Biochar output ≈ 30% of biomass.")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{tb("capacityHint", "Common range: 20,000–150,000 tn/yr (wet basis). Biochar output ≈ 30% of DRY biomass — moisture is subtracted first.")}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

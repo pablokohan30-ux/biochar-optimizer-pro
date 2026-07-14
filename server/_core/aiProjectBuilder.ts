@@ -430,6 +430,9 @@ export type ProjectInput = {
     name: string;
     elementalComposition?: { C: number; H: number; O: number; N: number; S: number; ash: number; moisture: number };
     source?: string; // e.g., "forestry residues", "agricultural waste"
+    /** Optional feedstock id from FEEDSTOCK_DB — used for C_org lookup when
+     *  a lab-measured value isn't available. */
+    feedstockId?: string;
   };
   capacityTnYear: number;
   country: string; // ISO-2 code
@@ -437,6 +440,12 @@ export type ProjectInput = {
   location?: string; // free-text region
   offtakerType: "investor" | "certifier" | "both";
   targetMethodology?: "puro-earth" | "isometric" | "ebc" | "verra-vm0044" | "gold-standard" | "rainbow-standard";
+  /** Deterministically computed carbon mass balance. Populated by the
+   *  router before generation kicks off; every prompt embeds these numbers
+   *  verbatim instead of recomputing from `capacityTnYear`. Optional in
+   *  the type so tests and legacy paths keep compiling, but production
+   *  callers MUST set it. See _core/carbonBalance.ts. */
+  carbonBalance?: import("./carbonBalance").CarbonBalanceResult;
   // Output language for the generated docs ("en" | "es"). Falls back to "en"
   // when undefined so existing behaviour stays the same for callers that
   // haven't been updated.
@@ -784,9 +793,9 @@ OPEX major contributors (% of total annual OPEX, typical):
 Pyrolysis equipment options matched to your capacity (${input.capacityTnYear} tn/yr ≈ ${targetKgH} kg/h biochar output):
 ${pyrolyzerList}
 
-Carbon credit factor: 3 tCO2e of credits per tonne of biochar produced (Puro.earth standard factor; adjust for actual permanence factor).
+Carbon credit factor: derive per project from the CARBON BALANCE grounding block above (biochar C_org × 44/12 × permanence). DO NOT use the generic "3 tCO2e per tonne biochar" figure — it is a theoretical ceiling and inflates real-world CORCs.
 
-Biochar yield: 25-35% by weight (dry basis) depending on biomass and process. Typical: 30%.
+Biochar yield: 25-35% by weight on DRY biomass (NOT wet). Typical: 30%. Wet biomass must be corrected for moisture first: dry = wet × (1 − moisture%).
 
 Critical: when citing numbers, explicitly note if they are "estimated", "approximation" or "benchmark". Do NOT present generated figures as contractually binding.`;
 }
@@ -814,8 +823,9 @@ CRITICAL RULES:
 11. When discussing economics, use conservative benchmark ranges and state that they are placeholder assumptions until vendor quotes, site conditions, and commercialization terms are confirmed.
 12. If you recommend a technology, methodology, or execution path, frame it as a provisional working hypothesis and state the main validation gaps.
 13. If the output language is Spanish, translate section subtitles, governance labels, team names, and role labels into natural Spanish instead of leaving English placeholders or job titles.
+14. Carbon mass balance is COMPUTED IN CODE and provided below as a fixed grounding block. Every reference to biochar output, CO₂ sequestered, CORC volumes, or the tCO₂e-per-tonne factor MUST quote those numbers exactly. Do NOT re-derive them from biomass capacity, and do NOT use the generic "3.0 tCO₂e per tonne biochar" figure — the correct project-specific factor is in the grounding block.
 
-${groundingBlock(input)}${buildLangDirective(input.lang)}`;
+${input.carbonBalance ? input.carbonBalance.groundingBlock + "\n\n" : ""}${groundingBlock(input)}${buildLangDirective(input.lang)}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1129,7 +1139,7 @@ Sections (use ## headings):
 1. Project Location — location summary (${input.location ?? input.countryName}), site characteristics, proximity to feedstock
 2. Project Capacity by Phases
    - Stage 1: 60-70% of target capacity
-     * Biomass tonnes/year, Biochar production, CO2e credits (use 3 tCO2e per tonne biochar factor, discounted 15% for permanence buffer)
+     * Biomass tonnes/year, Biochar production, CO2e credits — quote the project-specific factor from the CARBON BALANCE grounding block (${input.carbonBalance?.tCO2ePerTonneBiochar.toFixed(2) ?? "computed"} tCO₂e per tonne biochar, NOT the generic 3.0)
    - Stage 2: Full Phase 1 capacity = ${input.capacityTnYear.toLocaleString()} tn/yr
    - Optional Expansion: Additional capacity (~2x Phase 1) only as a conditional future pathway
    - Total Project capacity table
@@ -1400,7 +1410,7 @@ const lcaReport: DocDefinition = {
 - Target methodology: ${input.targetMethodology ?? "Puro.earth"}
 
 Frame the LCA under the selected target methodology. Methodology-specific notes:
-- puro-earth: Puro.earth CORC Ed. 2025 biochar methodology, 3 tCO2e/t biochar standard factor, 85-95% permanence.
+- puro-earth: Puro.earth CORC Ed. 2025 biochar methodology, 85-95% permanence. Do NOT quote "3 tCO2e/t biochar" as a generic factor — use the project-specific tCO₂e-per-tonne value from the CARBON BALANCE block, which accounts for the biochar's actual C_org content.
 - isometric: Isometric biochar protocol, stricter permanence evidence (molar H/Corg × char temperature × lab analysis), per-batch MRV required.
 - ebc: European Biochar Certificate (C-Sink Global), ISO 14067 cradle-to-gate, H/Corg < 0.7 mandatory.
 - verra-vm0044: VCS VM0044 methodology, requires baseline scenario and additionality argument, permanence via IPCC 2019 framework.
@@ -1425,7 +1435,7 @@ Sections (## headings):
 Stage | Inputs | Outputs
 - Feedstock reception → biomass tonnes/year
 - Pre-treatment (shredding, drying, pelletizing) → dried/pelletized biomass
-- Pyrolysis → biochar (30% yield) + syngas + bio-oil + flue gas
+- Pyrolysis → biochar (30% yield on DRY biomass — NOT on wet input) + syngas + bio-oil + flue gas
 - Internal handling → biochar ready for dispatch
 
 5. Energy Balance (annual):
@@ -1441,9 +1451,10 @@ Stage | Inputs | Outputs
 - Biochar delivery (diesel × EF)
 - **Total facility fossil-derived emissions (tCO2e/year)** — show calculation
 
-7. Gross Carbon Removal:
-- Biochar production (tonnes/year) × 3 tCO2e per tonne biochar (Puro.earth standard factor; adjust per the selected methodology: Isometric uses batch-specific stoichiometric factor from H/Corg, Rainbow requires declared permanence horizon, Verra VM0044 applies IPCC framework)
-- Permanence factor adjustment: multiply by permanence (typically 0.85-0.95 for biochar, methodology-specific bounds apply)
+7. Gross Carbon Removal — use the CARBON BALANCE grounding block:
+- Gross CORCs: ${Math.round(input.carbonBalance?.corcTnYearGross ?? 0).toLocaleString()} tCO₂e/yr (computed as biochar × C_org × 44/12 using the project's actual C_org, not the generic 3.0 t/t factor)
+- Permanence factor applied: ${((input.carbonBalance?.inputs.permanenceFactor ?? 0.85) * 100).toFixed(0)}% (source: ${input.carbonBalance?.inputs.provenance.permanence ?? "methodology default"})
+- Net CORCs before project emissions: ${Math.round(input.carbonBalance?.corcTnYearNet ?? 0).toLocaleString()} tCO₂e/yr
 
 8. **Net Carbon Removal (annual) = Gross Removal − Fossil Emissions**
 Express as tCO2e/year total AND tCO2e per tonne biochar produced.
@@ -1572,9 +1583,11 @@ opex (annual, at steady state):
 - annualTotalUsd: roughly 40-60% of CAPEX / year at full operation
 - breakdown: {Feedstock procurement (30-45%), Labor (20-30%), Maintenance & spares (10-15%), Electricity & utilities (8-12%), Certification & MRV (3-5%), Insurance & admin (5-10%)}. Each with annual USD, percentage, notes.
 
+${input.carbonBalance?.groundingBlock ?? ""}
+
 revenueStack at steady-state Year 3:
-- biocharAnnualTonnes: ${input.capacityTnYear * 0.30} (30% yield)
-- carbonCreditsAnnualTco2e: ${Math.round(input.capacityTnYear * 0.30 * 3 * 0.85)} (3 tCO2e/tonne biochar × 85% permanence factor)
+- biocharAnnualTonnes: ${Math.round(input.carbonBalance?.biocharTnYear ?? input.capacityTnYear * 0.30)} (use this number exactly — it accounts for moisture-corrected dry biomass)
+- carbonCreditsAnnualTco2e: ${Math.round(input.carbonBalance?.corcTnYearNet ?? input.capacityTnYear * 0.30 * 3 * 0.85)} (use this number exactly — derived from real C_org and methodology permanence)
 - carbonCreditPriceUsdPerTon: use a conservative placeholder within 120-160 and state that it is not a committed commercial term
 - carbonCreditAnnualRevenueUsd: calculate
 - biocharPriceUsdPerTonne: use a conservative placeholder within 80-140 depending on end use and state that pricing remains to be validated commercially

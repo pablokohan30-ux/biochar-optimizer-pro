@@ -392,12 +392,30 @@ export const aiBuilderRouter = router({
       // Kick off background generation. We intentionally do NOT await this —
       // the user gets the project ID back immediately and the UI polls for
       // progress.
+      // Compute the carbon mass balance ONCE, deterministically, so every
+      // generated document embeds the same numbers as a fixed grounding
+      // block. See _core/carbonBalance.ts for the bug this closes.
+      const { computeCarbonBalance } = await import("./_core/carbonBalance");
+      const carbonBalance = computeCarbonBalance({
+        capacityTnYearWet: input.capacityTnYear,
+        moisturePct: input.biomassComposition?.moisture,
+        // C_org is on the biochar side, not on biomass. If a lab PDF was
+        // uploaded upstream, extractLabAnalysis writes it into a separate
+        // biochar block — not currently threaded through this endpoint,
+        // so we let the helper fall back to the feedstock lookup.
+        cOrgPct: undefined,
+        methodology: input.targetMethodology,
+        feedstockId: input.biomassId ?? undefined,
+        biomassName: input.biomassName,
+      });
+
       const projectInput: ProjectInput = {
         projectName: input.name,
         biomass: {
           name: input.biomassName,
           elementalComposition: input.biomassComposition,
           source: input.biomassSource,
+          feedstockId: input.biomassId ?? undefined,
         },
         capacityTnYear: input.capacityTnYear,
         country: input.country.toUpperCase(),
@@ -407,6 +425,7 @@ export const aiBuilderRouter = router({
         targetMethodology: input.targetMethodology,
         customMethodology: customMethodologyPayload,
         lang: input.lang,
+        carbonBalance,
       };
 
       // Fire and forget
@@ -964,12 +983,25 @@ export const aiBuilderRouter = router({
         if (row.biomassData) biomassData = JSON.parse(row.biomassData);
       } catch {}
 
+      // Recompute the carbon balance on retry so a doc that got regenerated
+      // after we shipped the mass-balance fix is consistent with siblings.
+      const { computeCarbonBalance } = await import("./_core/carbonBalance");
+      const carbonBalance = computeCarbonBalance({
+        capacityTnYearWet: row.capacityTnYear,
+        moisturePct: biomassData.composition?.moisture,
+        cOrgPct: undefined,
+        methodology: row.targetMethodology ?? undefined,
+        feedstockId: row.biomassId ?? undefined,
+        biomassName: biomassData.name,
+      });
+
       const projectInput: ProjectInput = {
         projectName: row.name,
         biomass: {
           name: biomassData.name ?? "Unknown biomass",
           elementalComposition: biomassData.composition,
           source: biomassData.source,
+          feedstockId: row.biomassId ?? undefined,
         },
         capacityTnYear: row.capacityTnYear,
         country: row.country,
@@ -979,6 +1011,7 @@ export const aiBuilderRouter = router({
         targetMethodology:
           (row.targetMethodology as ProjectInput["targetMethodology"]) ?? undefined,
         lang: input.lang,
+        carbonBalance,
         // NOTE: retry doesn't re-fetch the custom methodology — if you deleted
         // or edited it, the retried doc uses the edited version. That's the
         // intended behavior (edit your methodology, retry the doc to regenerate).
