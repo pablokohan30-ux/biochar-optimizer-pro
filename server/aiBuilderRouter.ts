@@ -324,6 +324,13 @@ export const aiBuilderRouter = router({
         // uploaded a real lab report; otherwise the helper falls back.
         biocharCOrgPct: z.number().min(0).max(100).optional(),
         biocharHCorgMolar: z.number().min(0).max(2).optional(),
+        // Advanced overrides from the AiBuilder form's "Overrides" section —
+        // for operators with prior LCA/pyrolyzer study data. Wired into
+        // computeCarbonBalance below with input-tier provenance so the
+        // grounding block stops labelling them as defaults.
+        lcaEmissionsPct: z.number().min(0).max(80).optional(),
+        biocharYieldPct: z.number().min(10).max(60).optional(),
+        permanencePct: z.number().min(30).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -387,6 +394,16 @@ export const aiBuilderRouter = router({
             labBiochar: input.biocharCOrgPct != null || input.biocharHCorgMolar != null
               ? { cOrgPct: input.biocharCOrgPct ?? null, hCorgMolar: input.biocharHCorgMolar ?? null }
               : null,
+            // Same trick for the advanced overrides — retry doc rebuilds
+            // the carbon balance from these instead of falling back to
+            // industry defaults.
+            overrides: (input.lcaEmissionsPct != null || input.biocharYieldPct != null || input.permanencePct != null)
+              ? {
+                  lcaEmissionsPct: input.lcaEmissionsPct ?? null,
+                  biocharYieldPct: input.biocharYieldPct ?? null,
+                  permanencePct: input.permanencePct ?? null,
+                }
+              : null,
           }),
           capacityTnYear: input.capacityTnYear,
           country: input.country.toUpperCase(),
@@ -408,17 +425,20 @@ export const aiBuilderRouter = router({
       // generated document embeds the same numbers as a fixed grounding
       // block. See _core/carbonBalance.ts for the bug this closes.
       const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
+      // Explicit user overrides beat lab-derived values which beat lookups.
+      const permanenceFromOverride = input.permanencePct != null
+        ? input.permanencePct / 100
+        : deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology);
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: input.capacityTnYear,
         moisturePct: input.biomassComposition?.moisture,
-        // If a lab PDF was uploaded and it measured biochar C_org, use that
-        // instead of the feedstock-family default. Same for H:Corg → tighter
-        // permanence factor via deriveLabPermanence().
         cOrgPct: input.biocharCOrgPct,
-        permanenceFactor: deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology),
+        permanenceFactor: permanenceFromOverride,
         methodology: input.targetMethodology,
         feedstockId: input.biomassId ?? undefined,
         biomassName: input.biomassName,
+        biocharYieldDry: input.biocharYieldPct != null ? input.biocharYieldPct / 100 : undefined,
+        lcaEmissionsFraction: input.lcaEmissionsPct != null ? input.lcaEmissionsPct / 100 : undefined,
       });
 
       const projectInput: ProjectInput = {
@@ -995,6 +1015,7 @@ export const aiBuilderRouter = router({
         composition?: any;
         source?: string;
         labBiochar?: { cOrgPct?: number | null; hCorgMolar?: number | null } | null;
+        overrides?: { lcaEmissionsPct?: number | null; biocharYieldPct?: number | null; permanencePct?: number | null } | null;
       } = {};
       try {
         if (row.biomassData) biomassData = JSON.parse(row.biomassData);
@@ -1006,14 +1027,20 @@ export const aiBuilderRouter = router({
       // so retried docs match what the original create emitted.
       const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
       const labBiochar = biomassData.labBiochar ?? null;
+      const overrides = biomassData.overrides ?? null;
+      const permanenceFromOverride = overrides?.permanencePct != null
+        ? overrides.permanencePct / 100
+        : deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology);
       const carbonBalance = computeCarbonBalance({
         capacityTnYearWet: row.capacityTnYear,
         moisturePct: biomassData.composition?.moisture,
         cOrgPct: labBiochar?.cOrgPct ?? undefined,
-        permanenceFactor: deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology),
+        permanenceFactor: permanenceFromOverride,
         methodology: row.targetMethodology ?? undefined,
         feedstockId: row.biomassId ?? undefined,
         biomassName: biomassData.name,
+        biocharYieldDry: overrides?.biocharYieldPct != null ? overrides.biocharYieldPct / 100 : undefined,
+        lcaEmissionsFraction: overrides?.lcaEmissionsPct != null ? overrides.lcaEmissionsPct / 100 : undefined,
       });
 
       const projectInput: ProjectInput = {

@@ -117,6 +117,14 @@ export default function AiBuilder() {
   // permanence come from the actual batch instead of feedstock defaults.
   const [labBiocharCOrgPct, setLabBiocharCOrgPct] = useState<number | null>(null);
   const [labBiocharHCorgMolar, setLabBiocharHCorgMolar] = useState<number | null>(null);
+  // Advanced overrides — for users with prior LCA study or pyrolyzer
+  // performance data. Undefined means "use the helper default"; a value
+  // means "trust this input". Kept optional to preserve the low-friction
+  // flow for first-time users.
+  const [overrideLcaEmissionsPct, setOverrideLcaEmissionsPct] = useState<number | null>(null);
+  const [overrideBiocharYieldPct, setOverrideBiocharYieldPct] = useState<number | null>(null);
+  const [overrideBiocharCOrgPct, setOverrideBiocharCOrgPct] = useState<number | null>(null);
+  const [overridePermanencePct, setOverridePermanencePct] = useState<number | null>(null);
   const [labComposition, setLabComposition] = useState<
     | { C: number; H: number; O: number; N: number; S: number; ash: number; moisture: number }
     | null
@@ -362,9 +370,14 @@ export default function AiBuilder() {
       lang: i18n.language,
       // Lab-measured biochar figures — server uses these to bypass the
       // feedstock-family C_org lookup and refine permanence via H:Corg
-      // when the operator uploaded a real lab report.
-      biocharCOrgPct: biomassMode === "labPdf" && labBiocharCOrgPct != null ? labBiocharCOrgPct : undefined,
+      // when the operator uploaded a real lab report. Manual overrides
+      // (from the advanced section) take precedence over the lab values.
+      biocharCOrgPct: overrideBiocharCOrgPct
+        ?? (biomassMode === "labPdf" && labBiocharCOrgPct != null ? labBiocharCOrgPct : undefined),
       biocharHCorgMolar: biomassMode === "labPdf" && labBiocharHCorgMolar != null ? labBiocharHCorgMolar : undefined,
+      lcaEmissionsPct: overrideLcaEmissionsPct ?? undefined,
+      biocharYieldPct: overrideBiocharYieldPct ?? undefined,
+      permanencePct: overridePermanencePct ?? undefined,
     });
   };
 
@@ -573,6 +586,68 @@ export default function AiBuilder() {
               />
               <p className="text-xs text-muted-foreground mt-1">{tb("capacityHint", "Common range: 20,000–150,000 tn/yr (wet basis). Biochar output ≈ 30% of DRY biomass — moisture is subtracted first.")}</p>
             </div>
+
+            {/* Advanced overrides — collapsed by default. For operators with
+                real LCA / pyrolyzer study data that would otherwise be
+                replaced by industry defaults, so the generated dossier can
+                use measured values instead of estimates. */}
+            <details className="border border-input rounded-lg group">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-foreground/90 select-none list-none flex items-center justify-between hover:bg-muted/40">
+                <span>{tb("overridesSummary", "Overrides avanzados (opcional) — para reemplazar defaults con mediciones reales del proyecto")}</span>
+                <span className="text-xs text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="px-4 pb-4 pt-2 border-t border-input space-y-3 bg-muted/20">
+                <p className="text-[11px] text-muted-foreground">
+                  {tb("overridesDescription", "Sin valores acá, el helper usa: 15% LCA emissions (media Puro registry), 30% yield (peer-reviewed), C_org típico por familia, 85% permanencia. Cuando el paquete se genera con defaults, cada documento lleva un disclaimer indicando qué números requieren validación antes del envío a VVB. Metá los valores medidos si tenés estudio propio.")}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideLcaLabel", "LCA emissions (%)")}</label>
+                    <input
+                      type="number" min="0" max="80" step="0.1"
+                      placeholder="15"
+                      value={overrideLcaEmissionsPct ?? ""}
+                      onChange={(e) => setOverrideLcaEmissionsPct(e.target.value === "" ? null : Number(e.target.value))}
+                      className="w-full border border-input rounded px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{tb("overrideLcaHint", "Rango real 5-30%. Aperam 15-25%, Wakefield ~7%.")}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideYieldLabel", "Biochar yield (% base seca)")}</label>
+                    <input
+                      type="number" min="10" max="60" step="0.1"
+                      placeholder="30"
+                      value={overrideBiocharYieldPct ?? ""}
+                      onChange={(e) => setOverrideBiocharYieldPct(e.target.value === "" ? null : Number(e.target.value))}
+                      className="w-full border border-input rounded px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{tb("overrideYieldHint", "Rango típico 25-35% según reactor y temperatura.")}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overrideCOrgLabel", "Biochar C_org (%)")}</label>
+                    <input
+                      type="number" min="30" max="99" step="0.1"
+                      placeholder="—"
+                      value={overrideBiocharCOrgPct ?? ""}
+                      onChange={(e) => setOverrideBiocharCOrgPct(e.target.value === "" ? null : Number(e.target.value))}
+                      className="w-full border border-input rounded px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{tb("overrideCOrgHint", "Si subiste lab PDF ya viene de ahí. Sólo llenar para overridear.")}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/80 mb-1">{tb("overridePermanenceLabel", "Permanence (%)")}</label>
+                    <input
+                      type="number" min="30" max="100" step="0.1"
+                      placeholder="85"
+                      value={overridePermanencePct ?? ""}
+                      onChange={(e) => setOverridePermanencePct(e.target.value === "" ? null : Number(e.target.value))}
+                      className="w-full border border-input rounded px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{tb("overridePermanenceHint", "Default Puro 85%. Iso 90%. Con H:Corg ≤ 0.4 medido → 90-95%.")}</p>
+                  </div>
+                </div>
+              </div>
+            </details>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Country */}

@@ -332,6 +332,52 @@ function fmt(n: number, digits = 0): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
+/** Human-readable qualifier appended to any number whose provenance is
+ *  a default or a family typical, so the AI narrative doesn't present
+ *  estimated values as measured facts. VVBs reject dossiers that claim
+ *  CDR headline figures without a project-specific study — being loud
+ *  about what's a placeholder is the whole point. */
+function provenanceQualifier(provenance: string): string {
+  switch (provenance) {
+    case "input":
+      return "measured";
+    case "methodology":
+      return "methodology default, no batch measurement";
+    case "typical":
+      return "feedstock-family typical, no lab measurement";
+    case "default":
+      return "ESTIMATE — no project-specific data, requires validation before VVB submission";
+    default:
+      return provenance;
+  }
+}
+
+/** True if any headline input for a tier is not measured. Used to trigger
+ *  a prominent disclaimer at the top of every doc that quotes CORCs. */
+function hasAnyEstimates(g: { cOrgProvenance: string; permanenceProvenance: string; lcaEmissionsProvenance: string; moistureProvenance: string }): boolean {
+  return [g.cOrgProvenance, g.permanenceProvenance, g.lcaEmissionsProvenance, g.moistureProvenance].some((p) => p !== "input");
+}
+
+/** Comma-separated list of the inputs the operator actually measured for this project. */
+function listMeasured(g: { cOrgProvenance: string; permanenceProvenance: string; lcaEmissionsProvenance: string; moistureProvenance: string }): string {
+  const parts: string[] = [];
+  if (g.moistureProvenance === "input") parts.push("moisture");
+  if (g.cOrgProvenance === "input") parts.push("biochar C_org");
+  if (g.permanenceProvenance === "input") parts.push("permanence factor (from H:Corg)");
+  if (g.lcaEmissionsProvenance === "input") parts.push("LCA emissions fraction");
+  return parts.length ? parts.join(", ") : "biomass capacity only";
+}
+
+/** Comma-separated list of the inputs that are still using industry defaults or family typicals. */
+function listEstimates(g: { cOrgProvenance: string; permanenceProvenance: string; lcaEmissionsProvenance: string; moistureProvenance: string }): string {
+  const parts: string[] = [];
+  if (g.moistureProvenance !== "input") parts.push(`moisture (${g.moistureProvenance})`);
+  if (g.cOrgProvenance !== "input") parts.push(`biochar C_org (${g.cOrgProvenance})`);
+  if (g.permanenceProvenance !== "input") parts.push(`permanence factor (${g.permanenceProvenance})`);
+  if (g.lcaEmissionsProvenance !== "input") parts.push(`LCA emissions fraction (${g.lcaEmissionsProvenance})`);
+  return parts.join(", ");
+}
+
 function buildGroundingBlock(g: {
   wetTnYear: number; moisturePct: number; dryBiomassTnYear: number;
   biocharYieldDry: number; biocharTnYear: number; cOrgPct: number;
@@ -343,18 +389,22 @@ function buildGroundingBlock(g: {
   lcaEmissionsProvenance: string;
 }): string {
   const yieldPct = (g.biocharYieldDry * 100).toFixed(0);
+  const anyEstimates = hasAnyEstimates(g);
+  const disclaimerBanner = anyEstimates
+    ? `\n⚠ MANDATORY DISCLAIMER — the CDR headline in this document mixes measured and estimated inputs. Every document that quotes a CORC or per-tonne factor MUST include the following disclaimer, verbatim, near the number:\n"This CDR estimate combines measured inputs (${listMeasured(g)}) with industry-typical assumptions (${listEstimates(g)}). Project-specific validation of the estimated values is required before VVB submission — the numbers below are indicative, not certifiable as reported."\n`
+    : `\n✓ All inputs are project-measured (from lab report or operator study). This CDR figure is submittable subject to standard VVB verification.\n`;
   return `CARBON BALANCE (computed deterministically in code — DO NOT recalculate; use these numbers verbatim in every document):
-- Wet biomass processed: ${fmt(g.wetTnYear)} tn/yr (operator input)
-- Moisture content: ${g.moisturePct.toFixed(1)}% (source: ${g.moistureProvenance})
+- Wet biomass processed: ${fmt(g.wetTnYear)} tn/yr (measured)
+- Moisture content: ${g.moisturePct.toFixed(1)}% (${provenanceQualifier(g.moistureProvenance)})
 - Dry biomass: ${fmt(g.dryBiomassTnYear)} tn/yr = wet × (1 − moisture)
 - Biochar yield: ${yieldPct}% of DRY biomass (NOT wet)
 - Biochar output: ${fmt(g.biocharTnYear)} tn/yr = dry biomass × ${yieldPct}%
-- Biochar organic carbon: ${g.cOrgPct.toFixed(1)}% (source: ${g.cOrgProvenance})
-
+- Biochar organic carbon: ${g.cOrgPct.toFixed(1)}% (${provenanceQualifier(g.cOrgProvenance)})
+${disclaimerBanner}
 THREE TIERS of CO₂ removal — quote the right one for each context:
   1. Gross sequestered (physics ceiling): ${fmt(g.corcTnYearGross)} tCO₂e/yr = biochar × C_org × (44/12). Not sellable — theoretical.
-  2. Post-permanence: ${fmt(g.corcTnYearNet)} tCO₂e/yr = gross × ${(g.permanenceFactor * 100).toFixed(0)}% permanence (source: ${g.permanenceProvenance}). NOT yet net of project LCA emissions.
-  3. Net-of-LCA (SELLABLE — headline number): ${fmt(g.corcTnYearNetOfLca)} tCO₂e/yr = post-permanence × (1 − ${(g.lcaEmissionsFraction * 100).toFixed(0)}% LCA emissions haircut, source: ${g.lcaEmissionsProvenance}).
+  2. Post-permanence: ${fmt(g.corcTnYearNet)} tCO₂e/yr = gross × ${(g.permanenceFactor * 100).toFixed(0)}% permanence (${provenanceQualifier(g.permanenceProvenance)}). NOT yet net of project LCA emissions.
+  3. Net-of-LCA (SELLABLE — headline number): ${fmt(g.corcTnYearNetOfLca)} tCO₂e/yr = post-permanence × (1 − ${(g.lcaEmissionsFraction * 100).toFixed(0)}% LCA emissions haircut, ${provenanceQualifier(g.lcaEmissionsProvenance)}).
 
 Which tier to quote by document type:
 - Executive Summary, Financial Summary (revenue/TIR/NPV), Masterplan headline: quote TIER 3 (${fmt(g.corcTnYearNetOfLca)} tCO₂e/yr, factor ${g.netTco2ePerTonneBiochar.toFixed(2)} tCO₂e/t biochar). This is what actually feeds credit sales.

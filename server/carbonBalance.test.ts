@@ -199,6 +199,61 @@ describe("computeCarbonBalance — three-tier CDR (post-smoke-test-11 regression
   });
 });
 
+describe("computeCarbonBalance — provenance visible in grounding block", () => {
+  it("emits the MANDATORY DISCLAIMER when any value is estimated", () => {
+    // Nothing measured — just capacity + methodology
+    const r = computeCarbonBalance({ capacityTnYearWet: 30_000, methodology: "puro-earth" });
+    expect(r.groundingBlock).toMatch(/MANDATORY DISCLAIMER/);
+    expect(r.groundingBlock).toMatch(/indicative, not certifiable/);
+    // Must list which inputs are estimates (not measured)
+    expect(r.groundingBlock).toMatch(/moisture \(default\)/);
+    expect(r.groundingBlock).toMatch(/permanence factor \(methodology\)/);
+    expect(r.groundingBlock).toMatch(/LCA emissions fraction \(default\)/);
+  });
+
+  it("switches to the submittable banner when every input is measured", () => {
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 12,        // measured
+      cOrgPct: 85,            // lab
+      permanenceFactor: 0.90, // explicit / measured
+      lcaEmissionsFraction: 0.08, // real LCA
+      methodology: "puro-earth",
+    });
+    expect(r.groundingBlock).toMatch(/All inputs are project-measured/);
+    expect(r.groundingBlock).toMatch(/submittable subject to standard VVB verification/);
+    expect(r.groundingBlock).not.toMatch(/MANDATORY DISCLAIMER/);
+  });
+
+  it("labels each input inline with its provenance qualifier", () => {
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 12,     // "measured"
+      methodology: "puro-earth",
+      feedstockId: "pine_sawdust",  // C_org from typical
+    });
+    expect(r.groundingBlock).toMatch(/Moisture content: 12\.0% \(measured\)/);
+    expect(r.groundingBlock).toMatch(/biochar organic carbon.*feedstock-family typical/i);
+    expect(r.groundingBlock).toMatch(/ESTIMATE.*validation/);
+  });
+
+  it("recognises the operator override as 'input' provenance for LCA/yield", () => {
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 12,
+      cOrgPct: 82,
+      permanenceFactor: 0.90,
+      lcaEmissionsFraction: 0.10,
+      biocharYieldDry: 0.32,
+      methodology: "puro-earth",
+    });
+    expect(r.inputs.provenance.lcaEmissions).toBe("input");
+    expect(r.inputs.provenance.biocharYield).toBe("input");
+    expect(r.inputs.provenance.permanence).toBe("input");
+    expect(r.inputs.provenance.cOrg).toBe("input");
+  });
+});
+
 describe("deriveLabPermanence", () => {
   it("returns undefined when H:Corg is missing so caller falls back", () => {
     expect(deriveLabPermanence(null, "puro-earth")).toBeUndefined();
