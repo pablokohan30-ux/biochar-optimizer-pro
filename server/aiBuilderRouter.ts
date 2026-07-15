@@ -561,6 +561,11 @@ export const aiBuilderRouter = router({
         offtakerType: row.offtakerType,
         targetMethodology: row.targetMethodology,
         status: row.status,
+        // ReadinessBadge in the detail page header reads this. Sprint 15
+        // added it to `list` but forgot `get`, so the badge showed on the
+        // list card but never on the detail header. Bug caught in Pablo's
+        // proj 19/20 retest.
+        readinessLevel: row.readinessLevel,
         errorMessage: row.errorMessage,
         docs,
         totalPromptTokens: row.totalPromptTokens ?? 0,
