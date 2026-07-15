@@ -140,6 +140,18 @@ export interface CarbonBalanceInput {
    *  methodology lookup. Use when a lab-measured H:Corg drops the row into
    *  a different Puro/Isometric tier. */
   permanenceFactor?: number;
+  /** Where `permanenceFactor` came from. Same reasoning as `moistureSource`:
+   *   - "override":    operator entered permanence in the Overrides panel
+   *                    → renders as "measured" in the traceability table.
+   *   - "lab-derived": value came from `deriveLabPermanence(H:Corg, method)`
+   *                    → renders as "lab-derived" (honest: the H:Corg was
+   *                    measured, the tier lookup is methodology, so the
+   *                    permanence itself is not directly measured, just
+   *                    lab-informed). Counts as submittable-quality data
+   *                    because the H:Corg came from a lab.
+   *  Omit for backwards compat: falls back to "override" when
+   *  `permanenceFactor` is present. */
+  permanenceSource?: "override" | "lab-derived";
   /** Feedstock identifier used to look up typical C_org when the lab
    *  didn't provide one. Matches TYPICAL_C_ORG_PCT keys or falls back to
    *  fuzzy matching on the biomass name. */
@@ -162,13 +174,15 @@ export interface CarbonBalanceResult {
     lcaEmissionsFraction: number;
     /** Where each number came from. "input" = operator override or lab
      *  measurement; "catalog" = feedstock preset (moisture only); "typical"
-     *  = feedstock-family lookup (C_org); "methodology" = tier default
-     *  (permanence); "default" = last-resort fallback. */
+     *  = feedstock-family lookup (C_org); "lab-derived" = value computed
+     *  from a lab measurement via a methodology lookup (permanence from
+     *  H:Corg tier); "methodology" = tier default without lab input;
+     *  "default" = last-resort fallback. */
     provenance: {
       moisture: "input" | "catalog" | "default";
       cOrg: "input" | "typical" | "default";
       biocharYield: "input" | "default";
-      permanence: "input" | "methodology" | "default";
+      permanence: "input" | "lab-derived" | "methodology" | "default";
       lcaEmissions: "input" | "default";
     };
   };
@@ -210,7 +224,7 @@ export interface CarbonBalanceResult {
   provenanceTable: Array<{
     parameter: string;
     value: string;
-    source: "measured" | "catalog" | "typical" | "default" | "methodology";
+    source: "measured" | "catalog" | "typical" | "lab-derived" | "default" | "methodology";
   }>;
   /** Human-readable summary block the AI prompts embed verbatim. */
   groundingBlock: string;
@@ -269,10 +283,15 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
 
   // ─── Permanence factor ────────────────────────────────────────────────
   let permanenceFactor: number;
-  let permanenceProvenance: "input" | "methodology" | "default";
+  let permanenceProvenance: "input" | "lab-derived" | "methodology" | "default";
   if (input.permanenceFactor != null && input.permanenceFactor > 0 && input.permanenceFactor <= 1) {
     permanenceFactor = input.permanenceFactor;
-    permanenceProvenance = "input";
+    // Distinguish operator override from lab-derived (H:Corg → tier
+    // lookup). The tier lookup is a methodology function of a lab
+    // measurement, so calling it "measured" overstates it — but
+    // calling it "methodology default" understates it too. "lab-derived"
+    // is the honest middle ground.
+    permanenceProvenance = input.permanenceSource === "lab-derived" ? "lab-derived" : "input";
   } else if (input.methodology && DEFAULT_PERMANENCE_BY_METHODOLOGY[input.methodology] != null) {
     permanenceFactor = DEFAULT_PERMANENCE_BY_METHODOLOGY[input.methodology];
     permanenceProvenance = "methodology";
@@ -316,14 +335,17 @@ export function computeCarbonBalance(input: CarbonBalanceInput): CarbonBalanceRe
     ? corcTnYearNetOfLca / biocharTnYear
     : 0;
 
-  // Readiness = every critical input measured (input) OR user override.
-  // Yield stays "default" for most operators; not treating it as
-  // submittable-blocking because 30% is peer-reviewed and rarely wrong
-  // by more than a few points. The four blockers are moisture, C_org,
-  // permanence, and LCA emissions — those are the ones a VVB actually
-  // audits per project.
+  // Readiness = every critical input measured (input), lab-derived
+  // (permanence from lab H:Corg tier), or user override. Yield stays
+  // "default" for most operators; not treating it as submittable-blocking
+  // because 30% is peer-reviewed and rarely wrong by more than a few
+  // points. The four blockers are moisture, C_org, permanence, and LCA
+  // emissions — those are the ones a VVB actually audits per project.
+  // "lab-derived" counts as submittable because the H:Corg came from a
+  // real lab; the tier lookup on top is standard methodology.
+  const isSubmittableSource = (p: string) => p === "input" || p === "lab-derived";
   const criticalMeasured = [moistureProvenance, cOrgProvenance, permanenceProvenance, lcaEmissionsProvenance]
-    .every((p) => p === "input");
+    .every(isSubmittableSource);
   const readinessLevel: "submittable" | "estimate" = criticalMeasured ? "submittable" : "estimate";
 
   const provenanceTable: CarbonBalanceResult["provenanceTable"] = [
@@ -386,11 +408,12 @@ function fmt(n: number, digits = 0): string {
 /** Maps the internal provenance token to the trazabilidad-table
  *  vocabulary — keeps the UI/prompt view stable even if we rename
  *  the internal enum later. */
-function mapProvenance(p: string): "measured" | "catalog" | "typical" | "default" | "methodology" {
+function mapProvenance(p: string): "measured" | "catalog" | "typical" | "lab-derived" | "default" | "methodology" {
   switch (p) {
     case "input": return "measured";
     case "catalog": return "catalog";
     case "typical": return "typical";
+    case "lab-derived": return "lab-derived";
     case "methodology": return "methodology";
     case "default": return "default";
     default: return "default";

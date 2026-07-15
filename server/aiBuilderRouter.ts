@@ -384,9 +384,20 @@ export const aiBuilderRouter = router({
       // the readiness rollup on the project row from the start (UI reads
       // it for the badge without touching the docs blob).
       const { computeCarbonBalance, deriveLabPermanence } = await import("./_core/carbonBalance");
+      // Two ways permanence can be non-default:
+      //   1. operator override in the Overrides panel → "override"
+      //   2. lab PDF surfaced H:Corg → deriveLabPermanence maps it to a
+      //      methodology tier → "lab-derived" (NOT "measured" — the
+      //      permanence itself wasn't measured, only H:Corg was).
       const permanenceFromOverride = input.permanencePct != null
         ? input.permanencePct / 100
         : deriveLabPermanence(input.biocharHCorgMolar, input.targetMethodology);
+      const permanenceSource: "override" | "lab-derived" | undefined =
+        permanenceFromOverride == null
+          ? undefined
+          : input.permanencePct != null
+            ? "override"
+            : "lab-derived";
       // Track where moisture came from so the trazabilidad table doesn't
       // mis-label a catalog value as "measured". Priority:
       //   1. operator override (Overrides panel)                 → "override"
@@ -406,6 +417,7 @@ export const aiBuilderRouter = router({
         moistureSource,
         cOrgPct: input.biocharCOrgPct,
         permanenceFactor: permanenceFromOverride,
+        permanenceSource,
         methodology: input.targetMethodology,
         feedstockId: input.biomassId ?? undefined,
         biomassName: input.biomassName,
@@ -576,6 +588,7 @@ export const aiBuilderRouter = router({
       capacityTnYear: r.capacityTnYear,
       country: r.country,
       status: r.status,
+      readinessLevel: r.readinessLevel,
       createdAt: r.createdAt ? new Date(r.createdAt).getTime() : 0,
       updatedAt: r.updatedAt ? new Date(r.updatedAt).getTime() : 0,
     }));
@@ -1052,6 +1065,12 @@ export const aiBuilderRouter = router({
       const permanenceFromOverride = overrides?.permanencePct != null
         ? overrides.permanencePct / 100
         : deriveLabPermanence(labBiochar?.hCorgMolar, row.targetMethodology);
+      const retryPermanenceSource: "override" | "lab-derived" | undefined =
+        permanenceFromOverride == null
+          ? undefined
+          : overrides?.permanencePct != null
+            ? "override"
+            : "lab-derived";
       const retryMoistureFromCatalog = biomassData.composition?.moisture;
       const retryMoistureValue = overrides?.moistureOverridePct ?? retryMoistureFromCatalog;
       const retryMoistureSource: "override" | "catalog" | undefined =
@@ -1066,6 +1085,7 @@ export const aiBuilderRouter = router({
         moistureSource: retryMoistureSource,
         cOrgPct: labBiochar?.cOrgPct ?? undefined,
         permanenceFactor: permanenceFromOverride,
+        permanenceSource: retryPermanenceSource,
         methodology: row.targetMethodology ?? undefined,
         feedstockId: row.biomassId ?? undefined,
         biomassName: biomassData.name,

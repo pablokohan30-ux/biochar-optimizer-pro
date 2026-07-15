@@ -286,6 +286,51 @@ describe("computeCarbonBalance — provenance visible in grounding block", () =>
     expect(r.groundingBlock).toContain("| Parameter | Value | Source |");
     expect(r.groundingBlock).not.toContain("| Parámetro | Valor | Origen |");
   });
+
+  it("labels a permanence derived from lab H:Corg as 'lab-derived' (not 'measured')", () => {
+    // Pablo's smoke test on project 17: lab PDF provided H:Corg,
+    // deriveLabPermanence mapped it to 0.90 for Puro, but the table
+    // said "measured" — overstates it, since permanence itself was
+    // never directly measured, only H:Corg was.
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      permanenceFactor: 0.90,
+      permanenceSource: "lab-derived",
+      methodology: "puro-earth",
+    });
+    expect(r.inputs.provenance.permanence).toBe("lab-derived");
+    const perm = r.provenanceTable.find((row) => row.parameter === "Permanence factor");
+    expect(perm?.source).toBe("lab-derived");
+  });
+
+  it("still labels an operator permanence override as 'measured' (input)", () => {
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      permanenceFactor: 0.88,
+      permanenceSource: "override",
+      methodology: "puro-earth",
+    });
+    expect(r.inputs.provenance.permanence).toBe("input");
+    const perm = r.provenanceTable.find((row) => row.parameter === "Permanence factor");
+    expect(perm?.source).toBe("measured");
+  });
+
+  it("treats lab-derived permanence as submittable-quality (H:Corg was measured)", () => {
+    // If the operator uploads a full lab PDF (moisture, C_org, H:Corg)
+    // and enters an LCA override, the project should be submittable —
+    // lab-derived permanence counts because the H:Corg came from a lab.
+    const r = computeCarbonBalance({
+      capacityTnYearWet: 30_000,
+      moisturePct: 12,
+      moistureSource: "override",
+      cOrgPct: 85,
+      permanenceFactor: 0.90,
+      permanenceSource: "lab-derived",
+      lcaEmissionsFraction: 0.12,
+      methodology: "puro-earth",
+    });
+    expect(r.readinessLevel).toBe("submittable");
+  });
 });
 
 describe("deriveLabPermanence", () => {
