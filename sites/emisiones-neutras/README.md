@@ -21,6 +21,55 @@ npm run check    # tsc --noEmit
 npm run build    # build de producción a dist/
 ```
 
+## La tesis
+
+**Emisiones Neutras estructura proyectos antes de que el mercado los pida.**
+Identifica que falta un instrumento, lo diseña, y cuando la normativa llega ya
+estaba pensado. Todos esos proyectos convergen en el mismo cuello de botella:
+sin medición digital verificable, ninguno existe como activo.
+
+Ese es el posicionamiento. La asesoría no es el negocio: es cómo se monetiza el
+criterio mientras los proyectos maduran.
+
+### La evidencia
+
+| Cuándo | Qué se vio | Qué pasó |
+|---|---|---|
+| Pre-2020 | Certificado de atributo ambiental para metano biogénico, con valor de mercado, cuyo pago financia tratar más residuos | La I-TRACK Foundation y Global Gas Tracking lanzaron **I-TRACK(G)** en mayo de 2026: código y registro estandarizado global para certificados de biogás y biometano |
+| Nopal-tuna | La cosecha de la tuna triplica la biomasa del nopal; cuantificar esa captura da un ingreso extra al productor | Rechazado por subvención estatal mexicana a la industria del nopal — **pero la del nopal tuna no está subvencionada** |
+| biocharpro.io | La IA puede determinar en horas si un proyecto de biochar es factible | Hoy la prefactibilidad son meses de trabajo caro y de resultado incierto |
+| Landopp.uy | Bioplástico 100 % biodegradable de residuo de cáñamo | Sigue y crece; el mercado todavía no despega |
+| Biometano | Todos lo quieren y nadie sabe hacerlo, medirlo, cuantificarlo ni verificarlo — ni los gobiernos | El cuello de botella es la verificación |
+| CAUDAL | Digitalizar la medición | dMRV para metano, CELs e I-RECs, con alcance a la energía distribuida de LatAm |
+
+### Cómo contarlo, y el riesgo
+
+**Abrir con la prueba, después el patrón. Nunca al revés.** "Nos adelantamos" es
+lo que dice todo el que fracasó; lo que separa una credencial de una excusa es un
+caso cumplido, con fecha y con un tercero verificable. Hay uno: I-TRACK(G).
+
+Precisión obligatoria al escribirlo: I-TRACK(G) certifica **producción** de
+biogás y biometano, mientras que el instrumento diseñado certificaba
+**destrucción** de metano biogénico. Misma familia —atributo ambiental, Book &
+Claim, no offset— pero distinto hecho generador. La afirmación defendible es
+"diseñamos un certificado de atributo para gas seis años antes de que existiera
+el estándar global", no "inventamos I-TRACK".
+
+Dato de apoyo: el deck del MDC es de abril de 2026 y afirma que para el gas
+natural no existía un instrumento estándar equivalente al I-REC. I-TRACK(G) se
+lanzó un mes después. El deck queda como prueba fechada de lectura de mercado,
+aunque el MDC como producto esté dado de baja.
+
+Cerrar el loop para el cliente: si va a estructurar un proyecto que operará diez
+años, el valor es contratar a quien ya acertó una vez sobre lo que iba a pasar.
+
+### Alcance de CAUDAL
+
+Mayor de lo que sugería el material inicial. Además del metano, cubre CELs
+—cumplimiento regulatorio ante la CRE en México, 1 CEL por MWh— e I-RECs, con
+alcance potencial a la generación distribuida de América Latina (instalaciones
+de menos de 500 kW: miles de puntos chicos que hoy nadie mide bien).
+
 ## Modelo de negocio y su consecuencia en el sitio
 
 Tres líneas de ingreso reales, sobre un mismo dominio (residuos y carbono):
@@ -36,14 +85,19 @@ asesorando, después operar proyectos propios, después construir el software.
 Eso sostiene el argumento competitivo: las herramientas las construye quien
 opera, no una startup que nunca pisó una planta.
 
-**La asesoría es hoy la línea principal.** Esto invierte la arquitectura de la
-home respecto de lo que se venía diseñando:
+**La asesoría es hoy la línea que más factura, pero no es el negocio.** El
+negocio es la estructuración de proyectos; la asesoría es cómo se monetiza el
+criterio mientras los proyectos maduran. El sitio no debe presentarse como una
+consultora.
 
-- El centro deja de ser la grilla de proyectos y pasa a ser el problema que se
-  resuelve y los servicios concretos.
-- Los proyectos bajan de producto a **evidencia de competencia**. Con tres
-  alcanza; deja de ser un problema que la grilla esté flaca.
-- La trayectoria pasa de apertura a respaldo.
+Consecuencias en la arquitectura de la home:
+
+- El centro no es la grilla de proyectos ni el catálogo de servicios: es **la
+  prueba de criterio anticipatorio**, y detrás el patrón que la explica.
+- Los proyectos son **evidencia**, no producto. Con tres alcanza; deja de ser un
+  problema que la grilla esté flaca tras las bajas.
+- La asesoría necesita su propia ruta y un camino claro al contacto, porque es
+  la que sostiene la caja — pero no encabeza.
 
 El sitio sirve a las cuatro audiencias mediante rutas separadas, pero la home
 prioriza la asesoría. "Para todos" funciona a nivel de sitio, no a nivel de
