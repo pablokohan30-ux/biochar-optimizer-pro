@@ -21,6 +21,34 @@ npm run check    # tsc --noEmit
 npm run build    # build de producción a dist/
 ```
 
+## Modelo de negocio y su consecuencia en el sitio
+
+Tres líneas de ingreso reales, sobre un mismo dominio (residuos y carbono):
+
+| Capa | Qué es | A quién le habla |
+|---|---|---|
+| **Asesoramos** | Consultoría, medición, estructuración | Clientes industriales |
+| **Desarrollamos y operamos** | Proyectos propios y en sociedad | Socios e inversores |
+| **Digitalizamos** | CAUDAL, biocharpro.io | Compradores y desarrolladores |
+
+La progresión es también la historia de la empresa en orden: veinte años
+asesorando, después operar proyectos propios, después construir el software.
+Eso sostiene el argumento competitivo: las herramientas las construye quien
+opera, no una startup que nunca pisó una planta.
+
+**La asesoría es hoy la línea principal.** Esto invierte la arquitectura de la
+home respecto de lo que se venía diseñando:
+
+- El centro deja de ser la grilla de proyectos y pasa a ser el problema que se
+  resuelve y los servicios concretos.
+- Los proyectos bajan de producto a **evidencia de competencia**. Con tres
+  alcanza; deja de ser un problema que la grilla esté flaca.
+- La trayectoria pasa de apertura a respaldo.
+
+El sitio sirve a las cuatro audiencias mediante rutas separadas, pero la home
+prioriza la asesoría. "Para todos" funciona a nivel de sitio, no a nivel de
+primera pantalla.
+
 ## Posicionamiento
 
 **Todos los proyectos convergen en el residuo, y todos se digitalizan.**
@@ -130,24 +158,27 @@ Relevante para el posicionamiento:
 
 ## Decisiones abiertas
 
-Antes de escribir copy hay que cerrar el posicionamiento. Preguntas pendientes:
+Ya resuelto: la audiencia es "todas" con rutas separadas y la home priorizando
+asesoría; la facturación viene de las tres capas, con la asesoría al frente.
 
-1. **¿De dónde sale la facturación hoy?** No qué proyectos existen, sino quién
-   paga. El sitio debería optimizarse para conseguir más de eso.
-2. **¿Para qué sirve el sitio?** Clientes, inversores, socios operativos o
-   talento — no se puede optimizar para los cuatro a la vez.
-3. **¿Qué preguntan siempre en la primera reunión?** Define qué duda hay que
-   resolver arriba de todo.
-4. **¿Por qué eligen a Emisiones Neutras, y por qué la descartan?**
-5. **¿Qué debería pasar cuando alguien termina de leer la home?**
+Lo que falta para escribir copy:
 
-Y después, lo operativo:
-
-6. **Alcance de Nexus Carbon.** Qué hace, dónde, en qué etapa.
-7. **Fotografía.** El diseño se apoya en fotos reales; no hay forma de
+1. **Qué se vende exactamente en asesoría, hoy.** Qué contrata un cliente, qué
+   recibe, en cuánto tiempo, y quién firma del lado del cliente. La lista de
+   servicios del brochure (Plan Integral de Carbono, mitigación y compensación,
+   acreditación y comercialización, I+D+i) es de agosto 2025 y no está verificada.
+2. **Cómo llegaron los últimos clientes.** Si vinieron por referencia, el sitio
+   no tiene que captar sino **cerrar** a quien ya conoce la empresa y la está
+   chequeando. Cambia el copy y cambia qué se pone arriba.
+3. **Qué capa debería mandar en dos años.** No es lo mismo una consultora con
+   software adentro que una plataforma financiada por consultoría. Si el upside
+   está en CAUDAL, el sitio tiene que vender asesoría sin quedar encasillado
+   como consultora — se puede, pero hay que decidirlo antes de escribir.
+4. **Alcance de Nexus Carbon.** Qué hace, dónde, en qué etapa.
+5. **Fotografía.** El diseño se apoya en fotos reales; no hay forma de
    conseguirlas desde el entorno de desarrollo.
-8. **Idioma.** Propuesta: español primero, inglés completo detrás.
-9. **Editabilidad.** Si el copy tiene que cambiarse sin pasar por un dev, hay
+6. **Idioma.** Propuesta: español primero, inglés completo detrás.
+7. **Editabilidad.** Si el copy tiene que cambiarse sin pasar por un dev, hay
    que sumar un CMS liviano (~1 día de trabajo).
 
 ## Nota sobre el sitio actual
