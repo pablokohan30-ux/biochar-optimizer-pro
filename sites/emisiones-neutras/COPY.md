@@ -1,6 +1,12 @@
-# Copy de la home — borrador 1
+# Copy de la home — borrador 2
 
 Registro: declarativo y específico. Sin juegos de palabras ni aforismos.
+
+**Regla de tono, decidida por Pablo:** el sitio no reclama autoría ni
+anterioridad. Nada de "lo pensamos antes que nadie". El argumento se sostiene
+en el mecanismo, no en quién lo vio primero. Si el mecanismo se explica bien,
+la conexión se entiende sola.
+
 Todo lo marcado `[VERIFICAR]` no se publica sin confirmación.
 
 ---
@@ -14,155 +20,140 @@ Desarrollo de proyectos · América Latina
 Desarrollamos proyectos que transforman residuos en insumos renovables.
 
 **Bajada**
-Insumos que descarbonizan empresas de verdad. Estructuramos y operamos los
-proyectos, y construimos las herramientas digitales que miden y verifican lo
-que producen.
+Insumos que descarbonizan la operación de una empresa de verdad. Estructuramos
+y operamos los proyectos, y construimos las herramientas digitales que miden,
+cuantifican y verifican lo que producen.
 
 **Acciones**
-`Ver los proyectos` · `Hablemos de tu operación`
+`Cómo funciona` · `Hablemos de tu operación`
 
 ---
 
-## 2 · La prueba
+## 2 · El circuito
 
-Va inmediatamente después del hero. Es lo que sostiene todo el resto: se abre
-con el caso cumplido, no con la tesis.
+Es el corazón del sitio. Reemplaza cualquier argumento de trayectoria personal:
+el que convence es el mecanismo.
 
 **Título**
-En 2019 diseñamos un certificado de atributo ambiental para gas. El estándar
-global salió en 2026.
+Un residuo tratado financia el tratamiento del siguiente.
 
 **Cuerpo**
-Antes de 2020 trabajamos en un instrumento que le pusiera valor de mercado a la
-destrucción de metano biogénico: si alguien paga por evitar esas emisiones, ese
-pago financia tratar más residuos, y más gente quiere hacerlo porque hay un
-ingreso detrás.
+El circuito es simple de enunciar y difícil de cerrar. Transformamos un residuo
+en un insumo renovable. Medimos, cuantificamos y verificamos lo que se produce y
+lo que se evita emitir. Con esa verificación se emiten certificados a través de
+los mecanismos que ya existen en el mercado. Y ese ingreso financia el proyecto
+siguiente.
 
-En mayo de 2026, la I-TRACK Foundation y Global Gas Tracking lanzaron
-I-TRACK(G), el código y registro estandarizado global para certificados de
-biogás y biometano. La categoría que habíamos anticipado seis años antes.
+Cuando el circuito cierra, tratar residuos deja de ser un costo ambiental y pasa
+a ser una actividad que se financia sola. Por eso hay cada vez más gente
+dispuesta a hacerlo: porque hay un ingreso detrás.
+
+**Las cinco etapas** — bloque visual
+
+| | Etapa | Qué pasa |
+|---|---|---|
+| 1 | **Residuo** | Forestal, orgánico, agroindustrial, urbano |
+| 2 | **Transformación** | Pirólisis, digestión anaerobia, polimerización |
+| 3 | **Insumo renovable** | Biochar, biometano, bio-CO₂, biopolímeros |
+| 4 | **Medición y verificación** | El dato que convierte una operación en un activo certificable |
+| 5 | **Certificado y financiamiento** | El ingreso que paga el proyecto siguiente |
 
 **Pie**
-I-TRACK(G) certifica producción de biogás y biometano; nuestro instrumento
-certificaba destrucción de metano biogénico. Misma familia, distinto hecho
-generador.
+Los mecanismos ya existen: I-RECs para electricidad renovable, CELs para
+cumplimiento regulatorio en México, I-TRACK(G) para biogás y biometano desde
+mayo de 2026, y los registros de carbono para remociones. Lo que falta casi
+siempre no es el mecanismo: es el dato que lo alimenta.
 
-> Nota interna: este pie es obligatorio. Sin él la afirmación es atacable, y
-> alguien del sector la va a corregir en público. Con él, es incuestionable.
+> Nota interna: I-TRACK(G) entra como contexto de mercado —prueba de que el
+> circuito está normado y es real—, nunca como credencial propia. Ese cambio es
+> deliberado.
 
 ---
 
-## 3 · El patrón
+## 3 · Por qué la digitalización
 
 **Título**
-Trabajamos sobre problemas que el mercado todavía no sabe que tiene.
+El circuito no cierra sin un dato confiable.
 
 **Cuerpo**
-No es una casualidad ni una postura. Es el método: identificamos que falta un
-instrumento, lo diseñamos, y lo sostenemos hasta que el mercado llega. A veces
-tardamos años en tener razón. A veces todavía estamos esperando.
+Cada etapa se puede hacer bien y aun así el proyecto no se financia, porque la
+verificación llega tarde, en papel, o no resiste una auditoría. Ese es hoy el
+cuello de botella del mercado: no faltan proyectos, falta el dato que los vuelve
+financiables.
 
-Todos esos proyectos terminan chocando contra lo mismo: sin una medición
-digital y verificable, nada de esto existe como activo. Por eso hoy la
-digitalización atraviesa todo lo que hacemos.
-
----
-
-## 4 · La cadena
-
-Bloque visual. Un residuo entra, un insumo renovable sale, y la medición
-digital acompaña todo el recorrido.
-
-| Etapa | Qué pasa |
-|---|---|
-| **Residuo** | Forestal, orgánico, agroindustrial, urbano |
-| **Transformación** | Pirólisis, digestión anaerobia, polimerización |
-| **Insumo renovable** | Biochar, biometano, bio-CO₂, biopolímeros |
-| **Descarbonización** | El insumo reemplaza uno fósil en la operación del cliente |
-| **Digitalización** | Medición, trazabilidad y verificación en todo el recorrido |
+Por eso construimos herramientas digitales de medición y verificación. No somos
+una empresa de software que llegó al carbono desde afuera: son herramientas
+hechas por quien desarrolla y opera los proyectos, para el problema que aparece
+cuando hay que demostrar lo que se hizo.
 
 ---
 
-## 5 · Los proyectos
+## 4 · Los proyectos
 
-Son evidencia de competencia, no catálogo. Van con foto.
+Evidencia de competencia, no catálogo. Van con foto.
 
 **Título**
 En qué estamos trabajando.
 
 ### CAUDAL
 Plataforma de medición, reporte y verificación digital (dMRV). Empezó por el
-metano y hoy alcanza certificados de energía limpia e I-RECs, con capacidad
-para cubrir la generación distribuida de América Latina — miles de instalaciones
-chicas que hoy nadie mide bien. `[VERIFICAR: cuánto de esto se comunica antes de cerrar la ronda]`
+metano y hoy alcanza certificados de energía limpia e I-RECs, con capacidad para
+cubrir la generación distribuida de América Latina: miles de instalaciones
+chicas que hoy nadie mide bien.
+`[VERIFICAR: cuánto de este alcance se comunica antes de cerrar la ronda]`
 
 ### biocharpro.io
-Software con IA que le dice a un desarrollador si su proyecto de biochar cierra,
-en horas en vez de meses. La prefactibilidad de un proyecto cuesta una fortuna y
-termina, muchas veces, en que no era viable. Esto lo resuelve antes de gastar.
+Software con IA que le dice a un desarrollador si su proyecto de biochar es
+viable, en horas en lugar de meses. Hoy la prefactibilidad cuesta una fortuna y
+muchas veces termina en que el proyecto no cerraba. Esto se resuelve antes de
+gastar.
 
 ### Landopp.uy
-Biopolímero 100 % biodegradable a partir de residuo de cáñamo, en Uruguay.
-Un sustituto real de los plásticos de un solo uso. El mundo lo necesita con
-urgencia y el mercado todavía no despega — seguimos.
+Biopolímero 100 % biodegradable a partir de residuo de cáñamo, en Uruguay. Un
+sustituto real de los plásticos de un solo uso. El mercado todavía no despega y
+el proyecto sigue creciendo.
 
 ### Nexus Carbon
 `[VERIFICAR: falta el alcance — qué produce, dónde, en qué etapa]`
 
 ### Metodología en nopal tuna
-Desarrollamos una metodología propia: la cosecha de la tuna multiplica por tres
-la biomasa del nopal, y esa biomasa es carbono cuantificable. El objetivo era
-darle un ingreso adicional al productor, que cada año la pasa peor por el cambio
-climático.
+La cosecha de la tuna multiplica por tres la biomasa del nopal, y esa biomasa es
+carbono cuantificable. Desarrollamos una metodología propia para medirlo, con el
+objetivo de darle un ingreso adicional al productor, que cada año la pasa peor
+por el cambio climático. No fue acreditada.
 
-No fue acreditada. El argumento del rechazo fue que la industria del nopal
-recibe subsidio estatal en México — aunque la del nopal tuna no lo recibe.
-
-`[VERIFICAR: publicar o no la segunda oración. Es la ilustración más clara de por
-qué hace falta digitalizar la verificación, pero señala el error de una
-certificadora que después tiene que aprobar otros proyectos. Recomendación:
-publicarla sin nombrar a nadie y sin tono de reclamo — el hecho, no la culpa.]`
+`[VERIFICAR: el motivo del rechazo —subsidio estatal a la industria del nopal,
+que no alcanza al nopal tuna— quedó fuera de este borrador, por la regla de
+tono. Se puede sumar si aporta, pero no hace falta para que el punto se entienda.]`
 
 ### Biogás y biometano
 Desarrollamos proyectos de captura y valorización de biogás junto a operadores
-industriales de la región. Todos quieren hacerlo; muy pocos saben cómo medirlo,
+industriales de la región. La demanda existe; lo que escasea es saber medirlo,
 cuantificarlo y verificarlo. Los acuerdos son confidenciales.
 
 ---
 
-## 6 · Por qué la digitalización
+## 5 · Trayectoria
 
-**Título**
-Un proyecto que no se puede medir no se puede financiar.
-
-**Cuerpo**
-El cuello de botella del mercado de carbono no es la falta de proyectos: es la
-verificación. Los tiempos de acreditación se miden en años, los datos llegan
-tarde y en papel, y el financiamiento espera. Hay desarrolladores abandonando
-registros por demoras.
-
-Nosotros lo vivimos del lado del que presenta el proyecto. Por eso construimos
-herramientas: no somos una empresa de software que descubrió el carbono, somos
-una empresa de proyectos que se cansó de esperar el dato.
-
----
-
-## 7 · Trayectoria
-
-Respaldo, no apertura. Va abajo.
+Respaldo, no apertura. Va abajo y en tono factual.
 
 **Título**
 Cuarenta años convirtiendo residuo en materia prima.
 
 - `[VERIFICAR]` Tradición familiar en reciclaje desde 1985
-- `[VERIFICAR]` Primera empresa del mundo en reciclar tetra pak con certificación FSC
-- `[VERIFICAR]` Primera planta de biomasa residual de América Latina
+- `[VERIFICAR]` Reciclaje de tetra pak con certificación FSC
+- `[VERIFICAR]` Planta de biomasa residual en América Latina
 - `[VERIFICAR]` Más de 200.000 créditos de carbono gestionados a nivel internacional
 - `[VERIFICAR]` Asesoría externa a la Secretaría de Hacienda y Crédito Público en Taxonomías Mexicanas
 
+> Nota interna: los superlativos del brochure ("primera empresa del mundo en…",
+> "primera planta de América Latina") quedaron atenuados por la misma regla de
+> tono. Se pueden restituir si Pablo los quiere: son hechos de ejecución, no
+> reclamos de anterioridad. Decisión suya.
+
 ---
 
-## 8 · Cierre
+## 6 · Cierre
 
 **Título**
 Si vas a estructurar un proyecto que va a operar diez años, importa con quién.
@@ -182,8 +173,10 @@ contacto@emisionesneutras.com · Ciudad de México
 
 ## Pendientes de contenido
 
-1. Alcance de Nexus Carbon.
-2. Decisión sobre la segunda oración del nopal.
-3. Cuánto de CAUDAL se comunica antes de cerrar la ronda.
-4. Verificación de los cinco puntos de trayectoria y de los datos de contacto.
-5. Seis fotografías reales (ver README).
+1. El texto de la home actual, para no perder lo que ya funciona. No se pudo
+   leer: el dominio está bloqueado por la política de red del entorno.
+2. Alcance de Nexus Carbon.
+3. Cuánto del alcance de CAUDAL se comunica antes de cerrar la ronda.
+4. Restituir o no los superlativos de trayectoria.
+5. Verificación de los cinco puntos de trayectoria y de los datos de contacto.
+6. Fotografías reales (ver README).

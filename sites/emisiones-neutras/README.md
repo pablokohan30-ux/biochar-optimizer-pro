@@ -23,45 +23,47 @@ npm run build    # build de producción a dist/
 
 ## La tesis
 
-**Emisiones Neutras estructura proyectos antes de que el mercado los pida.**
-Identifica que falta un instrumento, lo diseña, y cuando la normativa llega ya
-estaba pensado. Todos esos proyectos convergen en el mismo cuello de botella:
-sin medición digital verificable, ninguno existe como activo.
+**Un residuo tratado financia el tratamiento del siguiente.**
 
-Ese es el posicionamiento. La asesoría no es el negocio: es cómo se monetiza el
-criterio mientras los proyectos maduran.
+Transformar un residuo en un insumo renovable; medir, cuantificar y verificar lo
+que se produce y lo que se evita emitir; emitir certificados con los mecanismos
+que ya existen; y usar ese ingreso para financiar el proyecto siguiente. Cuando
+el circuito cierra, tratar residuos deja de ser un costo y pasa a ser una
+actividad que se financia sola.
 
-### La evidencia
+El cuello de botella no es el mecanismo —I-RECs, CELs, I-TRACK(G), los registros
+de carbono ya existen— sino el dato que lo alimenta. De ahí que la digitalización
+atraviese todo.
 
-| Cuándo | Qué se vio | Qué pasó |
+La asesoría no es el negocio: es cómo se monetiza el criterio mientras los
+proyectos maduran.
+
+### Regla de tono (decidida por Pablo)
+
+**El sitio no reclama autoría ni anterioridad.** Nada de "lo pensamos antes que
+nadie", ni pedidos de crédito por haber anticipado un instrumento. El argumento
+se sostiene en el mecanismo, no en quién lo vio primero; si el mecanismo se
+explica bien, la conexión se entiende sola.
+
+Consecuencia práctica: I-TRACK(G) se menciona como **contexto de mercado** —prueba
+de que el circuito está normado y es real— y nunca como credencial propia. Los
+superlativos del brochure ("primera empresa del mundo en…") quedan atenuados por
+la misma regla, con la decisión de restituirlos pendiente.
+
+### El circuito, en detalle
+
+| | Etapa | Qué pasa |
 |---|---|---|
-| Pre-2020 | Certificado de atributo ambiental para metano biogénico, con valor de mercado, cuyo pago financia tratar más residuos | La I-TRACK Foundation y Global Gas Tracking lanzaron **I-TRACK(G)** en mayo de 2026: código y registro estandarizado global para certificados de biogás y biometano |
-| Nopal-tuna | La cosecha de la tuna triplica la biomasa del nopal; cuantificar esa captura da un ingreso extra al productor | Rechazado por subvención estatal mexicana a la industria del nopal — **pero la del nopal tuna no está subvencionada** |
-| biocharpro.io | La IA puede determinar en horas si un proyecto de biochar es factible | Hoy la prefactibilidad son meses de trabajo caro y de resultado incierto |
-| Landopp.uy | Bioplástico 100 % biodegradable de residuo de cáñamo | Sigue y crece; el mercado todavía no despega |
-| Biometano | Todos lo quieren y nadie sabe hacerlo, medirlo, cuantificarlo ni verificarlo — ni los gobiernos | El cuello de botella es la verificación |
-| CAUDAL | Digitalizar la medición | dMRV para metano, CELs e I-RECs, con alcance a la energía distribuida de LatAm |
+| 1 | Residuo | Forestal, orgánico, agroindustrial, urbano |
+| 2 | Transformación | Pirólisis, digestión anaerobia, polimerización |
+| 3 | Insumo renovable | Biochar, biometano, bio-CO2, biopolímeros |
+| 4 | Medición y verificación | El dato que convierte una operación en activo certificable |
+| 5 | Certificado y financiamiento | El ingreso que paga el proyecto siguiente |
 
-### Cómo contarlo, y el riesgo
-
-**Abrir con la prueba, después el patrón. Nunca al revés.** "Nos adelantamos" es
-lo que dice todo el que fracasó; lo que separa una credencial de una excusa es un
-caso cumplido, con fecha y con un tercero verificable. Hay uno: I-TRACK(G).
-
-Precisión obligatoria al escribirlo: I-TRACK(G) certifica **producción** de
-biogás y biometano, mientras que el instrumento diseñado certificaba
-**destrucción** de metano biogénico. Misma familia —atributo ambiental, Book &
-Claim, no offset— pero distinto hecho generador. La afirmación defendible es
-"diseñamos un certificado de atributo para gas seis años antes de que existiera
-el estándar global", no "inventamos I-TRACK".
-
-Dato de apoyo: el deck del MDC es de abril de 2026 y afirma que para el gas
-natural no existía un instrumento estándar equivalente al I-REC. I-TRACK(G) se
-lanzó un mes después. El deck queda como prueba fechada de lectura de mercado,
-aunque el MDC como producto esté dado de baja.
-
-Cerrar el loop para el cliente: si va a estructurar un proyecto que operará diez
-años, el valor es contratar a quien ya acertó una vez sobre lo que iba a pasar.
+Mecanismos de certificación existentes que cierran la etapa 5: I-RECs para
+electricidad renovable, CELs para cumplimiento regulatorio en México,
+I-TRACK(G) para biogás y biometano (lanzado por la I-TRACK Foundation y Global
+Gas Tracking en mayo de 2026), y los registros de carbono para remociones.
 
 ### Alcance de CAUDAL
 
