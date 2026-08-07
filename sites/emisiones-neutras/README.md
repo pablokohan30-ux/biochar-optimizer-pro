@@ -94,16 +94,18 @@ consultora.
 
 Consecuencias en la arquitectura de la home:
 
-- El centro no es la grilla de proyectos ni el catálogo de servicios: es **la
-  prueba de criterio anticipatorio**, y detrás el patrón que la explica.
+- El centro no es la grilla de proyectos ni el catálogo de servicios: es **el
+  circuito** —residuo, insumo renovable, verificación, certificado,
+  financiamiento— y por qué no cierra sin un dato confiable.
 - Los proyectos son **evidencia**, no producto. Con tres alcanza; deja de ser un
   problema que la grilla esté flaca tras las bajas.
 - La asesoría necesita su propia ruta y un camino claro al contacto, porque es
   la que sostiene la caja — pero no encabeza.
+- La trayectoria va abajo, como respaldo, y en tono factual.
 
-El sitio sirve a las cuatro audiencias mediante rutas separadas, pero la home
-prioriza la asesoría. "Para todos" funciona a nivel de sitio, no a nivel de
-primera pantalla.
+El sitio sirve a las cuatro audiencias mediante rutas separadas. "Para todos"
+funciona a nivel de sitio, no a nivel de primera pantalla: la home encabeza con
+el circuito, que es lo único que le sirve a las cuatro por igual.
 
 ## Posicionamiento
 
@@ -125,16 +127,17 @@ Residuo  →  Transformación  →  Producto
 - **Kotatte** — la SAPI. No es marca de cara al público: pie legal y material de
   inversores solamente.
 - **Emisiones Neutras** — la marca comercial. Dueña del sitio y del dominio.
-- **Nexus Carbon**, **CAUDAL**, **BiocharIA**, **Landopp.uy** — proyectos que
-  Emisiones Neutras estructura y opera. Van como fichas dentro del sitio, con
-  nombre propio, no como marcas separadas.
+- **Nexus Carbon**, **CAUDAL**, **biocharpro.io**, **Landopp.uy** — proyectos
+  que Emisiones Neutras estructura y opera. Van como fichas dentro del sitio,
+  con nombre propio, no como marcas separadas.
 
 ## Dirección de diseño
 
-Estructura de "una marca, proyectos con nombre propio"; la trayectoria como
-apertura (la razón por la que confían la estructuración de un proyecto); estética
-de fondo hueso con serif de display y mono para datos; y fotografía real como
-material protagonista.
+Una marca con proyectos de nombre propio. La home encabeza con el circuito y la
+trayectoria va abajo como respaldo. Estética de fondo hueso con serif de display
+y mono para datos y etiquetas, con fotografía real como material protagonista.
+
+El copy completo está en `COPY.md`.
 
 Renders y desarrollo de la decisión:
 https://claude.ai/code/artifact/a7bad586-5bf5-4877-aa62-1bd67baaee23
