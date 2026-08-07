@@ -66,33 +66,89 @@ que nada se publica sin confirmación explícita.
 | Ítem | Estado |
 |---|---|
 | CAUDAL — dMRV digital | **Va** |
-| BiocharIA | **Va** — falta alcance; definir si es lo mismo que biocharpro.io |
+| biocharpro.io | **Va** — es el nombre correcto del producto; "BiocharIA" se descarta |
 | Nexus Carbon | **Va** — falta alcance: qué produce, dónde, con qué socios |
 | Landopp.uy — biopolímero de cáñamo, Uruguay | **Va** — Emisiones Neutras participa |
+| Nopal | **Va, reformulado** — ver abajo |
 | Biogás y biometano | **Va bajo NDA** — mencionar la capacidad, nunca las contrapartes |
 | Deal Altitude (+165.000 t CDR) | **Caído** — no publicar |
 | EcoGaia como socio | **Caído** — no publicar |
 | MDC | **Caído** — era una propuesta, derivó en CAUDAL |
+| Biochar Corrientes | **Caído** — no publicar |
 | Igasamex | **No publicar** — cae bajo el NDA de biogás |
 | STI Colombia | **No publicar** — cae bajo el NDA de biogás |
-| Biochar Corrientes | Sin confirmar — ¿sobrevive sin EcoGaia? ¿FASA continúa? |
-| Nopal | Sin confirmar — es lo único que muestra el sitio actual |
 | Uruguay (Arboreal, Alur) | Sin confirmar |
 | Track record (200.000+ créditos, tetra pak FSC, SHCP) | Sin confirmar |
 | Datos de contacto (CDMX, teléfono, emails) | Sin confirmar |
 
+### El caso del nopal
+
+Metodología propia de captura de carbono en nopal, desarrollada internamente y
+nunca aprobada por una casa certificadora.
+
+Se mantiene en el sitio, pero **no como proyecto en acreditación** —que es lo que
+dice el sitio actual y sugiere que está por salir— sino como I+D metodológico
+propio. La secuencia real es un activo narrativo: desarrollaron una metodología,
+chocaron con el proceso de certificación, y de ahí sale la apuesta por la
+digitalización de la medición.
+
+Dos restricciones al escribirlo:
+
+- El 60 % de captura durante la vida de la planta es un **resultado propio**, no
+  un dato validado por un registro. Hay que decirlo así.
+- Contarlo sin sonar a reproche contra los registros: son los mismos que tienen
+  que aprobar los proyectos que vienen.
+
+## Tono
+
+Registro **declarativo y específico**: decir qué se hace, con qué alcance y con
+qué evidencia. Nada de frases publicitarias, juegos de palabras ni aforismos —
+el lector es un gerente industrial o un inversor, y ese registro le resta
+seriedad al mensaje.
+
+## Contexto de mercado (investigación, agosto 2026)
+
+Relevante para el posicionamiento:
+
+- **El cuello de botella del mercado es la verificación, no la oferta de
+  proyectos.** Hay casos documentados de desarrolladores abandonando registros
+  por demoras — Biofix retiró un REDD+ de 180.000 ha de Verra y lo movió a otro
+  registro. El VCM viene de lo que en NACW 2026 llamaron su "crisis de mediana
+  edad". Esto encuadra el caso del nopal como modo de falla del sistema, no como
+  fracaso propio.
+- **El dMRV se está estandarizando y la ventana se cierra.** El Global Carbon
+  Council lanzó TRACE, su primera plataforma dMRV aprobada, en mayo de 2026.
+  Los compradores pagan un premium reportado de hasta 217 % por créditos de
+  vintages recientes con metodologías modernas.
+- **Hueco competitivo.** Los comparables se dividen entre software puro
+  (Sylvera, Sweep, Cloverly) y desarrolladores de proyecto puros. Emisiones
+  Neutras hace las dos cosas: es una debilidad si se lee como falta de foco, y
+  una ventaja si se argumenta que las herramientas las construye quien opera.
+- **Biochar.** Es el líder del CDR por volumen. Precios Puro en torno a
+  USD 125-145 por CORC. El mercado de biochar en Latinoamérica pasaría de
+  USD 0,47 B (2025) a USD 1,49 B (2034), CAGR 13,7 %.
+
 ## Decisiones abiertas
 
-1. **Qué son BiocharIA y Nexus Carbon.** Son dos de las cuatro fichas de proyecto
-   y están vacías. De cada una: qué hace, dónde, en qué etapa.
-2. **¿Biochar Corrientes y Nopal siguen?** Corrientes es la ficha más fuerte
-   posible si sobrevive sin EcoGaia.
-3. **Fotografía.** El diseño depende de fotos reales: planta en operación,
-   pantalla de plataforma, biochar, territorio, producto de cáñamo, y una banda
-   ancha de equipo en campo.
-4. **Idioma.** Propuesta: español primero, inglés completo detrás.
-5. **Editabilidad.** Si el copy tiene que cambiarse sin pasar por un dev, hay que
-   sumar un CMS liviano (~1 día de trabajo).
+Antes de escribir copy hay que cerrar el posicionamiento. Preguntas pendientes:
+
+1. **¿De dónde sale la facturación hoy?** No qué proyectos existen, sino quién
+   paga. El sitio debería optimizarse para conseguir más de eso.
+2. **¿Para qué sirve el sitio?** Clientes, inversores, socios operativos o
+   talento — no se puede optimizar para los cuatro a la vez.
+3. **¿Qué preguntan siempre en la primera reunión?** Define qué duda hay que
+   resolver arriba de todo.
+4. **¿Por qué eligen a Emisiones Neutras, y por qué la descartan?**
+5. **¿Qué debería pasar cuando alguien termina de leer la home?**
+
+Y después, lo operativo:
+
+6. **Alcance de Nexus Carbon.** Qué hace, dónde, en qué etapa.
+7. **Fotografía.** El diseño se apoya en fotos reales; no hay forma de
+   conseguirlas desde el entorno de desarrollo.
+8. **Idioma.** Propuesta: español primero, inglés completo detrás.
+9. **Editabilidad.** Si el copy tiene que cambiarse sin pasar por un dev, hay
+   que sumar un CMS liviano (~1 día de trabajo).
 
 ## Nota sobre el sitio actual
 
